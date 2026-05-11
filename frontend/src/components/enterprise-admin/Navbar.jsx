@@ -3,8 +3,20 @@ import { Bell, Command, Menu, MessageSquare, Plus, Search, Sparkles, UserRound }
 import { useState } from 'react'
 import { ThemeToggle } from './ThemeToggle.jsx'
 
-export function Navbar({ onToggleSidebar, onOpenMobile, onToggleNotifications, onNavigate }) {
+export function Navbar({
+  onToggleSidebar,
+  onOpenMobile,
+  onToggleNotifications,
+  onNavigate,
+  onOpenAi,
+  onOpenMessages,
+  onOpenQuickActions,
+  searchQuery,
+  onSearchChange,
+  searchResults = [],
+}) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const profileActions = [
     ['profile-settings', 'Profile Settings'],
@@ -23,18 +35,53 @@ export function Navbar({ onToggleSidebar, onOpenMobile, onToggleNotifications, o
           <Menu size={20} />
         </button>
 
-        <label className="hidden h-12 min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-sm text-slate-300 shadow-inner shadow-white/5 md:flex">
-          <Search size={18} />
-          <input className="w-full bg-transparent text-white outline-none placeholder:text-slate-500" placeholder="Search users, vendors, projects, invoices, prompts..." />
-          <span className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-400">
-            <Command size={12} /> K
-          </span>
-        </label>
+        <div className="relative hidden min-w-0 flex-1 md:block">
+          <label className="flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-4 text-sm text-slate-300 shadow-inner shadow-white/5">
+            <Search size={18} />
+            <input
+              value={searchQuery}
+              onFocus={() => setSearchOpen(true)}
+              onChange={(event) => {
+                onSearchChange?.(event.target.value)
+                setSearchOpen(true)
+              }}
+              className="w-full bg-transparent text-white outline-none placeholder:text-slate-500"
+              placeholder="Search users, vendors, projects, invoices, prompts..."
+            />
+            <span className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-400">
+              <Command size={12} /> K
+            </span>
+          </label>
+          {searchOpen && searchQuery ? (
+            <div className="absolute left-0 right-0 top-14 z-50 max-h-96 overflow-y-auto rounded-3xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl shadow-black/30 backdrop-blur-2xl">
+              {searchResults.length ? searchResults.slice(0, 8).map((item) => (
+                <button
+                  key={`${item.page}-${item.id}`}
+                  type="button"
+                  onClick={() => {
+                    setSearchOpen(false)
+                    onNavigate?.(item.page)
+                    onSearchChange?.('')
+                  }}
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
+                >
+                  <span>
+                    <b className="block text-white">{item.title}</b>
+                    <small className="text-slate-500">{item.meta}</small>
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">{item.label}</span>
+                </button>
+              )) : (
+                <div className="rounded-2xl px-3 py-5 text-sm font-semibold text-slate-500">No matching records found.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
 
-        <button type="button" className="hidden h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-4 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 xl:inline-flex">
+        <button type="button" onClick={onOpenQuickActions} className="hidden h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-4 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 xl:inline-flex">
           <Plus size={18} /> Quick Actions
         </button>
-        <button type="button" className="inline-flex h-11 items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 text-sm font-black text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15">
+        <button type="button" onClick={onOpenAi} className="inline-flex h-11 items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 text-sm font-black text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/15">
           <Sparkles size={18} /> <span className="hidden sm:inline">AI Assistant</span>
         </button>
         <ThemeToggle />
@@ -42,7 +89,7 @@ export function Navbar({ onToggleSidebar, onOpenMobile, onToggleNotifications, o
           <Bell size={18} />
           <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-cyan-300 ring-2 ring-slate-950"></span>
         </button>
-        <button type="button" className="hidden h-11 w-11 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/15 sm:grid" aria-label="Messages">
+        <button type="button" onClick={onOpenMessages} className="hidden h-11 w-11 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/15 sm:grid" aria-label="Messages">
           <MessageSquare size={18} />
         </button>
 

@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Bell, X } from 'lucide-react'
+import { Bell, Trash2, X } from 'lucide-react'
 
-export function NotificationPanel({ open, notifications = [], onClose }) {
+export function NotificationPanel({ open, notifications = [], onClose, onClear }) {
   return (
     <AnimatePresence>
       {open ? (
@@ -21,6 +21,10 @@ export function NotificationPanel({ open, notifications = [], onClose }) {
               <X size={18} />
             </button>
           </div>
+
+          <button type="button" onClick={onClear} className="mt-5 inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-300/20 bg-rose-300/10 px-4 text-sm font-black text-rose-100 hover:bg-rose-300/15">
+            <Trash2 size={16} /> Clear All
+          </button>
 
           <div className="mt-8 space-y-3">
             {notifications.length ? notifications.map((item) => (

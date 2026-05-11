@@ -72,6 +72,7 @@ const emptyData = {
   clientBilling: [],
   clientReports: [],
   supportRequests: [],
+  adminAccessControls: [],
   tasks: [],
   assignedTasks: [],
   deadlines: [],
@@ -119,6 +120,7 @@ const formDefaults = {
   'client-billing': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
   'client-reports': { name: '', company: '', category: '', status: 'Draft', notes: '' },
   'support-requests': { name: '', email: '', priority: 'Medium', status: 'Open', notes: '' },
+  'admin-access-control': { name: '', email: '', role: 'Admin', accessLevel: 'Full Access', status: 'Active', lastLogin: '', notes: '' },
   applications: { name: '', email: '', phone: '', role: '', department: '', location: '', status: 'Submitted', notes: '' },
   'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
   'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
@@ -166,6 +168,7 @@ const workforceRecordTypes = [
   'clientBilling',
   'clientReports',
   'supportRequests',
+  'adminAccessControls',
   'tasks',
   'assignedTasks',
   'deadlines',
@@ -199,6 +202,9 @@ function EnterpriseAdminApp() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [messagesOpen, setMessagesOpen] = useState(false)
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -208,6 +214,9 @@ function EnterpriseAdminApp() {
   const [currentAdmin, setCurrentAdmin] = useState(null)
   const [editingRecord, setEditingRecord] = useState(null)
   const [detailsRecord, setDetailsRecord] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [clearedNotifications, setClearedNotifications] = useState(false)
+  const [messages, setMessages] = useState(() => readStoredMessages())
 
   const loadMongoData = async () => {
     const coreRequests = await Promise.allSettled([
@@ -272,7 +281,8 @@ function EnterpriseAdminApp() {
   }, [activePage])
 
   const module = useMemo(() => getModuleConfig(activePage, data), [activePage, data])
-  const liveNotifications = useMemo(() => createNotifications(data), [data])
+  const liveNotifications = useMemo(() => (clearedNotifications ? [] : createNotifications(data)), [clearedNotifications, data])
+  const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
 
   const navigateAdmin = (page) => {
@@ -282,6 +292,7 @@ function EnterpriseAdminApp() {
       window.location.assign('/admin-login')
       return
     }
+    setSearchQuery('')
     setActivePage(page)
     setMobileOpen(false)
   }
@@ -451,6 +462,12 @@ function EnterpriseAdminApp() {
               onOpenMobile={() => setMobileOpen(true)}
               onToggleNotifications={() => setNotificationsOpen((open) => !open)}
               onNavigate={navigateAdmin}
+              onOpenAi={() => setAiOpen(true)}
+              onOpenMessages={() => setMessagesOpen(true)}
+              onOpenQuickActions={() => setQuickActionsOpen(true)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchResults={searchResults}
             />
 
             <div className="px-4 py-6 lg:px-7">
@@ -483,7 +500,7 @@ function EnterpriseAdminApp() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={openCreateModal} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
+                    <button type="button" onClick={supportedCreatePages.includes(activePage) ? openCreateModal : () => setQuickActionsOpen(true)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
                       <Plus size={18} /> Create Record
                     </button>
                     <button type="button" onClick={loadMongoData} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
@@ -494,7 +511,7 @@ function EnterpriseAdminApp() {
               </motion.header>
 
               {['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage) ? (
-                <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} />
+                <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
               ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : isSettingsPage(activePage) ? (
@@ -510,7 +527,49 @@ function EnterpriseAdminApp() {
           </section>
         </div>
 
-        <NotificationPanel open={notificationsOpen} notifications={liveNotifications} onClose={() => setNotificationsOpen(false)} />
+        <NotificationPanel
+          open={notificationsOpen}
+          notifications={liveNotifications}
+          onClose={() => setNotificationsOpen(false)}
+          onClear={() => {
+            setClearedNotifications(true)
+            setToast('Notifications cleared.')
+          }}
+        />
+        <AiAssistantModal open={aiOpen} data={data} onClose={() => setAiOpen(false)} onNavigate={navigateAdmin} />
+        <MessagesModal
+          open={messagesOpen}
+          messages={messages}
+          onClose={() => setMessagesOpen(false)}
+          onSend={(message) => {
+            const nextMessages = [{ id: String(Date.now()), body: message, createdAt: new Date().toISOString(), status: 'Sent' }, ...messages]
+            setMessages(nextMessages)
+            localStorage.setItem('cromgen_admin_messages', JSON.stringify(nextMessages))
+            setToast('Message saved successfully.')
+          }}
+          onClear={() => {
+            setMessages([])
+            localStorage.removeItem('cromgen_admin_messages')
+            setToast('Messages cleared.')
+          }}
+        />
+        <QuickActionsModal
+          open={quickActionsOpen}
+          activePage={activePage}
+          onClose={() => setQuickActionsOpen(false)}
+          onCreate={() => {
+            setQuickActionsOpen(false)
+            openCreateModal()
+          }}
+          onNavigate={(page) => {
+            setQuickActionsOpen(false)
+            navigateAdmin(page)
+          }}
+          onRefresh={async () => {
+            setQuickActionsOpen(false)
+            await loadMongoData()
+          }}
+        />
         <RecordModal
           open={modalOpen}
           page={activePage}
@@ -527,7 +586,7 @@ function EnterpriseAdminApp() {
   )
 }
 
-function DashboardOverview({ data, onView, onDelete }) {
+function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
   const stats = createStats(data)
   const chartData = createChartData(data)
   const pieData = createProjectPie(data.contracts)
@@ -543,6 +602,25 @@ function DashboardOverview({ data, onView, onDelete }) {
         {stats.map((card) => (
           <DashboardCard key={card.label} {...card} />
         ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-4">
+        {[
+          ['Admin Access', 'Manage control roles', 'admin-access-control'],
+          ['Messages', 'Open communication center', 'support-tickets'],
+          ['Quick Finance', 'Review invoices and wallet', 'invoice-management'],
+        ].map(([title, copy, page]) => (
+          <button key={title} type="button" onClick={() => onNavigate(page)} className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 text-left shadow-2xl shadow-black/10 backdrop-blur-2xl transition hover:-translate-y-1 hover:bg-white/[0.11]">
+            <Sparkles className="text-cyan-200" size={20} />
+            <h3 className="mt-4 text-lg font-black text-white">{title}</h3>
+            <p className="mt-2 text-sm font-semibold text-slate-400">{copy}</p>
+          </button>
+        ))}
+        <button type="button" onClick={onOpenAi} className="rounded-[28px] border border-cyan-300/20 bg-cyan-300/10 p-5 text-left shadow-2xl shadow-cyan-500/10 backdrop-blur-2xl transition hover:-translate-y-1">
+          <Bot className="text-cyan-100" size={20} />
+          <h3 className="mt-4 text-lg font-black text-white">AI Assistant</h3>
+          <p className="mt-2 text-sm font-semibold text-cyan-100/75">Generate live operational insights</p>
+        </button>
       </section>
 
       <section className="grid gap-7 xl:grid-cols-[1.35fr_0.65fr]">
@@ -607,7 +685,7 @@ function OperationsPanel({ data }) {
   const activities = [
     ...data.leads.slice(0, 2).map((lead) => ({ title: 'Lead received', copy: `${lead.name || lead.email} - ${lead.service || 'Service enquiry'}`, time: formatDate(lead.createdAt) })),
     ...data.contracts.slice(0, 2).map((contract) => ({ title: 'Project updated', copy: `${contract.title || 'Untitled'} - ${contract.status || 'pending'}`, time: formatDate(contract.createdAt) })),
-    ...data.applications.slice(0, 2).map((application) => ({ title: 'Application submitted', copy: `${application.name || application.email} - ${application.jobTitle || 'Career'}`, time: formatDate(application.createdAt) })),
+    ...data.applications.slice(0, 2).map((application) => ({ title: 'Application submitted', copy: `${application.candidate?.name || application.candidate?.email || 'Candidate'} - ${application.title || 'Career'}`, time: formatDate(application.createdAt) })),
   ].slice(0, 5)
 
   return (
@@ -713,6 +791,89 @@ function ModuleSummary({ module }) {
         </article>
       </div>
     </section>
+  )
+}
+
+function AiAssistantModal({ open, data, onClose, onNavigate }) {
+  const insights = createAiInsights(data)
+
+  return (
+    <Modal open={open} title="AI Assistant" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5">
+          <Bot className="text-cyan-100" />
+          <h3 className="mt-4 text-xl font-black text-white">Cromgen operations assistant</h3>
+          <p className="mt-2 text-sm leading-6 text-cyan-100/75">Live dashboard data se insights generate ho rahe hain. Click any suggestion to open that workspace.</p>
+        </div>
+        {insights.map((item) => (
+          <button key={item.title} type="button" onClick={() => { onClose(); onNavigate(item.page) }} className="w-full rounded-3xl border border-white/10 bg-white/[0.07] p-4 text-left hover:bg-white/[0.11]">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{item.tag}</p>
+            <h4 className="mt-2 font-black text-white">{item.title}</h4>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{item.copy}</p>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  )
+}
+
+function MessagesModal({ open, messages, onClose, onSend, onClear }) {
+  const [draft, setDraft] = useState('')
+
+  const submit = (event) => {
+    event.preventDefault()
+    if (!draft.trim()) return
+    onSend(draft.trim())
+    setDraft('')
+  }
+
+  return (
+    <Modal open={open} title="Messages" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={4} placeholder="Type internal admin message..." className="w-full rounded-3xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40" />
+        <div className="flex flex-wrap gap-3">
+          <button type="submit" className="rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950">Send Message</button>
+          <button type="button" onClick={onClear} className="rounded-2xl border border-rose-300/20 bg-rose-300/10 px-5 py-3 text-sm font-black text-rose-100">Clear Messages</button>
+        </div>
+      </form>
+      <div className="mt-6 space-y-3">
+        {messages.length ? messages.map((message) => (
+          <article key={message.id} className="rounded-3xl border border-white/10 bg-white/[0.07] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">{message.status}</span>
+              <small className="text-slate-500">{formatDate(message.createdAt)}</small>
+            </div>
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-200">{message.body}</p>
+          </article>
+        )) : (
+          <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-5 text-sm font-semibold text-slate-400">No messages yet.</div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+function QuickActionsModal({ open, activePage, onClose, onCreate, onNavigate, onRefresh }) {
+  const actions = [
+    ['Create Current Record', supportedCreatePages.includes(activePage) ? 'Open form for this page' : 'Open a module first', onCreate, supportedCreatePages.includes(activePage)],
+    ['Add Admin Access', 'Create admin access control record', () => onNavigate('admin-access-control'), true],
+    ['Open Invoices', 'Review invoice management', () => onNavigate('invoice-management'), true],
+    ['Open Support Tickets', 'Review support queue', () => onNavigate('support-tickets'), true],
+    ['Refresh Live Data', 'Sync dashboard collections', onRefresh, true],
+  ]
+
+  return (
+    <Modal open={open} title="Quick Actions" onClose={onClose}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {actions.map(([title, copy, action, enabled]) => (
+          <button key={title} type="button" disabled={!enabled} onClick={action} className="rounded-3xl border border-white/10 bg-white/[0.07] p-5 text-left transition hover:-translate-y-1 hover:bg-white/[0.11] disabled:opacity-40">
+            <Plus className="text-cyan-200" size={18} />
+            <h3 className="mt-4 font-black text-white">{title}</h3>
+            <p className="mt-2 text-sm font-semibold text-slate-400">{copy}</p>
+          </button>
+        ))}
+      </div>
+    </Modal>
   )
 }
 
@@ -1226,6 +1387,10 @@ function getModuleConfig(page, data) {
     return workforceModule('supportRequests', 'Support Requests', data.supportRequests, ['name', 'email', 'priority', 'status', 'notes', 'createdAt'])
   }
 
+  if (page === 'admin-access-control') {
+    return workforceModule('adminAccessControls', 'Admin Access Control', data.adminAccessControls, ['name', 'email', 'role', 'accessLevel', 'status', 'lastLogin', 'notes', 'createdAt'])
+  }
+
   if (workforcePageModules[page]) {
     const config = workforcePageModules[page]
     return workforceModule(config.type, config.title, data[config.type], config.fields)
@@ -1384,6 +1549,8 @@ function workforceModule(type, title, records, fields) {
       question: record.question,
       answer: record.answer,
       articleUrl: record.articleUrl,
+      accessLevel: record.accessLevel,
+      lastLogin: record.lastLogin,
       status: record.status,
       permission: record.permission,
       date: record.date,
@@ -1432,6 +1599,7 @@ function workforceTypeForPage(page) {
     'client-billing': 'clientBilling',
     'client-reports': 'clientReports',
     'support-requests': 'supportRequests',
+    'admin-access-control': 'adminAccessControls',
   }
 
   return map[page] || ''
@@ -1510,10 +1678,77 @@ function createNotifications(data) {
     })),
     ...data.applications.slice(0, 3).map((application) => ({
       title: 'New application',
-      meta: `${application.name || application.email || 'Candidate'} - ${application.jobTitle || application.role || 'Role'}`,
+      meta: `${application.candidate?.name || application.candidate?.email || 'Candidate'} - ${application.title || application.job || 'Role'}`,
       tone: 'bg-emerald-400',
     })),
   ].slice(0, 8)
+}
+
+function createAiInsights(data) {
+  const unsigned = data.contracts.filter((contract) => contract.status !== 'signed').length
+  const openTickets = data.supportTickets.filter((ticket) => !['Resolved', 'Closed'].includes(ticket.status)).length
+  const pendingWithdraws = data.withdrawRequests.filter((request) => request.status === 'Pending').length
+
+  return [
+    {
+      tag: 'Projects',
+      title: `${unsigned} project records need signature or review`,
+      copy: 'Open project workspace to check contract status, project stage, and delivery progress.',
+      page: 'project-management',
+    },
+    {
+      tag: 'Support',
+      title: `${openTickets} support tickets are still open`,
+      copy: 'Support center should resolve urgent and high priority tickets first.',
+      page: 'support-tickets',
+    },
+    {
+      tag: 'Finance',
+      title: `${pendingWithdraws} withdraw requests are pending`,
+      copy: 'Finance team can approve, reject, or mark payout requests as paid.',
+      page: 'withdraw-requests',
+    },
+    {
+      tag: 'Access',
+      title: `${data.adminAccessControls.length} admin access records configured`,
+      copy: 'Review admin roles and suspend inactive access from Admin Access Control.',
+      page: 'admin-access-control',
+    },
+  ]
+}
+
+function createSearchResults(data, query) {
+  const value = query.trim().toLowerCase()
+  if (!value) return []
+
+  const groups = [
+    ['user-management', 'Users', data.users],
+    ['vendor-management', 'Vendors', data.vendors],
+    ['project-management', 'Projects', data.contracts],
+    ['leads-management', 'Leads', data.leads],
+    ['applications', 'Applications', data.applications.map((item) => ({ ...item, name: item.candidate?.name, email: item.candidate?.email }))],
+    ['invoice-management', 'Invoices', data.invoices],
+    ['support-tickets', 'Support', data.supportTickets],
+    ['admin-access-control', 'Access', data.adminAccessControls],
+  ]
+
+  return groups.flatMap(([page, label, rows]) => (rows || []).map((row) => ({
+    id: row.id || row.slug || row.email || row.name || row.title,
+    page,
+    label,
+    title: row.name || row.title || row.company || row.email || row.invoiceNumber || 'Record',
+    meta: [row.email, row.company, row.status, row.service, row.role].filter(Boolean).join(' - '),
+    haystack: Object.values(row).join(' ').toLowerCase(),
+  }))).filter((item) => item.haystack.includes(value))
+}
+
+function readStoredMessages() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('cromgen_admin_messages') || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 }
 
 function createChartData(data) {
@@ -1697,6 +1932,15 @@ function getFormFields(page) {
       { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
       { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
       { name: 'notes', label: 'Request Details', type: 'textarea' },
+    ],
+    'admin-access-control': [
+      { name: 'name', label: 'Admin Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email', ...commonRequired },
+      { name: 'role', label: 'Role', type: 'select', options: ['Owner', 'Admin', 'Staff', 'Auditor'] },
+      { name: 'accessLevel', label: 'Access Level', type: 'select', options: ['Full Access', 'Manage', 'Read Only', 'Restricted'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Suspended', 'Pending'] },
+      { name: 'lastLogin', label: 'Last Login', type: 'date' },
+      { name: 'notes', label: 'Access Notes', type: 'textarea' },
     ],
     applications: [
       { name: 'name', label: 'Candidate Name', ...commonRequired },
@@ -1952,6 +2196,8 @@ function commonColumns(keys) {
     question: 'Question',
     answer: 'Answer',
     articleUrl: 'Article URL',
+    accessLevel: 'Access Level',
+    lastLogin: 'Last Login',
     date: 'Date',
     checkIn: 'Check In',
     checkOut: 'Check Out',

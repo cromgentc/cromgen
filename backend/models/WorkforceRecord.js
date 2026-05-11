@@ -41,6 +41,7 @@ const allowedTypes = new Set([
   'helpCenter',
   'faqs',
   'contactRequests',
+  'adminAccessControls',
 ])
 
 export function isAllowedWorkforceType(type) {
@@ -141,6 +142,8 @@ function toPublicWorkforceRecord(record) {
     question: record.question || '',
     answer: record.answer || '',
     articleUrl: record.articleUrl || '',
+    accessLevel: record.accessLevel || '',
+    lastLogin: record.lastLogin || '',
     status: record.status || '',
     permission: record.permission || '',
     date: record.date || '',
