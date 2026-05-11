@@ -34,6 +34,9 @@ const pageContent = {
 
 export function SupportPage({ type }) {
   const page = pageContent[type] || pageContent['help-center']
+  const requiresLogin = ['support-tickets', 'help-center'].includes(type)
+  const isLoggedIn = localStorage.getItem('cromgen_candidate_auth') === 'true' || Boolean(localStorage.getItem('cromgen_auth_token'))
+  const isRegistered = localStorage.getItem('cromgen_candidate_registered') === 'true' || Boolean(localStorage.getItem('cromgen_auth_token'))
   const [records, setRecords] = useState([])
   const [status, setStatus] = useState('')
   const [form, setForm] = useState({
@@ -45,6 +48,7 @@ export function SupportPage({ type }) {
   })
 
   useEffect(() => {
+    if (requiresLogin && !isLoggedIn) return
     if (page.mode === 'form') return
 
     let mounted = true
@@ -59,7 +63,7 @@ export function SupportPage({ type }) {
     return () => {
       mounted = false
     }
-  }, [page.mode, page.type])
+  }, [isLoggedIn, page.mode, page.type, requiresLogin])
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -96,7 +100,9 @@ export function SupportPage({ type }) {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-16">
-        {page.mode === 'form' ? (
+        {requiresLogin && !isLoggedIn ? (
+          <AuthGate isRegistered={isRegistered} />
+        ) : page.mode === 'form' ? (
           <form onSubmit={submit} className="grid gap-4 rounded-[24px] border border-[#d8e5e2] bg-white p-6 shadow-xl shadow-[#5c736f]/10 md:grid-cols-2">
             {status ? <p className="md:col-span-2 rounded-2xl bg-[#eaf7e6] px-4 py-3 text-sm font-black text-[#1f5f21]">{status}</p> : null}
             <SupportInput label="Name" value={form.name} onChange={(value) => updateForm('name', value)} required />
@@ -130,6 +136,28 @@ export function SupportPage({ type }) {
         )}
       </section>
     </main>
+  )
+}
+
+function AuthGate({ isRegistered }) {
+  return (
+    <section className="rounded-[24px] border border-[#d8e5e2] bg-white p-8 text-center shadow-xl shadow-[#5c736f]/10">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-[#63bc45]">Login Required</p>
+      <h2 className="mt-3 text-3xl font-black text-[#061f4d]">Please login to continue.</h2>
+      <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-7 text-[#5c736f]">
+        Support Tickets and Help Center are available after login. If you are not registered yet, create your candidate account first.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <a href="/candidate-login" className="rounded-xl bg-[#ff4b2d] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#63bc45]">
+          {isRegistered ? 'Login Now' : 'Already Registered? Login'}
+        </a>
+        {!isRegistered ? (
+          <a href="/candidate-register" className="rounded-xl border border-[#d8e5e2] bg-[#f6faf9] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-[#061f4d] transition hover:border-[#63bc45]">
+            Register Now
+          </a>
+        ) : null}
+      </div>
+    </section>
   )
 }
 
