@@ -53,6 +53,27 @@ export function Sidebar({ activePage, collapsed, mobileOpen, onCloseMobile, onNa
         {visibleNavigation.map((group) => {
           const isActive = group.items.some(([key]) => key === activePage)
           const isOpen = openGroup === group.label
+          const isDirectAction = group.items.length === 1 && group.items[0][0] === 'logout'
+          const Icon = group.icon
+
+          if (isDirectAction) {
+            return (
+              <button
+                key={group.label}
+                type="button"
+                onClick={() => {
+                  onNavigate('logout')
+                  setOpenGroup('')
+                }}
+                className="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-rose-100 transition hover:bg-rose-400/10 hover:text-white"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-400/10 text-rose-100 transition group-hover:bg-rose-400/15">
+                  <Icon size={18} />
+                </span>
+                {!collapsed ? <span className="min-w-0 flex-1 truncate">{group.label}</span> : null}
+              </button>
+            )
+          }
 
           return (
             <DropdownMenu
