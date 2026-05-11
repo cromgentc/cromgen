@@ -122,16 +122,67 @@ export async function deleteUserById(id) {
   return result.deletedCount > 0
 }
 
+export async function updateUserProfile(id, payload) {
+  if (!ObjectId.isValid(id)) return null
+
+  const fields = sanitizeProfileFields(payload)
+  await collection().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        ...fields,
+        updatedAt: new Date(),
+      },
+    },
+  )
+
+  const user = await collection().findOne({ _id: new ObjectId(id) })
+  return user ? toPublicUser(user) : null
+}
+
 export function toPublicUser(user) {
   return {
     id: String(user._id),
     name: user.name,
     email: user.email,
     role: user.role,
+    avatar: user.avatar || '',
+    title: user.title || '',
+    phone: user.phone || '',
+    location: user.location || '',
+    bio: user.bio || '',
+    socialLinks: normalizeProfileSocialLinks(user.socialLinks),
     isActive: user.isActive !== false,
     createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : '',
     updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : '',
   }
+}
+
+function sanitizeProfileFields(payload = {}) {
+  const fields = {}
+
+  for (const key of ['name', 'avatar', 'title', 'phone', 'location', 'bio']) {
+    if (typeof payload[key] === 'string') {
+      fields[key] = payload[key].trim()
+    }
+  }
+
+  if (Array.isArray(payload.socialLinks)) {
+    fields.socialLinks = normalizeProfileSocialLinks(payload.socialLinks)
+  }
+
+  return fields
+}
+
+function normalizeProfileSocialLinks(links = []) {
+  if (!Array.isArray(links)) return []
+
+  return links
+    .map((link) => ({
+      label: String(link?.label || '').trim(),
+      url: String(link?.url || '').trim(),
+    }))
+    .filter((link) => link.label || link.url)
 }
 
 function collection() {

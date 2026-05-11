@@ -225,6 +225,23 @@ function EnterpriseAdminApp() {
     }
   }
 
+  const saveProfileSettings = async (profile) => {
+    try {
+      const response = await apiRequest(AUTH_ENDPOINTS.updateCurrentUser, {
+        method: 'POST',
+        body: JSON.stringify(profile),
+      })
+      setCurrentAdmin(response.user)
+      setData((current) => ({
+        ...current,
+        users: current.users.map((user) => (user.id === response.user.id ? response.user : user)),
+      }))
+      setToast('Profile updated successfully.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Profile could not be updated.')
+    }
+  }
+
   if (loading) return <Loader />
 
   return (
@@ -296,7 +313,7 @@ function EnterpriseAdminApp() {
               {['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage) ? (
                 <DashboardOverview data={data} onDelete={deleteRecord} />
               ) : activePage === 'profile-settings' ? (
-                <ProfileSettingsPage currentAdmin={currentAdmin} />
+                <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : (
@@ -675,33 +692,97 @@ function SettingsModule({ activePage, settings, onSave }) {
   )
 }
 
-function ProfileSettingsPage({ currentAdmin }) {
-  const initials = String(currentAdmin?.name || currentAdmin?.email || 'Admin')
+function ProfileSettingsPage({ currentAdmin, onSave }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [draft, setDraft] = useState(createProfileDraft(currentAdmin))
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDraft(createProfileDraft(currentAdmin))
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [currentAdmin])
+
+  const initials = String(draft.name || draft.email || 'Admin')
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'A'
 
+  const updateDraft = (field, value) => {
+    setDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateSocialLink = (index, field, value) => {
+    setDraft((current) => ({
+      ...current,
+      socialLinks: (current.socialLinks || []).map((link, itemIndex) => (
+        itemIndex === index ? { ...link, [field]: value } : link
+      )),
+    }))
+  }
+
+  const addSocialLink = () => {
+    setDraft((current) => ({
+      ...current,
+      socialLinks: [...(current.socialLinks || []), { label: '', url: '' }],
+    }))
+    setIsEditing(true)
+  }
+
+  const removeSocialLink = (index) => {
+    setDraft((current) => ({
+      ...current,
+      socialLinks: (current.socialLinks || []).filter((_, itemIndex) => itemIndex !== index),
+    }))
+  }
+
+  const updateAvatar = async (file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    updateDraft('avatar', dataUrl)
+    setIsEditing(true)
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    await onSave(draft)
+    setSaving(false)
+    setIsEditing(false)
+  }
+
   return (
     <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="grid gap-7 xl:grid-cols-[0.75fr_1.25fr]">
       <article className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
         <div className="flex items-center gap-4">
-          <div className="grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-500 text-2xl font-black text-white shadow-lg shadow-cyan-500/20">
-            {initials}
-          </div>
+          {draft.avatar ? (
+            <img src={draft.avatar} alt="Admin avatar" className="h-20 w-20 rounded-3xl object-cover shadow-lg shadow-cyan-500/20" />
+          ) : (
+            <div className="grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-500 text-2xl font-black text-white shadow-lg shadow-cyan-500/20">
+              {initials}
+            </div>
+          )}
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Admin Profile</p>
-            <h2 className="mt-2 text-2xl font-black text-white">{currentAdmin?.name || 'Admin User'}</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-400">{currentAdmin?.email || 'No email available'}</p>
+            <h2 className="mt-2 text-2xl font-black text-white">{draft.name || 'Admin User'}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-400">{draft.email || 'No email available'}</p>
           </div>
         </div>
 
+        <label className="mt-6 block rounded-3xl border border-dashed border-cyan-300/30 bg-cyan-300/10 p-4 text-center text-sm font-bold text-cyan-100">
+          Change Profile Image
+          <input type="file" accept="image/*" onChange={(event) => updateAvatar(event.target.files?.[0])} className="hidden" />
+        </label>
+
         <div className="mt-7 grid gap-3">
           {[
-            ['Role', currentAdmin?.role || 'admin'],
+            ['Role', draft.role || 'admin'],
             ['Account Status', currentAdmin ? 'Active' : 'Not loaded'],
-            ['User ID', currentAdmin?.id || '-'],
+            ['User ID', draft.id || '-'],
           ].map(([label, value]) => (
             <div key={label} className="rounded-2xl bg-slate-950/35 p-4">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</p>
@@ -711,34 +792,77 @@ function ProfileSettingsPage({ currentAdmin }) {
         </div>
       </article>
 
-      <article className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
-        <div className="mb-6">
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Profile Settings</p>
-          <h2 className="mt-2 text-2xl font-black text-white">Account Details</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Profile information is loaded from the authenticated admin account. Editing support can be connected when a profile update API is added.
-          </p>
+      <form onSubmit={submit} className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Profile Settings</p>
+            <h2 className="mt-2 text-2xl font-black text-white">Account Details</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Edit your admin profile, add details, and connect social profiles.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setIsEditing((value) => !value)} className="rounded-2xl bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-white/15">
+              {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+            </button>
+            <button type="submit" disabled={!isEditing || saving} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-4 py-2 text-sm font-black text-slate-950 disabled:opacity-50">
+              {saving ? 'Updating...' : 'Update Profile'}
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <label>
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Name</span>
-            <input readOnly value={currentAdmin?.name || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+            <input readOnly={!isEditing} value={draft.name || ''} onChange={(event) => updateDraft('name', event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
           </label>
           <label>
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Email</span>
-            <input readOnly value={currentAdmin?.email || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+            <input readOnly value={draft.email || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-slate-400 outline-none" />
           </label>
           <label>
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Role</span>
-            <input readOnly value={currentAdmin?.role || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+            <input readOnly value={draft.role || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-slate-400 outline-none" />
           </label>
           <label>
-            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Security</span>
-            <input readOnly value="JWT authenticated session" className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Title</span>
+            <input readOnly={!isEditing} value={draft.title || ''} onChange={(event) => updateDraft('title', event.target.value)} placeholder="Operations Director" className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Phone</span>
+            <input readOnly={!isEditing} value={draft.phone || ''} onChange={(event) => updateDraft('phone', event.target.value)} placeholder="+1 555 000 0000" className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Location</span>
+            <input readOnly={!isEditing} value={draft.location || ''} onChange={(event) => updateDraft('location', event.target.value)} placeholder="New York, USA" className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+          </label>
+          <label className="md:col-span-2">
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Details / Bio</span>
+            <textarea readOnly={!isEditing} rows={4} value={draft.bio || ''} onChange={(event) => updateDraft('bio', event.target.value)} placeholder="Add profile details, responsibilities, or admin notes..." className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
           </label>
         </div>
-      </article>
+
+        <div className="mt-7 rounded-3xl border border-white/10 bg-slate-950/25 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Social Connect</p>
+              <h3 className="mt-1 text-lg font-black text-white">Connected Profiles</h3>
+            </div>
+            <button type="button" onClick={addSocialLink} className="rounded-2xl bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-white/15">Add Social</button>
+          </div>
+          <div className="space-y-3">
+            {(draft.socialLinks || []).length ? draft.socialLinks.map((link, index) => (
+              <div key={`${link.label}-${index}`} className="grid gap-3 md:grid-cols-[1fr_1.5fr_auto]">
+                <input readOnly={!isEditing} value={link.label || ''} placeholder="LinkedIn" onChange={(event) => updateSocialLink(index, 'label', event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+                <input readOnly={!isEditing} value={link.url || ''} placeholder="https://..." onChange={(event) => updateSocialLink(index, 'url', event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+                <button type="button" disabled={!isEditing} onClick={() => removeSocialLink(index)} className="rounded-2xl bg-rose-400/10 px-4 py-2 text-sm font-black text-rose-200 hover:bg-rose-400/15 disabled:opacity-40">Remove</button>
+              </div>
+            )) : (
+              <div className="rounded-2xl bg-slate-950/35 p-4 text-sm font-semibold text-slate-400">No social profiles connected yet.</div>
+            )}
+          </div>
+        </div>
+      </form>
     </motion.section>
   )
 }
@@ -939,6 +1063,21 @@ function createEmptySiteSettings() {
       adminEmail: '',
     },
     socialLinks: [],
+  }
+}
+
+function createProfileDraft(user) {
+  return {
+    id: user?.id || '',
+    name: user?.name || '',
+    email: user?.email || '',
+    role: user?.role || '',
+    avatar: user?.avatar || '',
+    title: user?.title || '',
+    phone: user?.phone || '',
+    location: user?.location || '',
+    bio: user?.bio || '',
+    socialLinks: Array.isArray(user?.socialLinks) ? user.socialLinks : [],
   }
 }
 

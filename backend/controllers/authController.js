@@ -5,6 +5,7 @@ import {
   findActiveUserById,
   findUsers,
   toPublicUser,
+  updateUserProfile,
   updateUserStatus,
 } from '../models/User.js'
 import {
@@ -90,6 +91,27 @@ export async function currentUser(request) {
   return json(200, {
     ok: true,
     user: toPublicUser(user),
+  })
+}
+
+export async function updateCurrentUser(request) {
+  const token = getBearerToken(request)
+  const payload = token ? verifyToken(token) : null
+  if (!payload?.sub) return unauthorized('Authorization token is required')
+
+  const existing = await findActiveUserById(payload.sub)
+  if (!existing || !['admin', 'staff'].includes(existing.role)) {
+    return unauthorized('Invalid login details')
+  }
+
+  const body = await readJson(request)
+  const user = await updateUserProfile(payload.sub, body)
+  if (!user) return notFound('User not found')
+
+  return json(200, {
+    ok: true,
+    message: 'Profile updated successfully',
+    user,
   })
 }
 
