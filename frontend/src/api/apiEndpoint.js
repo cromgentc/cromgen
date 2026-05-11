@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-export const API_ENDPOINT = (import.meta.env.VITE_API_ENDPOINT || '').replace(/\/$/, '')
+const fallbackApiEndpoint = import.meta.env.DEV ? '' : 'https://cromgen.onrender.com'
+
+export const API_ENDPOINT = (import.meta.env.VITE_API_ENDPOINT || fallbackApiEndpoint).replace(/\/$/, '')
 
 export const apiClient = axios.create({
   baseURL: API_ENDPOINT || '/',
