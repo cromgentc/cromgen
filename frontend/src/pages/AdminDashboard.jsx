@@ -44,6 +44,13 @@ const emptyJobForm = {
   summary: '',
 }
 
+const emptyUserForm = {
+  name: '',
+  email: '',
+  password: '',
+  role: 'staff',
+}
+
 const emptyContractForm = {
   title: '',
   recipientName: '',
@@ -94,14 +101,17 @@ export function AdminDashboard() {
   const [activeSlug, setActiveSlug] = useState('')
   const [formData, setFormData] = useState(null)
   const [siteSettings, setSiteSettings] = useState(null)
+  const [userForm, setUserForm] = useState(emptyUserForm)
   const [jobForm, setJobForm] = useState(emptyJobForm)
   const [editingJobSlug, setEditingJobSlug] = useState('')
   const [contractForm, setContractForm] = useState(emptyContractForm)
   const [editingContractId, setEditingContractId] = useState('')
   const [postedJobs, setPostedJobs] = useState([])
+  const [users, setUsers] = useState([])
   const [leads, setLeads] = useState([])
   const [applications, setApplications] = useState([])
   const [selectedLeadIds, setSelectedLeadIds] = useState([])
+  const [selectedUserIds, setSelectedUserIds] = useState([])
   const [selectedJobSlugs, setSelectedJobSlugs] = useState([])
   const [selectedApplicationIds, setSelectedApplicationIds] = useState([])
   const [selectedContractIds, setSelectedContractIds] = useState([])
@@ -129,6 +139,7 @@ export function AdminDashboard() {
       loadPolicies(),
       loadSiteSettings(),
       loadCurrentUser(),
+      loadUsers(),
       loadLeads(),
       loadApplications(),
       loadContracts(),
@@ -141,6 +152,7 @@ export function AdminDashboard() {
 
     const intervalId = window.setInterval(() => {
       loadLeads()
+      loadUsers()
       loadApplications()
       loadContracts()
       loadJobPosts()
@@ -171,6 +183,16 @@ export function AdminDashboard() {
       job.experience,
     ].some((value) => String(value || '').toLowerCase().includes(searchTerm)))
   }, [postedJobs, searchTerm])
+
+  const visibleUsers = useMemo(() => {
+    if (!searchTerm) return users
+    return users.filter((user) => [
+      user.name,
+      user.email,
+      user.role,
+      user.isActive ? 'active' : 'suspended',
+    ].some((value) => String(value || '').toLowerCase().includes(searchTerm)))
+  }, [users, searchTerm])
 
   const visibleContracts = useMemo(() => {
     if (!searchTerm) return contracts
@@ -212,10 +234,12 @@ export function AdminDashboard() {
   }, [applications, searchTerm])
 
   const selectedVisibleLeadIds = visibleLeads.map((lead) => lead.id).filter(Boolean)
+  const selectedVisibleUserIds = visibleUsers.map((user) => user.id).filter(Boolean)
   const selectedVisibleJobSlugs = visibleJobs.map((job) => job.slug).filter(Boolean)
   const selectedVisibleApplicationIds = visibleApplications.map((application) => application.id).filter(Boolean)
   const selectedVisibleContractIds = visibleContracts.map((contract) => contract.signingToken || contract.slug).filter(Boolean)
   const areVisibleLeadsSelected = selectedVisibleLeadIds.length > 0 && selectedVisibleLeadIds.every((id) => selectedLeadIds.includes(id))
+  const areVisibleUsersSelected = selectedVisibleUserIds.length > 0 && selectedVisibleUserIds.every((id) => selectedUserIds.includes(id))
   const areVisibleJobsSelected = selectedVisibleJobSlugs.length > 0 && selectedVisibleJobSlugs.every((slug) => selectedJobSlugs.includes(slug))
   const areVisibleApplicationsSelected = selectedVisibleApplicationIds.length > 0 && selectedVisibleApplicationIds.every((id) => selectedApplicationIds.includes(id))
   const areVisibleContractsSelected = selectedVisibleContractIds.length > 0 && selectedVisibleContractIds.every((id) => selectedContractIds.includes(id))
@@ -280,6 +304,19 @@ export function AdminDashboard() {
       }
     } catch {
       setCurrentAdmin(getStoredAdminUser())
+    }
+  }
+
+  async function loadUsers() {
+    try {
+      const data = await apiRequest(AUTH_ENDPOINTS.settingsUsers)
+      setUsers(data.users || [])
+      setSelectedUserIds((current) => current.filter((id) => (data.users || []).some((user) => user.id === id)))
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to load users.',
+      })
     }
   }
 
@@ -535,9 +572,39 @@ export function AdminDashboard() {
     setJobForm((current) => ({ ...current, [field]: value }))
   }
 
+  const updateUserField = (field, value) => {
+    setUserForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const addUser = async (event) => {
+    event.preventDefault()
+
+    try {
+      const data = await apiRequest(AUTH_ENDPOINTS.settingsUsers, {
+        method: 'POST',
+        body: JSON.stringify(userForm),
+      })
+      setUsers((current) => [data.user, ...current])
+      setUserForm(emptyUserForm)
+      setStatus({ type: 'success', message: 'User added successfully.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to add user.',
+      })
+    }
+  }
+
   const toggleLeadSelection = (id) => {
     if (!id) return
     setSelectedLeadIds((current) => (
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    ))
+  }
+
+  const toggleUserSelection = (id) => {
+    if (!id) return
+    setSelectedUserIds((current) => (
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     ))
   }
@@ -568,6 +635,14 @@ export function AdminDashboard() {
       areVisibleLeadsSelected
         ? current.filter((id) => !selectedVisibleLeadIds.includes(id))
         : [...new Set([...current, ...selectedVisibleLeadIds])]
+    ))
+  }
+
+  const toggleVisibleUsers = () => {
+    setSelectedUserIds((current) => (
+      areVisibleUsersSelected
+        ? current.filter((id) => !selectedVisibleUserIds.includes(id))
+        : [...new Set([...current, ...selectedVisibleUserIds])]
     ))
   }
 
@@ -615,6 +690,19 @@ export function AdminDashboard() {
         lead.service,
         lead.query,
         lead.createdAt ? new Date(lead.createdAt).toLocaleString() : '',
+      ]),
+    ])
+  }
+
+  const downloadUsersCsv = () => {
+    downloadCsv('cromgen-users.csv', [
+      ['Name', 'Email', 'Role', 'Status', 'Created'],
+      ...visibleUsers.map((user) => [
+        user.name,
+        user.email,
+        user.role,
+        user.isActive ? 'Active' : 'Suspended',
+        user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
       ]),
     ])
   }
@@ -883,6 +971,56 @@ export function AdminDashboard() {
       setStatus({ type: 'success', message: 'Lead deleted.' })
     } catch (error) {
       setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Unable to delete lead.' })
+    }
+  }
+
+  const updateUserStatus = async (user) => {
+    if (!user?.id) return
+
+    try {
+      const data = await apiRequest(AUTH_ENDPOINTS.settingsUserStatus(user.id), {
+        method: 'POST',
+        body: JSON.stringify({ isActive: !user.isActive }),
+      })
+      setUsers((current) => current.map((item) => (item.id === user.id ? data.user : item)))
+      setStatus({ type: 'success', message: data.message || 'User status updated.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to update user status.',
+      })
+    }
+  }
+
+  const deleteUser = async (id) => {
+    if (!id) return
+
+    try {
+      await apiRequest(AUTH_ENDPOINTS.settingsUserDelete(id), { method: 'DELETE' })
+      setUsers((current) => current.filter((user) => user.id !== id))
+      setSelectedUserIds((current) => current.filter((item) => item !== id))
+      setStatus({ type: 'success', message: 'User deleted.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to delete user.',
+      })
+    }
+  }
+
+  const deleteSelectedUsers = async () => {
+    if (!selectedUserIds.length) return
+
+    try {
+      await Promise.all(selectedUserIds.map((id) => apiRequest(AUTH_ENDPOINTS.settingsUserDelete(id), { method: 'DELETE' })))
+      setUsers((current) => current.filter((user) => !selectedUserIds.includes(user.id)))
+      setSelectedUserIds([])
+      setStatus({ type: 'success', message: 'Selected users deleted.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to delete selected users.',
+      })
     }
   }
 
@@ -1167,28 +1305,132 @@ export function AdminDashboard() {
         <div className="admin-content-scroll">
           {activeMenu === 'profile' ? (
             <section className="admin-profile-page">
-              <div className="admin-profile-hero">
-                <div className="admin-profile-avatar">{adminInitials}</div>
-                <div>
-                  <span>Admin Profile</span>
-                  <h2>{adminName}</h2>
-                  <p>{currentAdmin?.email || 'No email available'}</p>
+              <form className="admin-policy-editor" onSubmit={addUser}>
+                <div className="admin-editor-head">
+                  <div>
+                    <span>Users</span>
+                    <h2>Add User</h2>
+                  </div>
+                  <button type="submit">Add User</button>
                 </div>
-              </div>
 
-              <div className="admin-profile-grid">
-                {[
-                  ['Name', currentAdmin?.name || '-'],
-                  ['Email', currentAdmin?.email || '-'],
-                  ['Role', currentAdmin?.role || role || '-'],
-                  ['Account Status', 'Active'],
-                ].map(([label, value]) => (
-                  <article key={label}>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
-                  </article>
-                ))}
-              </div>
+                {status.message ? (
+                  <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>
+                    {status.message}
+                  </p>
+                ) : null}
+
+                <div className="admin-form-grid">
+                  <label>
+                    <span>Name</span>
+                    <input
+                      value={userForm.name}
+                      placeholder="User name"
+                      onChange={(event) => updateUserField('name', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={userForm.email}
+                      placeholder="user@example.com"
+                      onChange={(event) => updateUserField('email', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      value={userForm.password}
+                      placeholder="Set login password"
+                      onChange={(event) => updateUserField('password', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Role</span>
+                    <select
+                      value={userForm.role}
+                      onChange={(event) => updateUserField('role', event.target.value)}
+                    >
+                      <option value="staff">Staff</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+
+              <section className="admin-policy-editor">
+                <div className="admin-editor-head">
+                  <div>
+                    <span>Users</span>
+                    <h2>User Table</h2>
+                  </div>
+                  <div className="admin-editor-actions">
+                    <button type="button" onClick={downloadUsersCsv}>Download All</button>
+                    <button type="button" onClick={deleteSelectedUsers} disabled={!selectedUserIds.length}>Delete Selected</button>
+                  </div>
+                </div>
+
+                <div className="admin-table-wrap">
+                  <table className="admin-applications-table">
+                    <thead>
+                      <tr>
+                        <th>
+                          <input
+                            type="checkbox"
+                            checked={areVisibleUsersSelected}
+                            onChange={toggleVisibleUsers}
+                          />
+                        </th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleUsers.length ? visibleUsers.map((user) => (
+                        <tr key={user.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedUserIds.includes(user.id)}
+                              onChange={() => toggleUserSelection(user.id)}
+                            />
+                          </td>
+                          <td>{user.name}</td>
+                          <td>{user.email}</td>
+                          <td>{user.role}</td>
+                          <td>
+                            <span className={`admin-status-pill is-${user.isActive ? 'active' : 'pending'}`}>
+                              {user.isActive ? 'Active' : 'Suspended'}
+                            </span>
+                          </td>
+                          <td>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}</td>
+                          <td>
+                            <button type="button" onClick={() => updateUserStatus(user)}>
+                              {user.isActive ? 'Suspend' : 'Activate'}
+                            </button>
+                            <button type="button" onClick={() => deleteUser(user.id)}>
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="7">No users added yet.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </section>
           ) : activeMenu === 'career-jobs' ? (
             <section className="admin-policy-editor">

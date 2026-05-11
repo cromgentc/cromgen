@@ -1,7 +1,18 @@
-import { createUser, findActiveUserByEmailAndRole, findActiveUserById, toPublicUser } from '../models/User.js'
+import {
+  createUser,
+  deleteUserById,
+  findActiveUserByEmailAndRole,
+  findActiveUserById,
+  findUsers,
+  toPublicUser,
+  updateUserStatus,
+} from '../models/User.js'
 import { createVendor, findVendorByEmail, toPublicVendor } from '../models/Vendor.js'
-import { json, readJson, unauthorized, validationError } from '../utils/http.js'
+import { forbidden, json, notFound, readJson, unauthorized, validationError } from '../utils/http.js'
+import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
+
+const adminOnly = requireRole(['admin'])
 
 export function authRouteInfo(_request, params = {}) {
   return json(200, {
@@ -72,6 +83,83 @@ export async function currentUser(request) {
   return json(200, {
     ok: true,
     user: toPublicUser(user),
+  })
+}
+
+export async function listSettingUsers(request) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  return json(200, {
+    ok: true,
+    users: await findUsers(),
+  })
+}
+
+export async function createSettingUser(request) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+  const { name, email, password, role = 'staff' } = body
+
+  if (!name || !email || !password) {
+    return validationError('Name, email, and password are required')
+  }
+
+  if (!['admin', 'staff'].includes(role)) {
+    return validationError('Role must be admin or staff')
+  }
+
+  try {
+    const user = await createUser({ name, email, password, role })
+    return json(201, {
+      ok: true,
+      message: 'User added successfully',
+      user: toPublicUser(user),
+    })
+  } catch (error) {
+    if (error?.code === 11000) {
+      return validationError('User email is already registered')
+    }
+
+    throw error
+  }
+}
+
+export async function updateSettingUserStatus(request, { id }) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  if (auth.payload?.sub === id) {
+    return forbidden('You cannot suspend your own account')
+  }
+
+  const body = await readJson(request)
+  const user = await updateUserStatus(id, body.isActive)
+  if (!user) return notFound('User not found')
+
+  return json(200, {
+    ok: true,
+    message: user.isActive ? 'User activated.' : 'User suspended.',
+    user,
+  })
+}
+
+export async function deleteSettingUser(request, { id }) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  if (auth.payload?.sub === id) {
+    return forbidden('You cannot delete your own account')
+  }
+
+  const deleted = await deleteUserById(id)
+  if (!deleted) return notFound('User not found')
+
+  return json(200, {
+    ok: true,
+    message: 'User deleted',
   })
 }
 

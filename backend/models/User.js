@@ -58,6 +58,15 @@ export function findActiveUserById(id) {
   })
 }
 
+export async function findUsers() {
+  const users = await collection()
+    .find({}, { projection: { passwordHash: 0 } })
+    .sort({ createdAt: -1 })
+    .toArray()
+
+  return users.map(toPublicUser)
+}
+
 export function countUsersByRole(role) {
   return collection().countDocuments({
     role,
@@ -67,9 +76,17 @@ export function countUsersByRole(role) {
 
 export async function createUser({ name, email, password, role }) {
   const now = new Date()
+  const normalizedEmail = String(email).trim().toLowerCase()
+  const existing = await collection().findOne({ email: normalizedEmail, role })
+  if (existing) {
+    const error = new Error('User email is already registered')
+    error.code = 11000
+    throw error
+  }
+
   const user = {
     name: String(name || role).trim(),
-    email: String(email).trim().toLowerCase(),
+    email: normalizedEmail,
     role,
     passwordHash: hashPassword(password),
     isActive: true,
@@ -81,12 +98,39 @@ export async function createUser({ name, email, password, role }) {
   return { ...user, _id: result.insertedId }
 }
 
+export async function updateUserStatus(id, isActive) {
+  if (!ObjectId.isValid(id)) return null
+
+  await collection().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        isActive: Boolean(isActive),
+        updatedAt: new Date(),
+      },
+    },
+  )
+
+  const user = await collection().findOne({ _id: new ObjectId(id) })
+  return user ? toPublicUser(user) : null
+}
+
+export async function deleteUserById(id) {
+  if (!ObjectId.isValid(id)) return false
+
+  const result = await collection().deleteOne({ _id: new ObjectId(id) })
+  return result.deletedCount > 0
+}
+
 export function toPublicUser(user) {
   return {
     id: String(user._id),
     name: user.name,
     email: user.email,
     role: user.role,
+    isActive: user.isActive !== false,
+    createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : '',
+    updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : '',
   }
 }
 

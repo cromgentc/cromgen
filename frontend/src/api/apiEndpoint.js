@@ -5,6 +5,9 @@ export const AUTH_ENDPOINTS = {
   adminLogin: '/api/auth/admin/login',
   staffLogin: '/api/auth/staff/login',
   currentUser: '/api/auth/me',
+  settingsUsers: '/api/settings/users',
+  settingsUserStatus: (id) => `/api/settings/users/${encodeURIComponent(id)}/status`,
+  settingsUserDelete: (id) => `/api/settings/users/${encodeURIComponent(id)}`,
   vendorRegister: '/api/auth/vendor/register',
   vendorLogin: '/api/auth/vendor/login',
 }
