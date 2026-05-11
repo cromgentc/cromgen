@@ -81,6 +81,7 @@ function EnterpriseAdminApp() {
   const [toast, setToast] = useState('')
   const [data, setData] = useState(emptyData)
   const [form, setForm] = useState(formDefaults['user-management'])
+  const [currentAdmin, setCurrentAdmin] = useState(null)
 
   const loadMongoData = async () => {
     const requests = await Promise.allSettled([
@@ -91,9 +92,10 @@ function EnterpriseAdminApp() {
       apiRequest(APPLICATION_ENDPOINTS.settingsList),
       apiRequest(JOB_ENDPOINTS.settingsList),
       apiRequest(SITE_ENDPOINTS.settingsDetail),
+      apiRequest(AUTH_ENDPOINTS.currentUser),
     ])
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings] = requests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser] = requests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
 
@@ -106,6 +108,7 @@ function EnterpriseAdminApp() {
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
     })
+    setCurrentAdmin(currentUser.user || null)
 
     const failedCount = requests.filter((result) => result.status === 'rejected').length
     setToast(failedCount ? `${failedCount} data collections could not load. Check backend login/API.` : 'Live data synced.')
@@ -135,6 +138,17 @@ function EnterpriseAdminApp() {
   const module = useMemo(() => getModuleConfig(activePage, data), [activePage, data])
   const liveNotifications = useMemo(() => createNotifications(data), [data])
   const PageIcon = pageMeta.icon
+
+  const navigateAdmin = (page) => {
+    if (page === 'logout') {
+      localStorage.removeItem('cromgen_auth_token')
+      localStorage.removeItem('cromgen_auth_role')
+      window.location.assign('/admin-login')
+      return
+    }
+    setActivePage(page)
+    setMobileOpen(false)
+  }
 
   const openCreateModal = () => {
     if (!supportedCreatePages.includes(activePage)) {
@@ -228,16 +242,7 @@ function EnterpriseAdminApp() {
             collapsed={collapsed}
             mobileOpen={mobileOpen}
             onCloseMobile={() => setMobileOpen(false)}
-            onNavigate={(page) => {
-              if (page === 'logout') {
-                localStorage.removeItem('cromgen_auth_token')
-                localStorage.removeItem('cromgen_auth_role')
-                window.location.assign('/admin-login')
-                return
-              }
-              setActivePage(page)
-              setMobileOpen(false)
-            }}
+            onNavigate={navigateAdmin}
           />
 
           <section className="h-screen min-w-0 flex-1 overflow-y-auto">
@@ -245,6 +250,7 @@ function EnterpriseAdminApp() {
               onToggleSidebar={() => setCollapsed((value) => !value)}
               onOpenMobile={() => setMobileOpen(true)}
               onToggleNotifications={() => setNotificationsOpen((open) => !open)}
+              onNavigate={navigateAdmin}
             />
 
             <div className="px-4 py-6 lg:px-7">
@@ -289,6 +295,8 @@ function EnterpriseAdminApp() {
 
               {['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage) ? (
                 <DashboardOverview data={data} onDelete={deleteRecord} />
+              ) : activePage === 'profile-settings' ? (
+                <ProfileSettingsPage currentAdmin={currentAdmin} />
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : (
@@ -664,6 +672,74 @@ function SettingsModule({ activePage, settings, onSave }) {
         </section>
       )}
     </motion.form>
+  )
+}
+
+function ProfileSettingsPage({ currentAdmin }) {
+  const initials = String(currentAdmin?.name || currentAdmin?.email || 'Admin')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'A'
+
+  return (
+    <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="grid gap-7 xl:grid-cols-[0.75fr_1.25fr]">
+      <article className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <div className="flex items-center gap-4">
+          <div className="grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-500 text-2xl font-black text-white shadow-lg shadow-cyan-500/20">
+            {initials}
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Admin Profile</p>
+            <h2 className="mt-2 text-2xl font-black text-white">{currentAdmin?.name || 'Admin User'}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-400">{currentAdmin?.email || 'No email available'}</p>
+          </div>
+        </div>
+
+        <div className="mt-7 grid gap-3">
+          {[
+            ['Role', currentAdmin?.role || 'admin'],
+            ['Account Status', currentAdmin ? 'Active' : 'Not loaded'],
+            ['User ID', currentAdmin?.id || '-'],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl bg-slate-950/35 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</p>
+              <p className="mt-2 text-sm font-bold text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <div className="mb-6">
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Profile Settings</p>
+          <h2 className="mt-2 text-2xl font-black text-white">Account Details</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Profile information is loaded from the authenticated admin account. Editing support can be connected when a profile update API is added.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Name</span>
+            <input readOnly value={currentAdmin?.name || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Email</span>
+            <input readOnly value={currentAdmin?.email || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Role</span>
+            <input readOnly value={currentAdmin?.role || ''} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Security</span>
+            <input readOnly value="JWT authenticated session" className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none" />
+          </label>
+        </div>
+      </article>
+    </motion.section>
   )
 }
 

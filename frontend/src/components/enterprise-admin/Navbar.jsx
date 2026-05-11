@@ -3,8 +3,15 @@ import { Bell, Command, Menu, MessageSquare, Plus, Search, Sparkles, UserRound }
 import { useState } from 'react'
 import { ThemeToggle } from './ThemeToggle.jsx'
 
-export function Navbar({ onToggleSidebar, onOpenMobile, onToggleNotifications }) {
+export function Navbar({ onToggleSidebar, onOpenMobile, onToggleNotifications, onNavigate }) {
   const [profileOpen, setProfileOpen] = useState(false)
+
+  const profileActions = [
+    ['profile-settings', 'Profile Settings'],
+    ['admin-access-control', 'Admin Access Control'],
+    ['client-billing', 'Billing Workspace'],
+    ['logout', 'Logout'],
+  ]
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/55 px-4 py-4 shadow-xl shadow-black/5 backdrop-blur-2xl lg:px-7">
@@ -55,9 +62,17 @@ export function Navbar({ onToggleSidebar, onOpenMobile, onToggleNotifications })
                 exit={{ opacity: 0, y: 10, scale: 0.96 }}
                 className="absolute right-0 mt-3 w-64 rounded-3xl border border-white/10 bg-slate-950/95 p-3 text-white shadow-2xl shadow-black/30 backdrop-blur-2xl"
               >
-                {['Profile Settings', 'Admin Access Control', 'Billing Workspace', 'Logout'].map((item) => (
-                  <button key={item} type="button" className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white">
-                    <UserRound size={16} /> {item}
+                {profileActions.map(([target, label]) => (
+                  <button
+                    key={target}
+                    type="button"
+                    onClick={() => {
+                      setProfileOpen(false)
+                      onNavigate?.(target)
+                    }}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <UserRound size={16} /> {label}
                   </button>
                 ))}
               </motion.div>
