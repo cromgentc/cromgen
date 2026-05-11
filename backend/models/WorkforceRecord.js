@@ -1,7 +1,22 @@
 import { ObjectId } from 'mongodb'
 import { getDB } from '../config/db.js'
 
-const allowedTypes = new Set(['teams', 'roles', 'attendance', 'performance', 'candidates'])
+const allowedTypes = new Set([
+  'teams',
+  'roles',
+  'attendance',
+  'performance',
+  'candidates',
+  'agencies',
+  'partners',
+  'vendorPerformance',
+  'vendorPayouts',
+  'clients',
+  'clientProjects',
+  'clientBilling',
+  'clientReports',
+  'supportRequests',
+])
 
 export function isAllowedWorkforceType(type) {
   return allowedTypes.has(type)
@@ -74,6 +89,14 @@ function toPublicWorkforceRecord(record) {
     email: record.email || '',
     role: record.role || '',
     department: record.department || '',
+    company: record.company || '',
+    contact: record.contact || '',
+    phone: record.phone || '',
+    project: record.project || '',
+    amount: record.amount || '',
+    dueDate: record.dueDate || '',
+    priority: record.priority || '',
+    category: record.category || '',
     status: record.status || '',
     permission: record.permission || '',
     date: record.date || '',

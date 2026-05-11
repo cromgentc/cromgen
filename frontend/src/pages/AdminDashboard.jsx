@@ -63,6 +63,15 @@ const emptyData = {
   roles: [],
   attendance: [],
   performance: [],
+  agencies: [],
+  partners: [],
+  vendorPerformance: [],
+  vendorPayouts: [],
+  clients: [],
+  clientProjects: [],
+  clientBilling: [],
+  clientReports: [],
+  supportRequests: [],
 }
 
 const formDefaults = {
@@ -76,12 +85,22 @@ const formDefaults = {
   'role-permissions': { name: 'Dashboard', role: 'User', permission: 'Read', status: 'Active', notes: '' },
   attendance: { name: '', email: '', date: '', checkIn: '', checkOut: '', status: 'Present', notes: '' },
   'team-performance': { name: '', role: '', department: '', score: '', status: 'On Track', notes: '' },
+  'agency-management': { name: '', company: '', email: '', phone: '', status: 'Active', notes: '' },
+  'partner-network': { name: '', company: '', email: '', category: '', status: 'Active', notes: '' },
+  'vendor-performance': { name: '', company: '', score: '', status: 'On Track', notes: '' },
+  'vendor-payouts': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
+  clients: { name: '', company: '', email: '', phone: '', status: 'Active', notes: '' },
+  'client-projects': { name: '', company: '', project: '', status: 'Active', dueDate: '', notes: '' },
+  'client-billing': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
+  'client-reports': { name: '', company: '', category: '', status: 'Draft', notes: '' },
+  'support-requests': { name: '', email: '', priority: 'Medium', status: 'Open', notes: '' },
 }
 
 const supportedCreatePages = Object.keys(formDefaults)
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
+const workforceRecordTypes = ['candidates', 'teams', 'roles', 'attendance', 'performance', 'agencies', 'partners', 'vendorPerformance', 'vendorPayouts', 'clients', 'clientProjects', 'clientBilling', 'clientReports', 'supportRequests']
 
 function EnterpriseAdminApp() {
   const { isDark } = useAdminTheme()
@@ -114,9 +133,18 @@ function EnterpriseAdminApp() {
       apiRequest(WORKFORCE_ENDPOINTS.settingsList('roles')),
       apiRequest(WORKFORCE_ENDPOINTS.settingsList('attendance')),
       apiRequest(WORKFORCE_ENDPOINTS.settingsList('performance')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('agencies')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('partners')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('vendorPerformance')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('vendorPayouts')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clients')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clientProjects')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clientBilling')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clientReports')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('supportRequests')),
     ])
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, candidates, teams, roles, attendance, performance] = requests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, candidates, teams, roles, attendance, performance, agencies, partners, vendorPerformance, vendorPayouts, clients, clientProjects, clientBilling, clientReports, supportRequests] = requests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
 
@@ -133,6 +161,15 @@ function EnterpriseAdminApp() {
       roles: roles.records || [],
       attendance: attendance.records || [],
       performance: performance.records || [],
+      agencies: agencies.records || [],
+      partners: partners.records || [],
+      vendorPerformance: vendorPerformance.records || [],
+      vendorPayouts: vendorPayouts.records || [],
+      clients: clients.records || [],
+      clientProjects: clientProjects.records || [],
+      clientBilling: clientBilling.records || [],
+      clientReports: clientReports.records || [],
+      supportRequests: supportRequests.records || [],
     })
     setCurrentAdmin(currentUser.user || null)
 
@@ -253,7 +290,7 @@ function EnterpriseAdminApp() {
         await apiRequest(APPLICATION_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (module.type === 'jobs') {
         await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (['candidates', 'teams', 'roles', 'attendance', 'performance'].includes(module.type)) {
+      } else if (workforceRecordTypes.includes(module.type)) {
         await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(module.type, row.id), { method: 'DELETE' })
       } else {
         setToast('Delete API is not configured for this module yet.')
@@ -1034,7 +1071,43 @@ function getModuleConfig(page, data) {
     return workforceModule('performance', 'Team Performance', data.performance, ['name', 'role', 'department', 'score', 'status', 'notes', 'createdAt'])
   }
 
-  if (['vendor-management', 'agency-management', 'partner-network', 'vendor-performance', 'vendor-payouts'].includes(page)) {
+  if (page === 'agency-management') {
+    return workforceModule('agencies', 'Agency Management', data.agencies, ['name', 'company', 'email', 'phone', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'partner-network') {
+    return workforceModule('partners', 'Partner Network', data.partners, ['name', 'company', 'email', 'category', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'vendor-performance') {
+    return workforceModule('vendorPerformance', 'Vendor Performance', data.vendorPerformance, ['name', 'company', 'score', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'vendor-payouts') {
+    return workforceModule('vendorPayouts', 'Vendor Payouts', data.vendorPayouts, ['name', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'clients') {
+    return workforceModule('clients', 'Clients', data.clients, ['name', 'company', 'email', 'phone', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'client-projects') {
+    return workforceModule('clientProjects', 'Client Projects', data.clientProjects, ['name', 'company', 'project', 'status', 'dueDate', 'notes', 'createdAt'])
+  }
+
+  if (page === 'client-billing') {
+    return workforceModule('clientBilling', 'Client Billing', data.clientBilling, ['name', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'client-reports') {
+    return workforceModule('clientReports', 'Client Reports', data.clientReports, ['name', 'company', 'category', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'support-requests') {
+    return workforceModule('supportRequests', 'Support Requests', data.supportRequests, ['name', 'email', 'priority', 'status', 'notes', 'createdAt'])
+  }
+
+  if (['vendor-management'].includes(page)) {
     return {
       type: 'vendors',
       title: 'Vendors',
@@ -1055,7 +1128,7 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['project-management', 'client-projects', 'task-management', 'assign-tasks', 'deadlines', 'project-analytics', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
+  if (['project-management', 'task-management', 'assign-tasks', 'deadlines', 'project-analytics', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
     return {
       type: 'contracts',
       title: 'Projects / Contracts',
@@ -1075,7 +1148,7 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['leads-management', 'sales-pipeline', 'follow-ups', 'email-campaigns', 'whatsapp-campaigns', 'contact-requests', 'clients', 'support-requests'].includes(page)) {
+  if (['leads-management', 'sales-pipeline', 'follow-ups', 'email-campaigns', 'whatsapp-campaigns', 'contact-requests'].includes(page)) {
     return {
       type: 'leads',
       title: 'Leads',
@@ -1177,6 +1250,15 @@ function workforceTypeForPage(page) {
     'role-permissions': 'roles',
     attendance: 'attendance',
     'team-performance': 'performance',
+    'agency-management': 'agencies',
+    'partner-network': 'partners',
+    'vendor-performance': 'vendorPerformance',
+    'vendor-payouts': 'vendorPayouts',
+    clients: 'clients',
+    'client-projects': 'clientProjects',
+    'client-billing': 'clientBilling',
+    'client-reports': 'clientReports',
+    'support-requests': 'supportRequests',
   }
 
   return map[page] || ''
@@ -1374,6 +1456,75 @@ function getFormFields(page) {
       { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
+    'agency-management': [
+      { name: 'name', label: 'Agency Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'phone', label: 'Phone' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Pending', 'Inactive'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'partner-network': [
+      { name: 'name', label: 'Partner Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'category', label: 'Partner Category' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Pending', 'Inactive'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'vendor-performance': [
+      { name: 'name', label: 'Vendor Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'score', label: 'Performance Score', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'vendor-payouts': [
+      { name: 'name', label: 'Vendor Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'amount', label: 'Payout Amount', type: 'number' },
+      { name: 'dueDate', label: 'Due Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Paid', 'Hold', 'Failed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    clients: [
+      { name: 'name', label: 'Client Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'phone', label: 'Phone' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Prospect', 'Inactive'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'client-projects': [
+      { name: 'name', label: 'Client Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'project', label: 'Project Name' },
+      { name: 'dueDate', label: 'Due Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Planning', 'Active', 'Review', 'Closed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'client-billing': [
+      { name: 'name', label: 'Client Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'amount', label: 'Billing Amount', type: 'number' },
+      { name: 'dueDate', label: 'Due Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Paid', 'Overdue', 'Cancelled'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'client-reports': [
+      { name: 'name', label: 'Report Name', ...commonRequired },
+      { name: 'company', label: 'Client / Company' },
+      { name: 'category', label: 'Report Category' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Draft', 'Ready', 'Shared', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'support-requests': [
+      { name: 'name', label: 'Requester Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
+      { name: 'notes', label: 'Request Details', type: 'textarea' },
+    ],
   }
 
   return map[page] || []
@@ -1398,6 +1549,12 @@ function commonColumns(keys) {
     location: 'Location',
     type: 'Type',
     permission: 'Permission',
+    category: 'Category',
+    phone: 'Phone',
+    project: 'Project',
+    amount: 'Amount',
+    dueDate: 'Due Date',
+    priority: 'Priority',
     date: 'Date',
     checkIn: 'Check In',
     checkOut: 'Check Out',
