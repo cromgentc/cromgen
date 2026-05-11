@@ -238,13 +238,13 @@ function EnterpriseAdminApp() {
       result.status === 'fulfilled' ? result.value : {}
     ))
     const workforceData = Object.fromEntries(
-      workforceRecordTypes.map((type, index) => [
+      requiredWorkforceTypes.map((type, index) => [
         type,
-        workforceRequests[index].status === 'fulfilled' ? workforceRequests[index].value.records || [] : [],
+        workforceRequests[index]?.status === 'fulfilled' ? workforceRequests[index].value.records || [] : [],
       ]),
     )
 
-    setData({
+    setData((current) => ({
       users: users.users || [],
       vendors: vendors.vendors || [],
       contracts: contracts.contracts || [],
@@ -252,48 +252,9 @@ function EnterpriseAdminApp() {
       applications: applications.applications || [],
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
-      candidates: data.candidates,
-      teams: data.teams,
-      roles: data.roles,
-      attendance: data.attendance,
-      performance: data.performance,
-      agencies: data.agencies,
-      partners: data.partners,
-      vendorPerformance: data.vendorPerformance,
-      vendorPayouts: data.vendorPayouts,
-      clients: data.clients,
-      clientProjects: data.clientProjects,
-      clientBilling: data.clientBilling,
-      clientReports: data.clientReports,
-      supportRequests: data.supportRequests,
-      adminAccessControls: data.adminAccessControls,
-      tasks: data.tasks,
-      assignedTasks: data.assignedTasks,
-      deadlines: data.deadlines,
-      projectAnalytics: data.projectAnalytics,
-      finance: data.finance,
-      billingCycles: data.billingCycles,
-      invoices: data.invoices,
-      revenueAnalytics: data.revenueAnalytics,
-      wallets: data.wallets,
-      withdrawRequests: data.withdrawRequests,
-      salesPipeline: data.salesPipeline,
-      followUps: data.followUps,
-      emailCampaigns: data.emailCampaigns,
-      whatsappCampaigns: data.whatsappCampaigns,
-      reports: data.reports,
-      userReports: data.userReports,
-      vendorReports: data.vendorReports,
-      revenueReports: data.revenueReports,
-      aiAnalytics: data.aiAnalytics,
-      interviews: data.interviews,
-      hiringPipeline: data.hiringPipeline,
-      supportTickets: data.supportTickets,
-      helpCenter: data.helpCenter,
-      faqs: data.faqs,
-      contactRequests: data.contactRequests,
+      ...Object.fromEntries(workforceRecordTypes.map((type) => [type, current[type] || []])),
       ...workforceData,
-    })
+    }))
     setCurrentAdmin(currentUser.user || null)
 
     const failedCount = [...coreRequests, ...workforceRequests].filter((result) => result.status === 'rejected').length
@@ -557,7 +518,7 @@ function EnterpriseAdminApp() {
                     <button type="button" onClick={supportedCreatePages.includes(activePage) ? openCreateModal : () => setQuickActionsOpen(true)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
                       <Plus size={18} /> Create Record
                     </button>
-                    <button type="button" onClick={loadMongoData} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
+                    <button type="button" onClick={() => loadMongoData(activePage)} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
                       <WandSparkles size={18} /> Refresh Data
                     </button>
                   </div>
