@@ -72,13 +72,16 @@ const formDefaults = {
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: '', location: '', type: 'Full Time', experience: '', summary: '' },
   'candidate-management': { name: '', email: '', role: '', status: 'New', notes: '' },
-  'team-management': { name: '', email: '', role: '', department: '', status: 'Active', notes: '' },
-  'role-permissions': { name: '', role: '', permission: 'Read', status: 'Active', notes: '' },
+  'team-management': { name: '', email: '', role: 'User', department: '', status: 'Active', notes: '' },
+  'role-permissions': { name: 'Dashboard', role: 'User', permission: 'Read', status: 'Active', notes: '' },
   attendance: { name: '', email: '', date: '', checkIn: '', checkOut: '', status: 'Present', notes: '' },
   'team-performance': { name: '', role: '', department: '', score: '', status: 'On Track', notes: '' },
 }
 
 const supportedCreatePages = Object.keys(formDefaults)
+const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
+const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
+const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
 
 function EnterpriseAdminApp() {
   const { isDark } = useAdminTheme()
@@ -1342,14 +1345,14 @@ function getFormFields(page) {
     'team-management': [
       { name: 'name', label: 'Member Name', ...commonRequired },
       { name: 'email', label: 'Email', type: 'email' },
-      { name: 'role', label: 'Role' },
+      { name: 'role', label: 'Role', type: 'select', options: userRoleOptions },
       { name: 'department', label: 'Department' },
       { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'On Leave'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
     'role-permissions': [
-      { name: 'name', label: 'Permission Group', ...commonRequired },
-      { name: 'role', label: 'Role' },
+      { name: 'name', label: 'Permission Group', type: 'select', options: permissionGroupOptions, ...commonRequired },
+      { name: 'role', label: 'Role', type: 'select', options: permissionRoleOptions },
       { name: 'permission', label: 'Permission Level', type: 'select', options: ['Read', 'Write', 'Manage', 'Admin'] },
       { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
