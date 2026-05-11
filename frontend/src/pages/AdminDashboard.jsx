@@ -44,6 +44,7 @@ import {
   CONTRACT_ENDPOINTS,
   JOB_ENDPOINTS,
   LEAD_ENDPOINTS,
+  SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
   apiRequest,
 } from '../api/apiEndpoint.js'
@@ -55,6 +56,7 @@ const emptyData = {
   leads: [],
   applications: [],
   jobs: [],
+  siteSettings: null,
 }
 
 const formDefaults = {
@@ -88,9 +90,10 @@ function EnterpriseAdminApp() {
       apiRequest(LEAD_ENDPOINTS.settingsList),
       apiRequest(APPLICATION_ENDPOINTS.settingsList),
       apiRequest(JOB_ENDPOINTS.settingsList),
+      apiRequest(SITE_ENDPOINTS.settingsDetail),
     ])
 
-    const [users, vendors, contracts, leads, applications, jobs] = requests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings] = requests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
 
@@ -101,6 +104,7 @@ function EnterpriseAdminApp() {
       leads: leads.leads || [],
       applications: applications.applications || [],
       jobs: jobs.jobs || [],
+      siteSettings: siteSettings.settings || null,
     })
 
     const failedCount = requests.filter((result) => result.status === 'rejected').length
@@ -194,6 +198,19 @@ function EnterpriseAdminApp() {
     }
   }
 
+  const saveSiteSettings = async (settings) => {
+    try {
+      const response = await apiRequest(SITE_ENDPOINTS.settingsDetail, {
+        method: 'POST',
+        body: JSON.stringify(settings),
+      })
+      setData((current) => ({ ...current, siteSettings: response.settings }))
+      setToast('Settings saved successfully.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Settings could not be saved.')
+    }
+  }
+
   if (loading) return <Loader />
 
   return (
@@ -272,6 +289,8 @@ function EnterpriseAdminApp() {
 
               {['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage) ? (
                 <DashboardOverview data={data} onDelete={deleteRecord} />
+              ) : isSettingsPage(activePage) ? (
+                <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : (
                 <EnterpriseModule pageMeta={pageMeta} module={module} onDelete={deleteRecord} />
               )}
@@ -482,6 +501,172 @@ function ModuleSummary({ module }) {
   )
 }
 
+function SettingsModule({ activePage, settings, onSave }) {
+  const [draft, setDraft] = useState(settings || createEmptySiteSettings())
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDraft(settings || createEmptySiteSettings())
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [settings])
+
+  const tab = activePage === 'email-settings'
+    ? 'email'
+    : activePage === 'website-settings'
+      ? 'brand'
+      : 'social'
+
+  const updateField = (field, value) => {
+    setDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateEmailField = (field, value) => {
+    setDraft((current) => ({
+      ...current,
+      emailConfig: {
+        ...(current.emailConfig || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const updateSocialLink = (index, field, value) => {
+    setDraft((current) => ({
+      ...current,
+      socialLinks: (current.socialLinks || []).map((link, itemIndex) => (
+        itemIndex === index ? { ...link, [field]: value } : link
+      )),
+    }))
+  }
+
+  const addSocialLink = () => {
+    setDraft((current) => ({
+      ...current,
+      socialLinks: [...(current.socialLinks || []), { label: '', url: '' }],
+    }))
+  }
+
+  const removeSocialLink = (index) => {
+    setDraft((current) => ({
+      ...current,
+      socialLinks: (current.socialLinks || []).filter((_, itemIndex) => itemIndex !== index),
+    }))
+  }
+
+  const updateImageField = async (field, file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    updateField(field, dataUrl)
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    await onSave(draft)
+    setSaving(false)
+  }
+
+  return (
+    <motion.form initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="space-y-7">
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Existing Settings</p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              {tab === 'email' ? 'SMTP Email Settings' : tab === 'brand' ? 'Brand Assets' : 'Social Media Links'}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              These controls are connected to the same settings API used by the previous admin panel.
+            </p>
+          </div>
+          <button type="submit" disabled={saving} className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/20 disabled:opacity-60">
+            {saving ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      </section>
+
+      {tab === 'brand' ? (
+        <section className="grid gap-5 xl:grid-cols-3">
+          {[
+            ['topbarLogo', 'Top Bar Logo', 'topbarLogoSize'],
+            ['footerLogo', 'Footer Logo', 'footerLogoSize'],
+            ['faviconLogo', 'Favicon Logo', 'faviconLogoSize'],
+          ].map(([imageField, label, sizeField]) => (
+            <article key={imageField} className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+              <div className="mb-4 flex h-28 items-center justify-center rounded-3xl bg-slate-950/35">
+                {draft[imageField] ? (
+                  <img
+                    src={draft[imageField]}
+                    alt={`${label} preview`}
+                    style={{
+                      width: Number(draft[sizeField]) || 48,
+                      height: Number(draft[sizeField]) || 48,
+                    }}
+                    className="object-contain"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold text-slate-500">No image uploaded</span>
+                )}
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</span>
+                <input type="file" accept="image/*" onChange={(event) => updateImageField(imageField, event.target.files?.[0])} className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300" />
+              </label>
+              <label className="mt-4 block">
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Size</span>
+                <input type="number" min="16" max="160" value={draft[sizeField] || ''} onChange={(event) => updateField(sizeField, event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+              </label>
+            </article>
+          ))}
+        </section>
+      ) : tab === 'email' ? (
+        <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              ['smtpHost', 'SMTP Host', 'smtp.example.com'],
+              ['smtpPort', 'SMTP Port', '465'],
+              ['smtpUser', 'SMTP User', 'name@domain.com'],
+              ['smtpPass', 'SMTP Password', 'SMTP password'],
+              ['mailFrom', 'Mail From', 'name@domain.com'],
+              ['adminEmail', 'Admin Notification Email', 'admin@domain.com'],
+            ].map(([field, label, placeholder]) => (
+              <label key={field}>
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</span>
+                <input
+                  type={field === 'smtpPass' ? 'password' : field === 'smtpPort' ? 'number' : 'text'}
+                  value={draft.emailConfig?.[field] || ''}
+                  placeholder={placeholder}
+                  onChange={(event) => updateEmailField(field, event.target.value)}
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
+                />
+              </label>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="mb-5 flex items-center justify-between">
+            <h3 className="text-xl font-black text-white">Social Links</h3>
+            <button type="button" onClick={addSocialLink} className="rounded-2xl bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-white/15">Add Link</button>
+          </div>
+          <div className="space-y-3">
+            {(draft.socialLinks || []).map((link, index) => (
+              <div key={`${link.label}-${index}`} className="grid gap-3 md:grid-cols-[1fr_1.5fr_auto]">
+                <input value={link.label || ''} placeholder="LinkedIn" onChange={(event) => updateSocialLink(index, 'label', event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+                <input value={link.url || ''} placeholder="https://..." onChange={(event) => updateSocialLink(index, 'url', event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/60" />
+                <button type="button" onClick={() => removeSocialLink(index)} className="rounded-2xl bg-rose-400/10 px-4 py-2 text-sm font-black text-rose-200 hover:bg-rose-400/15">Remove</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </motion.form>
+  )
+}
+
 function RecordModal({ open, page, form, saving, onChange, onSubmit, onClose }) {
   const fields = getFormFields(page)
 
@@ -655,6 +840,39 @@ function getModuleConfig(page, data) {
     columns: commonColumns(['name', 'status', 'createdAt']),
     emptyText: 'The API for this module has not been configured yet.',
   }
+}
+
+function isSettingsPage(page) {
+  return ['system-settings', 'website-settings', 'email-settings', 'notification-settings', 'profile-settings'].includes(page)
+}
+
+function createEmptySiteSettings() {
+  return {
+    topbarLogo: '',
+    topbarLogoSize: 64,
+    footerLogo: '',
+    footerLogoSize: 52,
+    faviconLogo: '',
+    faviconLogoSize: 32,
+    emailConfig: {
+      smtpHost: '',
+      smtpPort: 465,
+      smtpUser: '',
+      smtpPass: '',
+      mailFrom: '',
+      adminEmail: '',
+    },
+    socialLinks: [],
+  }
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 }
 
 function createStats(data) {
