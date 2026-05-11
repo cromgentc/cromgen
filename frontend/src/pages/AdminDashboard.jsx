@@ -8,13 +8,27 @@ import {
   LEAD_ENDPOINTS,
   POLICY_ENDPOINTS,
   SITE_ENDPOINTS,
+  VENDOR_ENDPOINTS,
   apiRequest,
 } from '../api/apiEndpoint.js'
+import { motion } from 'framer-motion'
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  Building2,
+  FileText,
+  Gauge,
+  LayoutDashboard,
+  Scale,
+  Settings,
+  Users,
+} from 'lucide-react'
 import logo from '../assets/cromgen-logo.png'
 
 const menuItems = [
   ['overview', 'Dashboard', 'overview'],
   ['users', 'Users', 'profile'],
+  ['vendors', 'Vendors', 'vendors'],
   ['services', 'Services', 'services'],
   ['projects', 'Projects', 'contracts'],
   ['reports', 'Reports', 'overview'],
@@ -51,6 +65,16 @@ const emptyUserForm = {
   role: 'staff',
 }
 
+const emptyVendorForm = {
+  name: '',
+  company: '',
+  email: '',
+  phone: '',
+  serviceCategory: '',
+  password: '',
+  status: 'active',
+}
+
 const emptyContractForm = {
   title: '',
   recipientName: '',
@@ -69,6 +93,21 @@ const projectStatusOptions = [
 ]
 
 function AdminIcon({ name }) {
+  const lucideIcons = {
+    overview: LayoutDashboard,
+    users: Users,
+    vendors: Building2,
+    services: Gauge,
+    projects: BriefcaseBusiness,
+    reports: BarChart3,
+    settings: Settings,
+    legal: Scale,
+    recruiter: FileText,
+    inquiries: FileText,
+  }
+  const LucideIcon = lucideIcons[name]
+  if (LucideIcon) return <LucideIcon aria-hidden="true" focusable="false" />
+
   const paths = {
     overview: 'M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-5H4v5Zm10 0h6v-5h-6v5Z',
     users: 'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 20c.6-4 2.7-6 6-6s5.4 2 6 6H3Zm11.5 0H21c-.4-3.1-2.1-4.7-5-4.8',
@@ -102,16 +141,19 @@ export function AdminDashboard() {
   const [formData, setFormData] = useState(null)
   const [siteSettings, setSiteSettings] = useState(null)
   const [userForm, setUserForm] = useState(emptyUserForm)
+  const [vendorForm, setVendorForm] = useState(emptyVendorForm)
   const [jobForm, setJobForm] = useState(emptyJobForm)
   const [editingJobSlug, setEditingJobSlug] = useState('')
   const [contractForm, setContractForm] = useState(emptyContractForm)
   const [editingContractId, setEditingContractId] = useState('')
   const [postedJobs, setPostedJobs] = useState([])
   const [users, setUsers] = useState([])
+  const [vendors, setVendors] = useState([])
   const [leads, setLeads] = useState([])
   const [applications, setApplications] = useState([])
   const [selectedLeadIds, setSelectedLeadIds] = useState([])
   const [selectedUserIds, setSelectedUserIds] = useState([])
+  const [selectedVendorIds, setSelectedVendorIds] = useState([])
   const [selectedJobSlugs, setSelectedJobSlugs] = useState([])
   const [selectedApplicationIds, setSelectedApplicationIds] = useState([])
   const [selectedContractIds, setSelectedContractIds] = useState([])
@@ -140,6 +182,7 @@ export function AdminDashboard() {
       loadSiteSettings(),
       loadCurrentUser(),
       loadUsers(),
+      loadVendors(),
       loadLeads(),
       loadApplications(),
       loadContracts(),
@@ -153,6 +196,7 @@ export function AdminDashboard() {
     const intervalId = window.setInterval(() => {
       loadLeads()
       loadUsers()
+      loadVendors()
       loadApplications()
       loadContracts()
       loadJobPosts()
@@ -193,6 +237,19 @@ export function AdminDashboard() {
       user.isActive ? 'active' : 'suspended',
     ].some((value) => String(value || '').toLowerCase().includes(searchTerm)))
   }, [users, searchTerm])
+
+  const visibleVendors = useMemo(() => {
+    if (!searchTerm) return vendors
+    return vendors.filter((vendor) => [
+      vendor.vendorCode,
+      vendor.name,
+      vendor.company,
+      vendor.email,
+      vendor.phone,
+      vendor.serviceCategory,
+      vendor.status,
+    ].some((value) => String(value || '').toLowerCase().includes(searchTerm)))
+  }, [vendors, searchTerm])
 
   const visibleContracts = useMemo(() => {
     if (!searchTerm) return contracts
@@ -235,11 +292,13 @@ export function AdminDashboard() {
 
   const selectedVisibleLeadIds = visibleLeads.map((lead) => lead.id).filter(Boolean)
   const selectedVisibleUserIds = visibleUsers.map((user) => user.id).filter(Boolean)
+  const selectedVisibleVendorIds = visibleVendors.map((vendor) => vendor.id).filter(Boolean)
   const selectedVisibleJobSlugs = visibleJobs.map((job) => job.slug).filter(Boolean)
   const selectedVisibleApplicationIds = visibleApplications.map((application) => application.id).filter(Boolean)
   const selectedVisibleContractIds = visibleContracts.map((contract) => contract.signingToken || contract.slug).filter(Boolean)
   const areVisibleLeadsSelected = selectedVisibleLeadIds.length > 0 && selectedVisibleLeadIds.every((id) => selectedLeadIds.includes(id))
   const areVisibleUsersSelected = selectedVisibleUserIds.length > 0 && selectedVisibleUserIds.every((id) => selectedUserIds.includes(id))
+  const areVisibleVendorsSelected = selectedVisibleVendorIds.length > 0 && selectedVisibleVendorIds.every((id) => selectedVendorIds.includes(id))
   const areVisibleJobsSelected = selectedVisibleJobSlugs.length > 0 && selectedVisibleJobSlugs.every((slug) => selectedJobSlugs.includes(slug))
   const areVisibleApplicationsSelected = selectedVisibleApplicationIds.length > 0 && selectedVisibleApplicationIds.every((id) => selectedApplicationIds.includes(id))
   const areVisibleContractsSelected = selectedVisibleContractIds.length > 0 && selectedVisibleContractIds.every((id) => selectedContractIds.includes(id))
@@ -316,6 +375,19 @@ export function AdminDashboard() {
       setStatus({
         type: 'error',
         message: error instanceof Error ? error.message : 'Unable to load users.',
+      })
+    }
+  }
+
+  async function loadVendors() {
+    try {
+      const data = await apiRequest(VENDOR_ENDPOINTS.settingsList)
+      setVendors(data.vendors || [])
+      setSelectedVendorIds((current) => current.filter((id) => (data.vendors || []).some((vendor) => vendor.id === id)))
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to load vendors.',
       })
     }
   }
@@ -576,6 +648,10 @@ export function AdminDashboard() {
     setUserForm((current) => ({ ...current, [field]: value }))
   }
 
+  const updateVendorField = (field, value) => {
+    setVendorForm((current) => ({ ...current, [field]: value }))
+  }
+
   const addUser = async (event) => {
     event.preventDefault()
 
@@ -595,6 +671,25 @@ export function AdminDashboard() {
     }
   }
 
+  const addVendor = async (event) => {
+    event.preventDefault()
+
+    try {
+      const data = await apiRequest(VENDOR_ENDPOINTS.settingsList, {
+        method: 'POST',
+        body: JSON.stringify(vendorForm),
+      })
+      setVendors((current) => [data.vendor, ...current])
+      setVendorForm(emptyVendorForm)
+      setStatus({ type: 'success', message: 'Vendor created successfully.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to create vendor.',
+      })
+    }
+  }
+
   const toggleLeadSelection = (id) => {
     if (!id) return
     setSelectedLeadIds((current) => (
@@ -605,6 +700,13 @@ export function AdminDashboard() {
   const toggleUserSelection = (id) => {
     if (!id) return
     setSelectedUserIds((current) => (
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    ))
+  }
+
+  const toggleVendorSelection = (id) => {
+    if (!id) return
+    setSelectedVendorIds((current) => (
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     ))
   }
@@ -643,6 +745,14 @@ export function AdminDashboard() {
       areVisibleUsersSelected
         ? current.filter((id) => !selectedVisibleUserIds.includes(id))
         : [...new Set([...current, ...selectedVisibleUserIds])]
+    ))
+  }
+
+  const toggleVisibleVendors = () => {
+    setSelectedVendorIds((current) => (
+      areVisibleVendorsSelected
+        ? current.filter((id) => !selectedVisibleVendorIds.includes(id))
+        : [...new Set([...current, ...selectedVisibleVendorIds])]
     ))
   }
 
@@ -703,6 +813,22 @@ export function AdminDashboard() {
         user.role,
         user.isActive ? 'Active' : 'Suspended',
         user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
+      ]),
+    ])
+  }
+
+  const downloadVendorsCsv = () => {
+    downloadCsv('cromgen-vendors.csv', [
+      ['Vendor Code', 'Name', 'Company', 'Email', 'Phone', 'Service', 'Status', 'Created'],
+      ...visibleVendors.map((vendor) => [
+        vendor.vendorCode,
+        vendor.name,
+        vendor.company,
+        vendor.email,
+        vendor.phone,
+        vendor.serviceCategory,
+        vendor.status,
+        vendor.createdAt ? new Date(vendor.createdAt).toLocaleString() : '',
       ]),
     ])
   }
@@ -1020,6 +1146,56 @@ export function AdminDashboard() {
       setStatus({
         type: 'error',
         message: error instanceof Error ? error.message : 'Unable to delete selected users.',
+      })
+    }
+  }
+
+  const updateVendorStatus = async (vendor, statusValue) => {
+    if (!vendor?.id) return
+
+    try {
+      const data = await apiRequest(VENDOR_ENDPOINTS.settingsStatus(vendor.id), {
+        method: 'POST',
+        body: JSON.stringify({ status: statusValue }),
+      })
+      setVendors((current) => current.map((item) => (item.id === vendor.id ? data.vendor : item)))
+      setStatus({ type: 'success', message: 'Vendor status updated.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to update vendor status.',
+      })
+    }
+  }
+
+  const deleteVendor = async (id) => {
+    if (!id) return
+
+    try {
+      await apiRequest(VENDOR_ENDPOINTS.settingsDelete(id), { method: 'DELETE' })
+      setVendors((current) => current.filter((vendor) => vendor.id !== id))
+      setSelectedVendorIds((current) => current.filter((item) => item !== id))
+      setStatus({ type: 'success', message: 'Vendor deleted.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to delete vendor.',
+      })
+    }
+  }
+
+  const deleteSelectedVendors = async () => {
+    if (!selectedVendorIds.length) return
+
+    try {
+      await Promise.all(selectedVendorIds.map((id) => apiRequest(VENDOR_ENDPOINTS.settingsDelete(id), { method: 'DELETE' })))
+      setVendors((current) => current.filter((vendor) => !selectedVendorIds.includes(vendor.id)))
+      setSelectedVendorIds([])
+      setStatus({ type: 'success', message: 'Selected vendors deleted.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to delete selected vendors.',
       })
     }
   }
@@ -1432,6 +1608,124 @@ export function AdminDashboard() {
                 </div>
               </section>
             </section>
+          ) : activeMenu === 'vendors' ? (
+            <motion.section
+              className="admin-profile-page"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22 }}
+            >
+              <form className="admin-policy-editor" onSubmit={addVendor}>
+                <div className="admin-editor-head">
+                  <div>
+                    <span>Vendor Management</span>
+                    <h2>Create Vendor</h2>
+                  </div>
+                  <button type="submit">Create Vendor</button>
+                </div>
+
+                {status.message ? (
+                  <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>
+                    {status.message}
+                  </p>
+                ) : null}
+
+                <div className="admin-form-grid">
+                  {[
+                    ['name', 'Vendor Name', 'Vendor full name'],
+                    ['company', 'Company', 'Company or freelancer brand'],
+                    ['email', 'Login Email', 'vendor@example.com'],
+                    ['phone', 'Phone', '+1 555 000 0000'],
+                    ['serviceCategory', 'Service Category', 'AI data collection'],
+                    ['password', 'Login Password', 'Set vendor login password'],
+                  ].map(([field, label, placeholder]) => (
+                    <label key={field}>
+                      <span>{label}</span>
+                      <input
+                        type={field === 'email' ? 'email' : field === 'password' ? 'password' : 'text'}
+                        value={vendorForm[field]}
+                        placeholder={placeholder}
+                        onChange={(event) => updateVendorField(field, event.target.value)}
+                        required={['name', 'email', 'password'].includes(field)}
+                      />
+                    </label>
+                  ))}
+                  <label>
+                    <span>Status</span>
+                    <select value={vendorForm.status} onChange={(event) => updateVendorField('status', event.target.value)}>
+                      <option value="active">Active</option>
+                      <option value="pending">Pending</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+
+              <section className="admin-policy-editor">
+                <div className="admin-editor-head">
+                  <div>
+                    <span>Vendors</span>
+                    <h2>Vendor Table</h2>
+                  </div>
+                  <div className="admin-editor-actions">
+                    <button type="button" onClick={downloadVendorsCsv}>Download All</button>
+                    <button type="button" onClick={deleteSelectedVendors} disabled={!selectedVendorIds.length}>Delete Selected</button>
+                  </div>
+                </div>
+
+                <div className="admin-table-wrap">
+                  <table className="admin-applications-table">
+                    <thead>
+                      <tr>
+                        <th>
+                          <input
+                            type="checkbox"
+                            checked={areVisibleVendorsSelected}
+                            onChange={toggleVisibleVendors}
+                          />
+                        </th>
+                        <th>Code</th>
+                        <th>Vendor</th>
+                        <th>Contact</th>
+                        <th>Service</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleVendors.length ? visibleVendors.map((vendor) => (
+                        <tr key={vendor.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedVendorIds.includes(vendor.id)}
+                              onChange={() => toggleVendorSelection(vendor.id)}
+                            />
+                          </td>
+                          <td>{vendor.vendorCode || '-'}</td>
+                          <td>{vendor.name}<br />{vendor.company || '-'}</td>
+                          <td>{vendor.email}<br />{vendor.phone || '-'}</td>
+                          <td>{vendor.serviceCategory || '-'}</td>
+                          <td><span className={`admin-status-pill is-${vendor.status === 'active' ? 'active' : 'pending'}`}>{vendor.status || 'pending'}</span></td>
+                          <td>{vendor.createdAt ? new Date(vendor.createdAt).toLocaleString() : '-'}</td>
+                          <td>
+                            <button type="button" onClick={() => updateVendorStatus(vendor, vendor.status === 'active' ? 'suspended' : 'active')}>
+                              {vendor.status === 'active' ? 'Suspend' : 'Activate'}
+                            </button>
+                            <button type="button" onClick={() => deleteVendor(vendor.id)}>Delete</button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="8">No vendors created yet.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </motion.section>
           ) : activeMenu === 'career-jobs' ? (
             <section className="admin-policy-editor">
               <div className="admin-editor-head">
@@ -2210,7 +2504,10 @@ export function AdminDashboard() {
                 <button type="button" onClick={() => setActiveMenu('contract-send')}>Add Project</button>
               </div>
               {[
-                ['Total Users', `${applications.length + leads.length + 1} profiles`, 'CRM Network'],
+                ['Total Users', `${users.length} users`, 'CRM Network'],
+                ['Active Vendors', `${vendors.filter((vendor) => vendor.status === 'active').length} vendors`, 'Partner Network'],
+                ['Total Projects', `${contracts.length} projects`, 'Delivery'],
+                ['Pending Approvals', `${contracts.filter((contract) => contract.status === 'pending').length + vendors.filter((vendor) => vendor.status === 'pending').length} pending`, 'QC Desk'],
                 ['Total Leads / Inquiries', `${leads.length} active enquiries`, 'Sales Pipeline'],
                 ['Live Projects', `${contracts.filter((contract) => contract.projectStatus === 'live').length} live`, 'Delivery'],
                 ['Active Projects', `${contracts.filter((contract) => (contract.projectStatus || 'active') === 'active').length} active`, 'Delivery'],

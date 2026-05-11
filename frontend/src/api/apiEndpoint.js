@@ -1,4 +1,21 @@
+import axios from 'axios'
+
 export const API_ENDPOINT = (import.meta.env.VITE_API_ENDPOINT || '').replace(/\/$/, '')
+
+export const apiClient = axios.create({
+  baseURL: API_ENDPOINT || '/',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('cromgen_auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 export const AUTH_ENDPOINTS = {
   adminRegister: '/api/auth/admin/register',
@@ -10,6 +27,12 @@ export const AUTH_ENDPOINTS = {
   settingsUserDelete: (id) => `/api/settings/users/${encodeURIComponent(id)}`,
   vendorRegister: '/api/auth/vendor/register',
   vendorLogin: '/api/auth/vendor/login',
+}
+
+export const VENDOR_ENDPOINTS = {
+  settingsList: '/api/settings/vendors',
+  settingsStatus: (id) => `/api/settings/vendors/${encodeURIComponent(id)}/status`,
+  settingsDelete: (id) => `/api/settings/vendors/${encodeURIComponent(id)}`,
 }
 
 export const POLICY_ENDPOINTS = {
@@ -65,30 +88,22 @@ export const SITE_ENDPOINTS = {
 }
 
 export async function apiRequest(path, options = {}) {
-  const token = localStorage.getItem('cromgen_auth_token')
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  }
+  try {
+    const isJsonBody = typeof options.body === 'string'
+    const response = await apiClient.request({
+      url: path,
+      method: options.method || 'GET',
+      data: isJsonBody ? JSON.parse(options.body) : options.body || options.data,
+      headers: options.headers,
+    })
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  const response = await fetch(`${API_ENDPOINT}${path}`, {
-    ...options,
-    headers,
-  })
-  const data = await response.json().catch(() => ({}))
-
-  if (!response.ok) {
-    const message = data.message || 'Request failed'
+    return response.data
+  } catch (error) {
+    const message = error.response?.data?.message || 'Request failed'
     if (/^api route not found$/i.test(message)) {
       throw new Error('Updated backend route is not loaded yet. Please restart the backend server once.')
     }
 
     throw new Error(message)
   }
-
-  return data
 }

@@ -7,7 +7,14 @@ import {
   toPublicUser,
   updateUserStatus,
 } from '../models/User.js'
-import { createVendor, findVendorByEmail, toPublicVendor } from '../models/Vendor.js'
+import {
+  createVendor,
+  deleteVendorById,
+  findVendorByEmail,
+  findVendors,
+  toPublicVendor,
+  updateVendorStatus,
+} from '../models/Vendor.js'
 import { forbidden, json, notFound, readJson, unauthorized, validationError } from '../utils/http.js'
 import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
@@ -160,6 +167,75 @@ export async function deleteSettingUser(request, { id }) {
   return json(200, {
     ok: true,
     message: 'User deleted',
+  })
+}
+
+export async function listSettingVendors(request) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  return json(200, {
+    ok: true,
+    vendors: await findVendors(),
+  })
+}
+
+export async function createSettingVendor(request) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+  const { name, email, password } = body
+
+  if (!name || !email || !password) {
+    return validationError('Name, email, and password are required')
+  }
+
+  try {
+    const vendor = await createVendor({
+      ...body,
+      status: body.status || 'active',
+    })
+
+    return json(201, {
+      ok: true,
+      message: 'Vendor created successfully',
+      vendor: toPublicVendor(vendor),
+    })
+  } catch (error) {
+    if (error?.code === 11000) {
+      return validationError('Vendor email is already registered')
+    }
+
+    throw error
+  }
+}
+
+export async function updateSettingVendorStatus(request, { id }) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+  const vendor = await updateVendorStatus(id, body.status)
+  if (!vendor) return notFound('Vendor not found')
+
+  return json(200, {
+    ok: true,
+    message: 'Vendor status updated.',
+    vendor,
+  })
+}
+
+export async function deleteSettingVendor(request, { id }) {
+  const auth = adminOnly(request)
+  if (auth.error) return auth.error
+
+  const deleted = await deleteVendorById(id)
+  if (!deleted) return notFound('Vendor not found')
+
+  return json(200, {
+    ok: true,
+    message: 'Vendor deleted',
   })
 }
 
