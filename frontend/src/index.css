@@ -6357,6 +6357,39 @@ header #mobile-navigation summary:hover {
   color: #ffffff;
 }
 
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.64);
+  backdrop-filter: blur(14px);
+}
+
+.admin-modal-panel {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.45);
+}
+
+.admin-modal-submit {
+  margin-top: 18px;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  background: #f97316;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .project-description-toolbar {
   display: flex;
   flex-wrap: wrap;

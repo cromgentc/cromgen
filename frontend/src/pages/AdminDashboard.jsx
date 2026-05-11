@@ -30,7 +30,7 @@ const menuItems = [
   ['users', 'Users', 'profile'],
   ['vendors', 'Vendors', 'vendors'],
   ['services', 'Services', 'services'],
-  ['projects', 'Projects', 'contracts'],
+  ['projects', 'Projects', 'projects'],
   ['reports', 'Reports', 'overview'],
 ]
 
@@ -142,6 +142,8 @@ export function AdminDashboard() {
   const [siteSettings, setSiteSettings] = useState(null)
   const [userForm, setUserForm] = useState(emptyUserForm)
   const [vendorForm, setVendorForm] = useState(emptyVendorForm)
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false)
+  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false)
   const [jobForm, setJobForm] = useState(emptyJobForm)
   const [editingJobSlug, setEditingJobSlug] = useState('')
   const [contractForm, setContractForm] = useState(emptyContractForm)
@@ -662,6 +664,7 @@ export function AdminDashboard() {
       })
       setUsers((current) => [data.user, ...current])
       setUserForm(emptyUserForm)
+      setIsUserModalOpen(false)
       setStatus({ type: 'success', message: 'User added successfully.' })
     } catch (error) {
       setStatus({
@@ -681,6 +684,7 @@ export function AdminDashboard() {
       })
       setVendors((current) => [data.vendor, ...current])
       setVendorForm(emptyVendorForm)
+      setIsVendorModalOpen(false)
       setStatus({ type: 'success', message: 'Vendor created successfully.' })
     } catch (error) {
       setStatus({
@@ -951,7 +955,7 @@ export function AdminDashboard() {
       ))
       setContractForm(emptyContractForm)
       setEditingContractId('')
-      setActiveMenu('contracts')
+      setActiveMenu(activeMenu === 'project-send' ? 'projects' : 'contracts')
       setStatus({
         type: 'success',
         message: data.message,
@@ -964,7 +968,7 @@ export function AdminDashboard() {
     }
   }
 
-  const editContract = (contract) => {
+  const editContract = (contract, mode = 'contract') => {
     const contractId = contract.signingToken || contract.slug
     if (!contractId) return
 
@@ -978,7 +982,7 @@ export function AdminDashboard() {
       contractBody: contract.contractBody || '',
       contractFile: contract.contractFile || { name: '', type: '', data: '' },
     })
-    setActiveMenu('contract-send')
+    setActiveMenu(mode === 'project' ? 'project-send' : 'contract-send')
     setStatus({ type: '', message: '' })
   }
 
@@ -1382,7 +1386,7 @@ export function AdminDashboard() {
           <div className="admin-sidebar-group">
             <button
               type="button"
-              className={activeMenu === 'contract-send' ? 'is-active' : ''}
+              className={activeMenu === 'contracts' || activeMenu === 'contract-send' ? 'is-active' : ''}
               onClick={() => setOpenAdminGroup((current) => (current === 'legal' ? '' : 'legal'))}
             >
               <span><AdminIcon name="legal" /></span>
@@ -1393,7 +1397,7 @@ export function AdminDashboard() {
               <div>
                 <button
                   type="button"
-                  className={activeMenu === 'contract-send' ? 'is-active' : ''}
+                  className={activeMenu === 'contracts' || activeMenu === 'contract-send' ? 'is-active' : ''}
                   onClick={() => {
                     loadContracts()
                     setActiveMenu('contracts')
@@ -1481,64 +1485,6 @@ export function AdminDashboard() {
         <div className="admin-content-scroll">
           {activeMenu === 'profile' ? (
             <section className="admin-profile-page">
-              <form className="admin-policy-editor" onSubmit={addUser}>
-                <div className="admin-editor-head">
-                  <div>
-                    <span>Users</span>
-                    <h2>Add User</h2>
-                  </div>
-                  <button type="submit">Add User</button>
-                </div>
-
-                {status.message ? (
-                  <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>
-                    {status.message}
-                  </p>
-                ) : null}
-
-                <div className="admin-form-grid">
-                  <label>
-                    <span>Name</span>
-                    <input
-                      value={userForm.name}
-                      placeholder="User name"
-                      onChange={(event) => updateUserField('name', event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Email</span>
-                    <input
-                      type="email"
-                      value={userForm.email}
-                      placeholder="user@example.com"
-                      onChange={(event) => updateUserField('email', event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Password</span>
-                    <input
-                      type="password"
-                      value={userForm.password}
-                      placeholder="Set login password"
-                      onChange={(event) => updateUserField('password', event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Role</span>
-                    <select
-                      value={userForm.role}
-                      onChange={(event) => updateUserField('role', event.target.value)}
-                    >
-                      <option value="staff">Staff</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </label>
-                </div>
-              </form>
-
               <section className="admin-policy-editor">
                 <div className="admin-editor-head">
                   <div>
@@ -1546,6 +1492,7 @@ export function AdminDashboard() {
                     <h2>User Table</h2>
                   </div>
                   <div className="admin-editor-actions">
+                    <button type="button" onClick={() => setIsUserModalOpen(true)}>Add User</button>
                     <button type="button" onClick={downloadUsersCsv}>Download All</button>
                     <button type="button" onClick={deleteSelectedUsers} disabled={!selectedUserIds.length}>Delete Selected</button>
                   </div>
@@ -1615,52 +1562,6 @@ export function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.22 }}
             >
-              <form className="admin-policy-editor" onSubmit={addVendor}>
-                <div className="admin-editor-head">
-                  <div>
-                    <span>Vendor Management</span>
-                    <h2>Create Vendor</h2>
-                  </div>
-                  <button type="submit">Create Vendor</button>
-                </div>
-
-                {status.message ? (
-                  <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>
-                    {status.message}
-                  </p>
-                ) : null}
-
-                <div className="admin-form-grid">
-                  {[
-                    ['name', 'Vendor Name', 'Vendor full name'],
-                    ['company', 'Company', 'Company or freelancer brand'],
-                    ['email', 'Login Email', 'vendor@example.com'],
-                    ['phone', 'Phone', '+1 555 000 0000'],
-                    ['serviceCategory', 'Service Category', 'AI data collection'],
-                    ['password', 'Login Password', 'Set vendor login password'],
-                  ].map(([field, label, placeholder]) => (
-                    <label key={field}>
-                      <span>{label}</span>
-                      <input
-                        type={field === 'email' ? 'email' : field === 'password' ? 'password' : 'text'}
-                        value={vendorForm[field]}
-                        placeholder={placeholder}
-                        onChange={(event) => updateVendorField(field, event.target.value)}
-                        required={['name', 'email', 'password'].includes(field)}
-                      />
-                    </label>
-                  ))}
-                  <label>
-                    <span>Status</span>
-                    <select value={vendorForm.status} onChange={(event) => updateVendorField('status', event.target.value)}>
-                      <option value="active">Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="suspended">Suspended</option>
-                    </select>
-                  </label>
-                </div>
-              </form>
-
               <section className="admin-policy-editor">
                 <div className="admin-editor-head">
                   <div>
@@ -1668,6 +1569,7 @@ export function AdminDashboard() {
                     <h2>Vendor Table</h2>
                   </div>
                   <div className="admin-editor-actions">
+                    <button type="button" onClick={() => setIsVendorModalOpen(true)}>Create Vendor</button>
                     <button type="button" onClick={downloadVendorsCsv}>Download All</button>
                     <button type="button" onClick={deleteSelectedVendors} disabled={!selectedVendorIds.length}>Delete Selected</button>
                   </div>
@@ -1963,6 +1865,90 @@ export function AdminDashboard() {
             <section className="admin-policy-editor">
               <div className="admin-editor-head">
                 <div>
+                  <span>Legal</span>
+                  <h2>Contract Requests</h2>
+                </div>
+                <div className="admin-editor-actions">
+                  <button type="button" onClick={() => setActiveMenu('contract-send')}>Contract Send</button>
+                </div>
+              </div>
+
+              {status.message ? (
+                <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>
+                  {status.message}
+                </p>
+              ) : null}
+
+              <div className="admin-table-wrap">
+                <table className="admin-applications-table">
+                  <thead>
+                    <tr>
+                      <th>Contract</th>
+                      <th>Recipient</th>
+                      <th>CompanyStatus</th>
+                      <th>UsersStatus</th>
+                      <th>Signature</th>
+                      <th>Sent</th>
+                      <th>Signed</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleContracts.length ? visibleContracts.map((contract) => {
+                      const contractId = contract.signingToken || contract.slug
+                      const companyStatus = contract.companySignatureData ? 'signed' : 'pending'
+                      const usersStatus = contract.status === 'signed' || contract.signatureData ? 'signed' : 'pending'
+
+                      return (
+                        <tr key={contractId}>
+                          <td>{contract.title}</td>
+                          <td>{contract.recipientName}<br />{contract.recipientEmail}</td>
+                          <td>
+                            <span className={`admin-status-pill is-${companyStatus}`}>
+                              {companyStatus}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`admin-status-pill is-${usersStatus}`}>
+                              {usersStatus}
+                            </span>
+                          </td>
+                          <td>{contract.signatureName || '-'}</td>
+                          <td>{contract.createdAt ? new Date(contract.createdAt).toLocaleString() : '-'}</td>
+                          <td>{contract.signedAt ? new Date(contract.signedAt).toLocaleString() : '-'}</td>
+                          <td>
+                            {contractId ? (
+                              <a href={`/contract-sign/${contractId}`} target="_blank" rel="noreferrer">
+                                Sign
+                              </a>
+                            ) : null}
+                            {contract.status === 'signed' ? (
+                              <button type="button" onClick={() => downloadContractCopy(contract)}>
+                                Download
+                              </button>
+                            ) : null}
+                            <button type="button" onClick={() => editContract(contract)}>
+                              Edit
+                            </button>
+                            <button type="button" onClick={() => deleteContract(contractId)}>
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    }) : (
+                      <tr>
+                        <td colSpan="8">No contract requests yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : activeMenu === 'projects' ? (
+            <section className="admin-policy-editor">
+              <div className="admin-editor-head">
+                <div>
                   <span>Projects</span>
                   <h2>Project Management</h2>
                 </div>
@@ -1970,7 +1956,7 @@ export function AdminDashboard() {
                   <button type="button" onClick={downloadProjectsCsv}>Download All</button>
                   <button type="button" onClick={deleteSelectedContracts} disabled={!selectedContractIds.length}>Delete Selected</button>
                   <button type="button" onClick={deleteAllContracts} disabled={!contracts.length}>Delete All</button>
-                  <button type="button" onClick={() => setActiveMenu('contract-send')}>Add Project</button>
+                  <button type="button" onClick={() => setActiveMenu('project-send')}>Add Project</button>
                 </div>
               </div>
 
@@ -2035,7 +2021,7 @@ export function AdminDashboard() {
                                 Download
                               </button>
                             ) : null}
-                            <button type="button" onClick={() => editContract(contract)}>
+                            <button type="button" onClick={() => editContract(contract, 'project')}>
                               Edit
                             </button>
                             <button type="button" onClick={() => deleteContract(contractId)}>
@@ -2053,13 +2039,17 @@ export function AdminDashboard() {
                 </table>
               </div>
             </section>
-          ) : activeMenu === 'contract-send' ? (
+          ) : activeMenu === 'contract-send' || activeMenu === 'project-send' ? (
             <section className="admin-career-panel">
               <form className="admin-policy-editor" onSubmit={sendContract}>
                 <div className="admin-editor-head">
                   <div>
-                    <span>Projects</span>
-                    <h2>{editingContractId ? 'Edit Project' : 'Add Project'}</h2>
+                    <span>{activeMenu === 'project-send' ? 'Projects' : 'Legal Contract'}</span>
+                    <h2>
+                      {editingContractId
+                        ? activeMenu === 'project-send' ? 'Edit Project' : 'Edit Contract'
+                        : activeMenu === 'project-send' ? 'Add Project' : 'Send Contract'}
+                    </h2>
                   </div>
                   <div className="admin-editor-actions">
                     {editingContractId ? (
@@ -2068,13 +2058,17 @@ export function AdminDashboard() {
                         onClick={() => {
                           setEditingContractId('')
                           setContractForm(emptyContractForm)
-                          setActiveMenu('contracts')
+                          setActiveMenu(activeMenu === 'project-send' ? 'projects' : 'contracts')
                         }}
                       >
                         Cancel
                       </button>
                     ) : null}
-                    <button type="submit">{editingContractId ? 'Update Project' : 'Save Project'}</button>
+                    <button type="submit">
+                      {editingContractId
+                        ? activeMenu === 'project-send' ? 'Update Project' : 'Update Contract'
+                        : activeMenu === 'project-send' ? 'Save Project' : 'Send Contract'}
+                    </button>
                   </div>
                 </div>
 
@@ -2085,57 +2079,89 @@ export function AdminDashboard() {
                 ) : null}
 
                 <div className="admin-form-grid">
-                  {[
-                    ['title', 'Project Name', 'Website redesign'],
-                    ['recipientName', 'Client Name', 'Client name'],
-                    ['recipientEmail', 'Client Email', 'client@example.com'],
-                    ['senderName', 'Project Owner', 'Cromgen Technology'],
-                  ].map(([field, label, placeholder]) => (
-                    <label key={field}>
-                      <span>{label}</span>
-                      <input
-                        type={field === 'recipientEmail' ? 'email' : 'text'}
-                        value={contractForm[field]}
-                        placeholder={placeholder}
-                        onChange={(event) => updateContractField(field, event.target.value)}
-                        required={field !== 'senderName'}
-                      />
-                    </label>
-                  ))}
-                  <label>
-                    <span>Project Status</span>
-                    <select
-                      value={contractForm.projectStatus}
-                      onChange={(event) => updateContractField('projectStatus', event.target.value)}
-                    >
-                      {projectStatusOptions.map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
+                  {activeMenu === 'project-send' ? (
+                    <>
+                      {[
+                        ['title', 'Project Name', 'Website redesign'],
+                        ['recipientName', 'Client Name', 'Client name'],
+                        ['recipientEmail', 'Client Email', 'client@example.com'],
+                        ['senderName', 'Project Owner', 'Cromgen Technology'],
+                      ].map(([field, label, placeholder]) => (
+                        <label key={field}>
+                          <span>{label}</span>
+                          <input
+                            type={field === 'recipientEmail' ? 'email' : 'text'}
+                            value={contractForm[field]}
+                            placeholder={placeholder}
+                            onChange={(event) => updateContractField(field, event.target.value)}
+                            required={field !== 'senderName'}
+                          />
+                        </label>
                       ))}
-                    </select>
-                  </label>
-                  <label className="admin-wide-field">
-                    <span>Description</span>
-                    <div className="project-description-toolbar" aria-label="Project description formatting tools">
-                      <button type="button" onClick={() => formatProjectDescription('bold')}>B</button>
-                      <button type="button" onClick={() => formatProjectDescription('italic')}>I</button>
-                      <button type="button" onClick={() => formatProjectDescription('heading')}>H</button>
-                      <button type="button" onClick={() => formatProjectDescription('numbered')}>1.</button>
-                      <button type="button" onClick={() => formatProjectDescription('bullet')}>List</button>
-                      <button type="button" onClick={() => formatProjectDescription('checklist')}>Task</button>
-                      <button type="button" onClick={() => formatProjectDescription('link')}>Link</button>
-                      <button type="button" onClick={() => formatProjectDescription('clear')}>Clear</button>
-                    </div>
-                    <textarea
-                      id="project-description-editor"
-                      value={contractForm.contractBody}
-                      placeholder="Type project description, scope, notes, delivery details, or contract summary..."
-                      onChange={(event) => updateContractField('contractBody', event.target.value)}
-                      rows={8}
-                    />
-                    <small className="project-description-hint">
-                      Supports bold, italic, headings, numbered lists, bullet lists, tasks, and links.
-                    </small>
-                  </label>
+                      <label>
+                        <span>Project Status</span>
+                        <select
+                          value={contractForm.projectStatus}
+                          onChange={(event) => updateContractField('projectStatus', event.target.value)}
+                        >
+                          {projectStatusOptions.map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="admin-wide-field">
+                        <span>Description</span>
+                        <div className="project-description-toolbar" aria-label="Project description formatting tools">
+                          <button type="button" onClick={() => formatProjectDescription('bold')}>B</button>
+                          <button type="button" onClick={() => formatProjectDescription('italic')}>I</button>
+                          <button type="button" onClick={() => formatProjectDescription('heading')}>H</button>
+                          <button type="button" onClick={() => formatProjectDescription('numbered')}>1.</button>
+                          <button type="button" onClick={() => formatProjectDescription('bullet')}>List</button>
+                          <button type="button" onClick={() => formatProjectDescription('checklist')}>Task</button>
+                          <button type="button" onClick={() => formatProjectDescription('link')}>Link</button>
+                          <button type="button" onClick={() => formatProjectDescription('clear')}>Clear</button>
+                        </div>
+                        <textarea
+                          id="project-description-editor"
+                          value={contractForm.contractBody}
+                          placeholder="Type project description, scope, notes, delivery details, or contract summary..."
+                          onChange={(event) => updateContractField('contractBody', event.target.value)}
+                          rows={8}
+                        />
+                        <small className="project-description-hint">
+                          Supports bold, italic, headings, numbered lists, bullet lists, tasks, and links.
+                        </small>
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      {[
+                        ['title', 'Contract Title', 'Service Agreement'],
+                        ['recipientName', 'Recipient Name', 'Client name'],
+                        ['recipientEmail', 'Recipient Email', 'client@example.com'],
+                        ['senderName', 'Sender Name', 'Cromgen Technology'],
+                      ].map(([field, label, placeholder]) => (
+                        <label key={field}>
+                          <span>{label}</span>
+                          <input
+                            type={field === 'recipientEmail' ? 'email' : 'text'}
+                            value={contractForm[field]}
+                            placeholder={placeholder}
+                            onChange={(event) => updateContractField(field, event.target.value)}
+                            required={field !== 'senderName'}
+                          />
+                        </label>
+                      ))}
+                      <label className="admin-wide-field admin-image-upload">
+                        <span>Upload DOCX Contract File</span>
+                        <input
+                          type="file"
+                          accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          onChange={handleContractFileChange}
+                        />
+                      </label>
+                    </>
+                  )}
                   {contractForm.contractFile?.name ? (
                     <div className="admin-empty-state admin-wide-field">
                       Attached file: {contractForm.contractFile.name}
@@ -2501,7 +2527,7 @@ export function AdminDashboard() {
                   <h2>Enterprise SaaS dashboard</h2>
                   <p>Manage AI, digital marketing, call center, IT, software development, HR consulting, and telecom operations from one control panel.</p>
                 </div>
-                <button type="button" onClick={() => setActiveMenu('contract-send')}>Add Project</button>
+                <button type="button" onClick={() => setActiveMenu('project-send')}>Add Project</button>
               </div>
               {[
                 ['Total Users', `${users.length} users`, 'CRM Network'],
@@ -2601,7 +2627,7 @@ export function AdminDashboard() {
                     <span>Projects</span>
                     <h2>Project status overview</h2>
                   </div>
-                  <button type="button" onClick={() => setActiveMenu('contracts')}>Open</button>
+                  <button type="button" onClick={() => setActiveMenu('projects')}>Open</button>
                 </div>
                 {[
                   ['Discovery', '32%'],
@@ -2641,6 +2667,84 @@ export function AdminDashboard() {
             </section>
           )}
         </div>
+        {isUserModalOpen ? (
+          <div className="admin-modal-backdrop" role="presentation">
+            <form className="admin-modal-panel" onSubmit={addUser}>
+              <div className="admin-editor-head">
+                <div>
+                  <span>Users</span>
+                  <h2>Add User</h2>
+                </div>
+                <button type="button" onClick={() => setIsUserModalOpen(false)}>Close</button>
+              </div>
+              <div className="admin-form-grid">
+                <label>
+                  <span>Name</span>
+                  <input value={userForm.name} placeholder="User name" onChange={(event) => updateUserField('name', event.target.value)} required />
+                </label>
+                <label>
+                  <span>Email</span>
+                  <input type="email" value={userForm.email} placeholder="user@example.com" onChange={(event) => updateUserField('email', event.target.value)} required />
+                </label>
+                <label>
+                  <span>Password</span>
+                  <input type="password" value={userForm.password} placeholder="Set login password" onChange={(event) => updateUserField('password', event.target.value)} required />
+                </label>
+                <label>
+                  <span>Role</span>
+                  <select value={userForm.role} onChange={(event) => updateUserField('role', event.target.value)}>
+                    <option value="staff">Staff</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+              </div>
+              <button type="submit" className="admin-modal-submit">Add User</button>
+            </form>
+          </div>
+        ) : null}
+        {isVendorModalOpen ? (
+          <div className="admin-modal-backdrop" role="presentation">
+            <form className="admin-modal-panel" onSubmit={addVendor}>
+              <div className="admin-editor-head">
+                <div>
+                  <span>Vendor Management</span>
+                  <h2>Create Vendor</h2>
+                </div>
+                <button type="button" onClick={() => setIsVendorModalOpen(false)}>Close</button>
+              </div>
+              <div className="admin-form-grid">
+                {[
+                  ['name', 'Vendor Name', 'Vendor full name'],
+                  ['company', 'Company', 'Company or freelancer brand'],
+                  ['email', 'Login Email', 'vendor@example.com'],
+                  ['phone', 'Phone', '+1 555 000 0000'],
+                  ['serviceCategory', 'Service Category', 'AI data collection'],
+                  ['password', 'Login Password', 'Set vendor login password'],
+                ].map(([field, label, placeholder]) => (
+                  <label key={field}>
+                    <span>{label}</span>
+                    <input
+                      type={field === 'email' ? 'email' : field === 'password' ? 'password' : 'text'}
+                      value={vendorForm[field]}
+                      placeholder={placeholder}
+                      onChange={(event) => updateVendorField(field, event.target.value)}
+                      required={['name', 'email', 'password'].includes(field)}
+                    />
+                  </label>
+                ))}
+                <label>
+                  <span>Status</span>
+                  <select value={vendorForm.status} onChange={(event) => updateVendorField('status', event.target.value)}>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </label>
+              </div>
+              <button type="submit" className="admin-modal-submit">Create Vendor</button>
+            </form>
+          </div>
+        ) : null}
       </section>
     </main>
   )
