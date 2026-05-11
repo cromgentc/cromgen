@@ -1,29 +1,42 @@
-import { ChevronDown, Download, FileDown, MoreHorizontal, Search } from 'lucide-react'
+import { ChevronDown, Download, FileDown, MoreHorizontal, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-export function EnterpriseTable({ title, rows }) {
+export function EnterpriseTable({ title, rows, columns, onDelete, emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
-  const [sortKey, setSortKey] = useState('id')
+  const [sortKey, setSortKey] = useState(columns[0]?.key || 'id')
   const [page, setPage] = useState(1)
-  const pageSize = 4
+  const pageSize = 8
 
   const filteredRows = useMemo(() => {
     const value = query.trim().toLowerCase()
     const visible = value
-      ? rows.filter((row) => Object.values(row).some((item) => String(item).toLowerCase().includes(value)))
+      ? rows.filter((row) => Object.values(row).some((item) => String(item ?? '').toLowerCase().includes(value)))
       : rows
 
-    return [...visible].sort((a, b) => String(a[sortKey]).localeCompare(String(b[sortKey])))
+    return [...visible].sort((a, b) => String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? '')))
   }, [query, rows, sortKey])
 
   const pagedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize)
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
 
+  const exportCsv = () => {
+    const csvRows = [
+      columns.map((column) => column.label),
+      ...filteredRows.map((row) => columns.map((column) => `"${String(row[column.key] ?? '').replaceAll('"', '""')}"`)),
+    ]
+    const blob = new Blob([csvRows.map((line) => line.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'records'}.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
   return (
     <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Operations Table</p>
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">MongoDB Records</p>
           <h2 className="mt-2 text-xl font-black text-white">{title}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -34,10 +47,10 @@ export function EnterpriseTable({ title, rows }) {
           <button type="button" className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
             Filter <ChevronDown size={15} />
           </button>
-          <button type="button" className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
+          <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
             <Download size={15} /> CSV
           </button>
-          <button type="button" className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
+          <button type="button" onClick={() => window.print()} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
             <FileDown size={15} /> PDF
           </button>
         </div>
@@ -47,48 +60,53 @@ export function EnterpriseTable({ title, rows }) {
         <table className="w-full min-w-[860px] border-separate border-spacing-y-2">
           <thead>
             <tr>
-              {[
-                ['id', 'Project ID'],
-                ['name', 'Name'],
-                ['owner', 'Owner'],
-                ['status', 'Status'],
-                ['priority', 'Priority'],
-                ['progress', 'Progress'],
-                ['budget', 'Budget'],
-              ].map(([key, label]) => (
-                <th key={key} className="px-3 py-2 text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                  <button type="button" onClick={() => setSortKey(key)} className="hover:text-cyan-200">{label}</button>
+              {columns.map((column) => (
+                <th key={column.key} className="px-3 py-2 text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  <button type="button" onClick={() => setSortKey(column.key)} className="hover:text-cyan-200">{column.label}</button>
                 </th>
               ))}
               <th className="px-3 py-2 text-right text-xs font-black uppercase tracking-[0.2em] text-slate-500">Action</th>
             </tr>
           </thead>
           <tbody>
-            {pagedRows.map((row) => (
-              <tr key={row.id} className="group">
-                <td className="rounded-l-2xl bg-slate-950/35 px-3 py-4 text-sm font-black text-cyan-100">{row.id}</td>
-                <td className="bg-slate-950/35 px-3 py-4 text-sm font-bold text-white">{row.name}</td>
-                <td className="bg-slate-950/35 px-3 py-4 text-sm text-slate-300">{row.owner}</td>
-                <td className="bg-slate-950/35 px-3 py-4">
-                  <span className="rounded-full bg-cyan-400/15 px-3 py-1 text-xs font-black text-cyan-100">{row.status}</span>
-                </td>
-                <td className="bg-slate-950/35 px-3 py-4 text-sm font-bold text-white">{row.priority}</td>
-                <td className="bg-slate-950/35 px-3 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-28 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" style={{ width: `${row.progress}%` }}></div>
-                    </div>
-                    <span className="text-xs font-black text-slate-300">{row.progress}%</span>
+            {pagedRows.length ? pagedRows.map((row) => (
+              <tr key={row.id || row.slug || row.email || row.name} className="group">
+                {columns.map((column, index) => (
+                  <td key={column.key} className={`${index === 0 ? 'rounded-l-2xl' : ''} bg-slate-950/35 px-3 py-4 text-sm ${index === 0 ? 'font-black text-cyan-100' : 'font-semibold text-slate-200'}`}>
+                    {column.type === 'status' ? (
+                      <span className="rounded-full bg-cyan-400/15 px-3 py-1 text-xs font-black text-cyan-100">{row[column.key] || '-'}</span>
+                    ) : column.type === 'progress' ? (
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-28 overflow-hidden rounded-full bg-white/10">
+                          <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" style={{ width: `${Number(row[column.key] || 0)}%` }}></div>
+                        </div>
+                        <span className="text-xs font-black text-slate-300">{row[column.key] || 0}%</span>
+                      </div>
+                    ) : (
+                      row[column.key] || '-'
+                    )}
+                  </td>
+                ))}
+                <td className="rounded-r-2xl bg-slate-950/35 px-3 py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    {onDelete ? (
+                      <button type="button" onClick={() => onDelete(row)} className="rounded-xl p-2 text-rose-200 hover:bg-rose-400/10" aria-label="Delete record">
+                        <Trash2 size={18} />
+                      </button>
+                    ) : null}
+                    <button type="button" className="rounded-xl p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="Open actions">
+                      <MoreHorizontal size={18} />
+                    </button>
                   </div>
                 </td>
-                <td className="bg-slate-950/35 px-3 py-4 text-sm font-bold text-white">{row.budget}</td>
-                <td className="rounded-r-2xl bg-slate-950/35 px-3 py-4 text-right">
-                  <button type="button" className="rounded-xl p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="Open actions">
-                    <MoreHorizontal size={18} />
-                  </button>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={columns.length + 1} className="rounded-2xl bg-slate-950/35 px-4 py-10 text-center text-sm font-semibold text-slate-400">
+                  {emptyText}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
