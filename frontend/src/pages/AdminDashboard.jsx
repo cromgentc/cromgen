@@ -218,7 +218,7 @@ function EnterpriseAdminApp() {
   const [clearedNotifications, setClearedNotifications] = useState(false)
   const [messages, setMessages] = useState(() => readStoredMessages())
 
-  const loadMongoData = async () => {
+  const loadMongoData = async (page = activePage) => {
     const coreRequests = await Promise.allSettled([
       apiRequest(AUTH_ENDPOINTS.settingsUsers),
       apiRequest(VENDOR_ENDPOINTS.settingsList),
@@ -229,8 +229,9 @@ function EnterpriseAdminApp() {
       apiRequest(SITE_ENDPOINTS.settingsDetail),
       apiRequest(AUTH_ENDPOINTS.currentUser),
     ])
+    const requiredWorkforceTypes = workforceTypesForPage(page)
     const workforceRequests = await Promise.allSettled(
-      workforceRecordTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
+      requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
 
     const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser] = coreRequests.map((result) => (
@@ -251,6 +252,46 @@ function EnterpriseAdminApp() {
       applications: applications.applications || [],
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
+      candidates: data.candidates,
+      teams: data.teams,
+      roles: data.roles,
+      attendance: data.attendance,
+      performance: data.performance,
+      agencies: data.agencies,
+      partners: data.partners,
+      vendorPerformance: data.vendorPerformance,
+      vendorPayouts: data.vendorPayouts,
+      clients: data.clients,
+      clientProjects: data.clientProjects,
+      clientBilling: data.clientBilling,
+      clientReports: data.clientReports,
+      supportRequests: data.supportRequests,
+      adminAccessControls: data.adminAccessControls,
+      tasks: data.tasks,
+      assignedTasks: data.assignedTasks,
+      deadlines: data.deadlines,
+      projectAnalytics: data.projectAnalytics,
+      finance: data.finance,
+      billingCycles: data.billingCycles,
+      invoices: data.invoices,
+      revenueAnalytics: data.revenueAnalytics,
+      wallets: data.wallets,
+      withdrawRequests: data.withdrawRequests,
+      salesPipeline: data.salesPipeline,
+      followUps: data.followUps,
+      emailCampaigns: data.emailCampaigns,
+      whatsappCampaigns: data.whatsappCampaigns,
+      reports: data.reports,
+      userReports: data.userReports,
+      vendorReports: data.vendorReports,
+      revenueReports: data.revenueReports,
+      aiAnalytics: data.aiAnalytics,
+      interviews: data.interviews,
+      hiringPipeline: data.hiringPipeline,
+      supportTickets: data.supportTickets,
+      helpCenter: data.helpCenter,
+      faqs: data.faqs,
+      contactRequests: data.contactRequests,
       ...workforceData,
     })
     setCurrentAdmin(currentUser.user || null)
@@ -262,11 +303,24 @@ function EnterpriseAdminApp() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      loadMongoData()
+      loadMongoData(activePage)
     }, 0)
 
     return () => window.clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+    if (loading) return
+
+    const type = workforceTypeForPage(activePage)
+    if (!type || data[type]?.length) return
+
+    const timer = window.setTimeout(() => {
+      loadMongoData(activePage)
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [activePage])
 
   const pageMeta = useMemo(() => {
     if (['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage)) {
@@ -1603,6 +1657,11 @@ function workforceTypeForPage(page) {
   }
 
   return map[page] || ''
+}
+
+function workforceTypesForPage(page) {
+  const type = workforceTypeForPage(page)
+  return type ? [type] : []
 }
 
 function isSettingsPage(page) {
