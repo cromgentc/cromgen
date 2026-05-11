@@ -44,6 +44,7 @@ import {
   CONTRACT_ENDPOINTS,
   JOB_ENDPOINTS,
   LEAD_ENDPOINTS,
+  POLICY_ENDPOINTS,
   SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
   WORKFORCE_ENDPOINTS,
@@ -58,6 +59,7 @@ const emptyData = {
   applications: [],
   jobs: [],
   siteSettings: null,
+  policies: [],
   candidates: [],
   teams: [],
   roles: [],
@@ -228,13 +230,14 @@ function EnterpriseAdminApp() {
       apiRequest(JOB_ENDPOINTS.settingsList),
       apiRequest(SITE_ENDPOINTS.settingsDetail),
       apiRequest(AUTH_ENDPOINTS.currentUser),
+      apiRequest(POLICY_ENDPOINTS.settingsList),
     ])
     const requiredWorkforceTypes = workforceTypesForPage(page)
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser] = coreRequests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, policies] = coreRequests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
     const workforceData = Object.fromEntries(
@@ -252,6 +255,7 @@ function EnterpriseAdminApp() {
       applications: applications.applications || [],
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
+      policies: policies.policies || [],
       ...Object.fromEntries(workforceRecordTypes.map((type) => [type, current[type] || []])),
       ...workforceData,
     }))
@@ -434,6 +438,22 @@ function EnterpriseAdminApp() {
     }
   }
 
+  const savePolicySettings = async (slug, policy) => {
+    try {
+      const response = await apiRequest(POLICY_ENDPOINTS.settingsDetail(slug), {
+        method: 'POST',
+        body: JSON.stringify(policy),
+      })
+      setData((current) => ({
+        ...current,
+        policies: current.policies.map((item) => (item.slug === slug ? response.policy : item)),
+      }))
+      setToast('Policy page updated successfully.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Policy page could not be updated.')
+    }
+  }
+
   const saveProfileSettings = async (profile) => {
     try {
       const response = await apiRequest(AUTH_ENDPOINTS.updateCurrentUser, {
@@ -529,6 +549,8 @@ function EnterpriseAdminApp() {
                 <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
               ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
+              ) : activePage === 'system-settings' ? (
+                <PolicySettingsPage policies={data.policies} onSave={savePolicySettings} />
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : (
@@ -806,6 +828,159 @@ function ModuleSummary({ module }) {
         </article>
       </div>
     </section>
+  )
+}
+
+function PolicySettingsPage({ policies, onSave }) {
+  const [activeSlug, setActiveSlug] = useState(policies[0]?.slug || '')
+  const activePolicy = policies.find((policy) => policy.slug === activeSlug) || policies[0] || createEmptyPolicy()
+  const [draft, setDraft] = useState(activePolicy)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextPolicy = policies.find((policy) => policy.slug === activeSlug) || policies[0] || createEmptyPolicy()
+      setActiveSlug(nextPolicy.slug)
+      setDraft(nextPolicy)
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [activeSlug, policies])
+
+  const updateField = (field, value) => {
+    setDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  const updateHighlight = (index, value) => {
+    setDraft((current) => ({
+      ...current,
+      highlights: (current.highlights || []).map((item, itemIndex) => (itemIndex === index ? value : item)),
+    }))
+  }
+
+  const addHighlight = () => {
+    setDraft((current) => ({ ...current, highlights: [...(current.highlights || []), ''] }))
+  }
+
+  const removeHighlight = (index) => {
+    setDraft((current) => ({ ...current, highlights: (current.highlights || []).filter((_, itemIndex) => itemIndex !== index) }))
+  }
+
+  const updateSection = (index, fieldIndex, value) => {
+    setDraft((current) => ({
+      ...current,
+      sections: (current.sections || []).map((section, itemIndex) => (
+        itemIndex === index
+          ? section.map((item, sectionIndex) => (sectionIndex === fieldIndex ? value : item))
+          : section
+      )),
+    }))
+  }
+
+  const addSection = () => {
+    setDraft((current) => ({ ...current, sections: [...(current.sections || []), ['NEW SECTION', '']] }))
+  }
+
+  const removeSection = (index) => {
+    setDraft((current) => ({ ...current, sections: (current.sections || []).filter((_, itemIndex) => itemIndex !== index) }))
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    await onSave(draft.slug, draft)
+    setSaving(false)
+  }
+
+  return (
+    <motion.form initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="grid gap-7 xl:grid-cols-[0.42fr_1fr]">
+      <aside className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Policy Pages</p>
+        <h2 className="mt-2 text-xl font-black text-white">System Settings</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">Select a policy page, edit content, and update it directly from MongoDB.</p>
+        <div className="mt-6 space-y-2">
+          {policies.length ? policies.map((policy) => (
+            <button
+              key={policy.slug}
+              type="button"
+              onClick={() => setActiveSlug(policy.slug)}
+              className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-black transition ${activePolicy.slug === policy.slug ? 'bg-cyan-300/15 text-cyan-100 ring-1 ring-cyan-300/20' : 'bg-slate-950/35 text-slate-300 hover:bg-white/10'}`}
+            >
+              {policy.title}
+              <span className="mt-1 block text-xs font-semibold text-slate-500">/{policy.slug}</span>
+            </button>
+          )) : (
+            <div className="rounded-2xl bg-slate-950/35 p-5 text-sm font-semibold text-slate-400">No policy pages found.</div>
+          )}
+        </div>
+      </aside>
+
+      <section className="space-y-5">
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Edit Policy</p>
+              <h2 className="mt-2 text-2xl font-black text-white">{draft.title || 'Policy Page'}</h2>
+            </div>
+            <button type="submit" disabled={saving || !draft.slug} className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/20 disabled:opacity-60">
+              {saving ? 'Updating...' : 'Update Policy'}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              ['title', 'Title'],
+              ['image', 'Hero Image URL'],
+              ['updated', 'Updated Label'],
+            ].map(([field, label]) => (
+              <label key={field}>
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</span>
+                <input value={draft[field] || ''} onChange={(event) => updateField(field, event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+              </label>
+            ))}
+            <label className="md:col-span-2">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Summary</span>
+              <textarea value={draft.summary || ''} rows={4} onChange={(event) => updateField('summary', event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+            </label>
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xl font-black text-white">Highlights</h3>
+            <button type="button" onClick={addHighlight} className="rounded-2xl bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-white/15">Add Highlight</button>
+          </div>
+          <div className="space-y-3">
+            {(draft.highlights || []).map((highlight, index) => (
+              <div key={index} className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <input value={highlight} onChange={(event) => updateHighlight(index, event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+                <button type="button" onClick={() => removeHighlight(index)} className="rounded-2xl bg-rose-400/10 px-4 py-2 text-sm font-black text-rose-200 hover:bg-rose-400/15">Remove</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xl font-black text-white">Sections</h3>
+            <button type="button" onClick={addSection} className="rounded-2xl bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-white/15">Add Section</button>
+          </div>
+          <div className="space-y-4">
+            {(draft.sections || []).map(([sectionTitle, copy], index) => (
+              <article key={index} className="rounded-3xl bg-slate-950/35 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <input value={sectionTitle} onChange={(event) => updateSection(index, 0, event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-black text-white outline-none focus:border-cyan-300/60" />
+                  <button type="button" onClick={() => removeSection(index)} className="rounded-2xl bg-rose-400/10 px-4 py-2 text-sm font-black text-rose-200 hover:bg-rose-400/15">Remove</button>
+                </div>
+                <textarea value={copy} rows={4} onChange={(event) => updateSection(index, 1, event.target.value)} className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </motion.form>
   )
 }
 
@@ -1646,6 +1821,18 @@ function createEmptySiteSettings() {
       adminEmail: '',
     },
     socialLinks: [],
+  }
+}
+
+function createEmptyPolicy() {
+  return {
+    slug: '',
+    title: '',
+    image: '',
+    summary: '',
+    updated: '',
+    highlights: [],
+    sections: [],
   }
 }
 
