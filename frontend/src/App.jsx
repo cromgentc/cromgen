@@ -73,6 +73,10 @@ const dashboardPages = {
   'vendor-dashboard': 'vendor',
 }
 
+const routeAliases = {
+  admin: 'admin-login',
+}
+
 const companyTitles = {
   'about-cromgen': 'About Cromgen | Cromgen Technology',
   'our-story': 'Our Story | Cromgen Technology',
@@ -127,11 +131,12 @@ function getRoute() {
   if (hash) {
     const search = window.location.search || ''
     window.history.replaceState({}, '', `/${hash}${search}`)
-    return hash
+    return routeAliases[hash] || hash
   }
 
   const pathname = window.location.pathname.replace(/^\/+/, '').replace(/\/$/, '')
-  return pathname || 'home'
+  const route = pathname || 'home'
+  return routeAliases[route] || route
 }
 
 function App() {
