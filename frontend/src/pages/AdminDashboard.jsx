@@ -104,7 +104,7 @@ function EnterpriseAdminApp() {
     })
 
     const failedCount = requests.filter((result) => result.status === 'rejected').length
-    setToast(failedCount ? `${failedCount} MongoDB collections could not load. Check backend login/API.` : 'MongoDB data synced.')
+    setToast(failedCount ? `${failedCount} data collections could not load. Check backend login/API.` : 'Live data synced.')
     setLoading(false)
   }
 
@@ -118,12 +118,12 @@ function EnterpriseAdminApp() {
 
   const pageMeta = useMemo(() => {
     if (['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage)) {
-      return { title: 'Enterprise Command Center', tag: 'MongoDB Live Data', icon: Sparkles }
+      return { title: 'Enterprise Command Center', tag: 'Live Data', icon: Sparkles }
     }
 
     return pageCatalog[activePage] || {
       title: titleize(activePage),
-      tag: 'MongoDB Module',
+      tag: 'Live Module',
       icon: Layers3,
     }
   }, [activePage])
@@ -134,7 +134,7 @@ function EnterpriseAdminApp() {
 
   const openCreateModal = () => {
     if (!supportedCreatePages.includes(activePage)) {
-      setToast('Is module ke liye backend create API abhi configured nahi hai.')
+      setToast('Create API is not configured for this module yet.')
       return
     }
     setForm(formDefaults[activePage])
@@ -159,10 +159,10 @@ function EnterpriseAdminApp() {
       }
 
       setModalOpen(false)
-      setToast('Record MongoDB mein save ho gaya.')
+      setToast('Record saved successfully.')
       await loadMongoData()
     } catch (error) {
-      setToast(error instanceof Error ? error.message : 'Record save nahi ho paya.')
+      setToast(error instanceof Error ? error.message : 'Record could not be saved.')
     } finally {
       setSaving(false)
     }
@@ -183,14 +183,14 @@ function EnterpriseAdminApp() {
       } else if (module.type === 'jobs') {
         await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else {
-        setToast('Is module ke liye delete API configured nahi hai.')
+        setToast('Delete API is not configured for this module yet.')
         return
       }
 
-      setToast('Record delete ho gaya.')
+      setToast('Record deleted successfully.')
       await loadMongoData()
     } catch (error) {
-      setToast(error instanceof Error ? error.message : 'Record delete nahi ho paya.')
+      setToast(error instanceof Error ? error.message : 'Record could not be deleted.')
     }
   }
 
@@ -256,7 +256,7 @@ function EnterpriseAdminApp() {
                     </span>
                     <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{pageMeta.title}</h1>
                     <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                      Dashboard backend REST APIs aur MongoDB collections se live data render karta hai.
+                      Dashboard renders live data from the backend REST APIs.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -264,7 +264,7 @@ function EnterpriseAdminApp() {
                       <Plus size={18} /> Create Record
                     </button>
                     <button type="button" onClick={loadMongoData} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
-                      <WandSparkles size={18} /> Refresh MongoDB
+                      <WandSparkles size={18} /> Refresh Data
                     </button>
                   </div>
                 </div>
@@ -278,7 +278,7 @@ function EnterpriseAdminApp() {
             </div>
 
             <footer className="px-7 pb-7 text-sm text-slate-500">
-              Cromgen Technology Enterprise Admin - MongoDB live data - Secure admin workspace
+              Cromgen Technology Enterprise Admin - Live data - Secure admin workspace
             </footer>
           </section>
         </div>
@@ -317,7 +317,7 @@ function DashboardOverview({ data, onDelete }) {
       </section>
 
       <section className="grid gap-7 xl:grid-cols-[1.35fr_0.65fr]">
-        <ChartCard title="MongoDB Collection Growth" eyebrow="Live Database">
+        <ChartCard title="Collection Growth" eyebrow="Live Database">
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="revenueGradient" x1="0" x2="0" y1="0" y2="1">
@@ -367,7 +367,7 @@ function DashboardOverview({ data, onDelete }) {
       </section>
 
       <section className="grid gap-7 xl:grid-cols-[1fr_0.78fr]">
-        <EnterpriseTable title="Recent MongoDB Projects" rows={projectModule.rows} columns={projectModule.columns} onDelete={onDelete} />
+        <EnterpriseTable title="Recent Projects" rows={projectModule.rows} columns={projectModule.columns} onDelete={onDelete} />
         <OperationsPanel data={data} />
       </section>
     </motion.div>
@@ -387,7 +387,7 @@ function OperationsPanel({ data }) {
         <div className="mb-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Recent Activity</p>
-            <h2 className="mt-2 text-xl font-black text-white">MongoDB activity feed</h2>
+            <h2 className="mt-2 text-xl font-black text-white">Live activity feed</h2>
           </div>
           <Sparkles className="text-cyan-200" />
         </div>
@@ -404,7 +404,7 @@ function OperationsPanel({ data }) {
               </div>
             </article>
           )) : (
-            <div className="rounded-3xl bg-slate-950/35 p-6 text-sm font-semibold text-slate-400">MongoDB mein recent activity abhi empty hai.</div>
+            <div className="rounded-3xl bg-slate-950/35 p-6 text-sm font-semibold text-slate-400">Recent activity is currently empty.</div>
           )}
         </div>
       </section>
@@ -440,11 +440,11 @@ function EnterpriseModule({ pageMeta, module, onDelete }) {
           <h2 className="mt-6 text-2xl font-black text-white">{pageMeta.title} Workspace</h2>
           <p className="mt-3 text-sm leading-7 text-slate-400">
             {module.isLive
-              ? 'Ye module MongoDB se live data read karta hai. Search, sort, pagination, CSV/PDF export aur delete connected hai.'
-              : 'Is sidebar module ke liye backend collection/API abhi configured nahi hai.'}
+              ? 'This module reads live data from the backend. Search, sorting, pagination, CSV/PDF export, and delete actions are connected.'
+              : 'The backend collection/API is not configured for this sidebar module yet.'}
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {['MongoDB live', 'JWT protected', 'CSV/PDF export', 'Real records only'].map((item) => (
+            {['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only'].map((item) => (
               <div key={item} className="rounded-2xl bg-slate-950/35 p-4 text-sm font-bold text-slate-200">
                 <CheckCircle2 className="mb-3 text-cyan-200" size={18} /> {item}
               </div>
@@ -521,7 +521,7 @@ function RecordModal({ open, page, form, saving, onChange, onSubmit, onClose }) 
           ))}
         </div>
         <button type="submit" disabled={saving} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/20 disabled:opacity-60">
-          {saving ? 'Saving...' : 'Save to MongoDB'} <ChevronRight size={18} />
+          {saving ? 'Saving...' : 'Save Record'} <ChevronRight size={18} />
         </button>
       </form>
     </Modal>
@@ -532,7 +532,7 @@ function getModuleConfig(page, data) {
   if (['user-management', 'team-management', 'role-permissions'].includes(page)) {
     return {
       type: 'users',
-      title: 'Users from MongoDB',
+      title: 'Users',
       source: AUTH_ENDPOINTS.settingsUsers,
       isLive: true,
       rows: data.users.map((user) => ({
@@ -544,14 +544,14 @@ function getModuleConfig(page, data) {
         createdAt: formatDate(user.createdAt),
       })),
       columns: commonColumns(['name', 'email', 'role', 'status', 'createdAt']),
-      emptyText: 'MongoDB users collection empty hai.',
+      emptyText: 'The users collection is empty.',
     }
   }
 
   if (['vendor-management', 'agency-management', 'partner-network', 'vendor-performance', 'vendor-payouts'].includes(page)) {
     return {
       type: 'vendors',
-      title: 'Vendors from MongoDB',
+      title: 'Vendors',
       source: VENDOR_ENDPOINTS.settingsList,
       isLive: true,
       rows: data.vendors.map((vendor) => ({
@@ -565,14 +565,14 @@ function getModuleConfig(page, data) {
         createdAt: formatDate(vendor.createdAt),
       })),
       columns: commonColumns(['code', 'name', 'company', 'email', 'service', 'status', 'createdAt']),
-      emptyText: 'MongoDB vendors collection empty hai.',
+      emptyText: 'The vendors collection is empty.',
     }
   }
 
   if (['project-management', 'client-projects', 'task-management', 'assign-tasks', 'deadlines', 'project-analytics', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
     return {
       type: 'contracts',
-      title: 'Projects / Contracts from MongoDB',
+      title: 'Projects / Contracts',
       source: CONTRACT_ENDPOINTS.settingsList,
       isLive: true,
       rows: data.contracts.map((contract) => ({
@@ -585,14 +585,14 @@ function getModuleConfig(page, data) {
         createdAt: formatDate(contract.createdAt),
       })),
       columns: commonColumns(['title', 'client', 'email', 'projectStatus', 'status', 'createdAt']),
-      emptyText: 'MongoDB contracts/projects collection empty hai.',
+      emptyText: 'The contracts/projects collection is empty.',
     }
   }
 
   if (['leads-management', 'sales-pipeline', 'follow-ups', 'email-campaigns', 'whatsapp-campaigns', 'contact-requests', 'clients', 'support-requests'].includes(page)) {
     return {
       type: 'leads',
-      title: 'Leads from MongoDB',
+      title: 'Leads',
       source: LEAD_ENDPOINTS.settingsList,
       isLive: true,
       rows: data.leads.map((lead) => ({
@@ -604,14 +604,14 @@ function getModuleConfig(page, data) {
         createdAt: formatDate(lead.createdAt),
       })),
       columns: commonColumns(['name', 'email', 'service', 'query', 'createdAt']),
-      emptyText: 'MongoDB leads collection empty hai.',
+      emptyText: 'The leads collection is empty.',
     }
   }
 
   if (['job-postings'].includes(page)) {
     return {
       type: 'jobs',
-      title: 'Jobs from MongoDB',
+      title: 'Jobs',
       source: JOB_ENDPOINTS.settingsList,
       isLive: true,
       rows: data.jobs.map((job) => ({
@@ -623,14 +623,14 @@ function getModuleConfig(page, data) {
         createdAt: formatDate(job.createdAt),
       })),
       columns: commonColumns(['title', 'department', 'location', 'type', 'createdAt']),
-      emptyText: 'MongoDB jobs collection empty hai.',
+      emptyText: 'The jobs collection is empty.',
     }
   }
 
   if (['applications', 'candidate-management', 'interview-management', 'hiring-pipeline'].includes(page)) {
     return {
       type: 'applications',
-      title: 'Applications from MongoDB',
+      title: 'Applications',
       source: APPLICATION_ENDPOINTS.settingsList,
       isLive: true,
       rows: data.applications.map((application) => ({
@@ -642,7 +642,7 @@ function getModuleConfig(page, data) {
         createdAt: formatDate(application.createdAt),
       })),
       columns: commonColumns(['name', 'email', 'role', 'status', 'createdAt']),
-      emptyText: 'MongoDB applications collection empty hai.',
+      emptyText: 'The applications collection is empty.',
     }
   }
 
@@ -653,14 +653,14 @@ function getModuleConfig(page, data) {
     isLive: false,
     rows: [],
     columns: commonColumns(['name', 'status', 'createdAt']),
-    emptyText: 'Is module ke liye MongoDB API configure karna baaki hai.',
+    emptyText: 'The API for this module has not been configured yet.',
   }
 }
 
 function createStats(data) {
   return [
     { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
-    { label: 'Active Projects', value: data.contracts.filter((item) => (item.projectStatus || 'active') === 'active').length, change: 'MongoDB', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500' },
+    { label: 'Active Projects', value: data.contracts.filter((item) => (item.projectStatus || 'active') === 'active').length, change: 'Live', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500' },
     { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
     { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
     { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },

@@ -35,14 +35,14 @@ export function NotificationPanel({ open, notifications = [], onClose }) {
               </article>
             )) : (
               <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-5 text-sm font-semibold text-slate-400">
-                MongoDB se koi notification record available nahi hai.
+                No notification records are available.
               </div>
             )}
           </div>
 
           <div className="mt-6 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5">
             <Bell className="text-cyan-200" />
-            <h3 className="mt-4 font-black">MongoDB summary</h3>
+            <h3 className="mt-4 font-black">Live summary</h3>
             <p className="mt-2 text-sm leading-6 text-slate-300">
               {notifications.length ? `${notifications.length} live records need admin attention.` : 'Live collections synced. No pending alert found.'}
             </p>

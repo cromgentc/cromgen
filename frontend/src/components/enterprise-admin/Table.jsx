@@ -36,7 +36,7 @@ export function EnterpriseTable({ title, rows, columns, onDelete, emptyText = 'N
     <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">MongoDB Records</p>
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Live Records</p>
           <h2 className="mt-2 text-xl font-black text-white">{title}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
