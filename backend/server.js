@@ -7,6 +7,8 @@ import { routes } from './routes/index.js'
 import {
   createSettingWorkforceRecord,
   deleteSettingWorkforceRecord,
+  createPublicWorkforceRecord,
+  listPublicWorkforceRecords,
   listWorkforceRecords,
   updateSettingWorkforceRecord,
 } from './controllers/workforceController.js'
@@ -66,6 +68,13 @@ connectDB()
   })
 
 function matchRoute(method, pathname) {
+  const publicSupportMatch = pathname.match(/^\/api\/support\/([^/]+)$/)
+  if (publicSupportMatch) {
+    const [, type] = publicSupportMatch
+    if (method === 'GET') return { route: { handler: listPublicWorkforceRecords }, params: { type } }
+    if (method === 'POST') return { route: { handler: createPublicWorkforceRecord }, params: { type } }
+  }
+
   const workforceMatch = pathname.match(/^\/api\/settings\/workforce\/([^/]+)(?:\/([^/]+))?$/)
   if (workforceMatch) {
     const [, type, id] = workforceMatch

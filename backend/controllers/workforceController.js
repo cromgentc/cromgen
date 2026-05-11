@@ -9,6 +9,35 @@ import {
 import { json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
+const publicReadableTypes = new Set(['helpCenter', 'faqs'])
+const publicCreateTypes = new Set(['supportTickets', 'contactRequests'])
+
+export async function listPublicWorkforceRecords(_request, { type }) {
+  if (!publicReadableTypes.has(type) || !isAllowedWorkforceType(type)) return notFound('Support module not found')
+
+  return json(200, {
+    ok: true,
+    records: await findWorkforceRecords(type),
+  })
+}
+
+export async function createPublicWorkforceRecord(request, { type }) {
+  if (!publicCreateTypes.has(type) || !isAllowedWorkforceType(type)) return notFound('Support module not found')
+
+  const body = await readJson(request)
+  if (!body.name) return validationError('Name is required')
+
+  const record = await createWorkforceRecord(type, {
+    ...body,
+    status: body.status || 'Open',
+  })
+
+  return json(201, {
+    ok: true,
+    message: 'Request submitted successfully',
+    record,
+  })
+}
 
 export async function listWorkforceRecords(request, { type }) {
   const auth = settingsAuth(request)

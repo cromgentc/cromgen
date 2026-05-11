@@ -23,6 +23,13 @@ const policyLinks = [
   ['Sitemap', '/sitemap'],
 ]
 
+const supportLinks = [
+  ['Support Tickets', '/support-tickets'],
+  ['Help Center', '/help-center'],
+  ['FAQ Management', '/faq-management'],
+  ['Contact Requests', '/contact-requests'],
+]
+
 const industries = [
   ['Artificial Intelligence (AI)', '/artificial-intelligence'],
   ['Digital Marketing', '/digital-marketing'],
@@ -190,6 +197,17 @@ export function Footer() {
               <FooterTitle>Industries</FooterTitle>
               <FooterList>
                 {industries.map(([label, href]) => (
+                  <FooterLink key={label} href={href}>
+                    {label}
+                  </FooterLink>
+                ))}
+              </FooterList>
+            </div>
+
+            <div>
+              <FooterTitle>Support</FooterTitle>
+              <FooterList>
+                {supportLinks.map(([label, href]) => (
                   <FooterLink key={label} href={href}>
                     {label}
                   </FooterLink>

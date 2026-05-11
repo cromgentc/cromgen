@@ -95,6 +95,8 @@ export const SITE_ENDPOINTS = {
 export const WORKFORCE_ENDPOINTS = {
   settingsList: (type) => `/api/settings/workforce/${encodeURIComponent(type)}`,
   settingsDetail: (type, id) => `/api/settings/workforce/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+  publicList: (type) => `/api/support/${encodeURIComponent(type)}`,
+  publicCreate: (type) => `/api/support/${encodeURIComponent(type)}`,
 }
 
 export async function apiRequest(path, options = {}) {

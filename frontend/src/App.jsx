@@ -15,6 +15,7 @@ import { ItServicesPage } from './pages/ItServicesPage.jsx'
 import { OnboardingPage } from './pages/OnboardingPage.jsx'
 import { ServiceDetailLandingPage } from './pages/drop/ServiceDetailLandingPage.jsx'
 import { SoftwareDevelopmentServicesPage } from './pages/SoftwareDevelopmentServicesPage.jsx'
+import { SupportPage } from './pages/SupportPages.jsx'
 import { TelecommunicationsPage } from './pages/TelecommunicationsPage.jsx'
 import { VendorOnboardingPage } from './pages/drop/VendorOnboardingPage.jsx'
 import { findOnboardingPage, findServiceDetail, services, slugify } from './data/services.js'
@@ -64,6 +65,8 @@ const policyPages = [
   'disclaimer',
   'sitemap',
 ]
+
+const supportPages = ['support-tickets', 'help-center', 'faq-management', 'contact-requests']
 
 const authPages = ['login', 'admin-login', 'staff-login', 'vendor-login', 'vendor-register', 'candidate-login', 'candidate-register']
 
@@ -121,6 +124,7 @@ function getPageTitle(route) {
   if (route === 'admin-dashboard') return 'Admin Dashboard | Cromgen Technology'
   if (route === 'staff-dashboard') return 'Staff Dashboard | Cromgen Technology'
   if (route === 'vendor-dashboard') return 'Vendor Dashboard | Cromgen Technology'
+  if (supportPages.includes(route)) return `${route.split('-').map((word) => word[0]?.toUpperCase() + word.slice(1)).join(' ')} | Cromgen Technology`
 
   return companyTitles[route] || policyTitles[route] || 'Cromgen Technology'
 }
@@ -222,8 +226,10 @@ function App() {
         <ActiveCompanyPage />
       ) : careerApplySlug ? (
         <CareerApplyPage slug={careerApplySlug} />
-      ) : policyPages.includes(route) ? (
+  ) : policyPages.includes(route) ? (
         <PolicyPage type={route} />
+      ) : supportPages.includes(route) ? (
+        <SupportPage type={route} />
       ) : authPages.includes(route) ? (
         <AuthPage type={route} />
       ) : dashboardRole ? (
