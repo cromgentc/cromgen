@@ -6357,6 +6357,48 @@ header #mobile-navigation summary:hover {
   color: #ffffff;
 }
 
+.project-description-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.project-description-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 34px;
+  border: 1px solid #d6e3df;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.project-description-toolbar button:hover {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.project-description-hint {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
 .admin-image-upload input {
   border-style: dashed;
   background: #f6faf9;

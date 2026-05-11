@@ -685,6 +685,38 @@ export function AdminDashboard() {
     setContractForm((current) => ({ ...current, [field]: value }))
   }
 
+  const formatProjectDescription = (format) => {
+    const textarea = document.getElementById('project-description-editor')
+    const value = contractForm.contractBody || ''
+    const start = textarea?.selectionStart ?? value.length
+    const end = textarea?.selectionEnd ?? value.length
+    const selectedText = value.slice(start, end)
+    const fallback = selectedText || 'description text'
+    const linePrefix = start === 0 || value[start - 1] === '\n' ? '' : '\n'
+
+    const formats = {
+      bold: [`**${fallback}**`, selectedText ? 2 : 2, selectedText ? 2 : fallback.length + 2],
+      italic: [`_${fallback}_`, selectedText ? 1 : 1, selectedText ? 1 : fallback.length + 1],
+      heading: [`${linePrefix}## ${fallback}`, linePrefix.length + 3, linePrefix.length + 3 + fallback.length],
+      numbered: [`${linePrefix}1. ${fallback}`, linePrefix.length + 3, linePrefix.length + 3 + fallback.length],
+      bullet: [`${linePrefix}- ${fallback}`, linePrefix.length + 2, linePrefix.length + 2 + fallback.length],
+      checklist: [`${linePrefix}- [ ] ${fallback}`, linePrefix.length + 6, linePrefix.length + 6 + fallback.length],
+      link: [`[${fallback}](https://example.com)`, 1, 1 + fallback.length],
+      clear: [selectedText.replace(/(\*\*|_|^#{1,6}\s|^- \[ \]\s|^- \s|^\d+\.\s|\]\([^)]+\))/gm, '').replace(/^\[/gm, ''), 0, 0],
+    }
+
+    const [replacement, selectionStartOffset, selectionEndOffset] = formats[format] || formats.bold
+    const nextValue = `${value.slice(0, start)}${replacement}${value.slice(end)}`
+    updateContractField('contractBody', nextValue)
+
+    window.setTimeout(() => {
+      textarea?.focus()
+      const nextStart = start + selectionStartOffset
+      const nextEnd = start + selectionEndOffset
+      textarea?.setSelectionRange(nextStart, Math.max(nextStart, nextEnd))
+    }, 0)
+  }
+
   const sendContract = async (event) => {
     event.preventDefault()
 
@@ -1547,12 +1579,26 @@ export function AdminDashboard() {
                   </label>
                   <label className="admin-wide-field">
                     <span>Description</span>
+                    <div className="project-description-toolbar" aria-label="Project description formatting tools">
+                      <button type="button" onClick={() => formatProjectDescription('bold')}>B</button>
+                      <button type="button" onClick={() => formatProjectDescription('italic')}>I</button>
+                      <button type="button" onClick={() => formatProjectDescription('heading')}>H</button>
+                      <button type="button" onClick={() => formatProjectDescription('numbered')}>1.</button>
+                      <button type="button" onClick={() => formatProjectDescription('bullet')}>List</button>
+                      <button type="button" onClick={() => formatProjectDescription('checklist')}>Task</button>
+                      <button type="button" onClick={() => formatProjectDescription('link')}>Link</button>
+                      <button type="button" onClick={() => formatProjectDescription('clear')}>Clear</button>
+                    </div>
                     <textarea
+                      id="project-description-editor"
                       value={contractForm.contractBody}
                       placeholder="Type project description, scope, notes, delivery details, or contract summary..."
                       onChange={(event) => updateContractField('contractBody', event.target.value)}
                       rows={8}
                     />
+                    <small className="project-description-hint">
+                      Supports bold, italic, headings, numbered lists, bullet lists, tasks, and links.
+                    </small>
                   </label>
                   {contractForm.contractFile?.name ? (
                     <div className="admin-empty-state admin-wide-field">
