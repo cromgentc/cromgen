@@ -1,0 +1,4 @@
+export function RemoteDesktopSupportPage() {
+  return <main className="min-h-[55vh] bg-white" />
+}
+

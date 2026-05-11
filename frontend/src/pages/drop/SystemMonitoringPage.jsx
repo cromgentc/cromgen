@@ -1,0 +1,4 @@
+export function SystemMonitoringPage() {
+  return <main className="min-h-[55vh] bg-white" />
+}
+
