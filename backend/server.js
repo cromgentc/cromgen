@@ -4,6 +4,12 @@ import { seedPolicies } from './models/Policy.js'
 import { seedSiteSettings } from './models/SiteSettings.js'
 import { seedSystemUsers } from './models/User.js'
 import { routes } from './routes/index.js'
+import {
+  createSettingWorkforceRecord,
+  deleteSettingWorkforceRecord,
+  listWorkforceRecords,
+  updateSettingWorkforceRecord,
+} from './controllers/workforceController.js'
 import { loadEnv } from './utils/env.js'
 import { notFound, sendJson, setCorsHeaders } from './utils/http.js'
 
@@ -60,6 +66,15 @@ connectDB()
   })
 
 function matchRoute(method, pathname) {
+  const workforceMatch = pathname.match(/^\/api\/settings\/workforce\/([^/]+)(?:\/([^/]+))?$/)
+  if (workforceMatch) {
+    const [, type, id] = workforceMatch
+    if (method === 'GET' && !id) return { route: { handler: listWorkforceRecords }, params: { type } }
+    if (method === 'POST' && !id) return { route: { handler: createSettingWorkforceRecord }, params: { type } }
+    if (method === 'POST' && id) return { route: { handler: updateSettingWorkforceRecord }, params: { type, id } }
+    if (method === 'DELETE' && id) return { route: { handler: deleteSettingWorkforceRecord }, params: { type, id } }
+  }
+
   for (const route of routes) {
     if (route.method !== method) continue
 
