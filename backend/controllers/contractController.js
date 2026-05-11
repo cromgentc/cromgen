@@ -35,10 +35,6 @@ export async function createSettingContract(request) {
     return validationError('Title, recipient name, and recipient email are required')
   }
 
-  if (!body.contractFile?.data) {
-    return validationError('Upload a DOCX contract file')
-  }
-
   if (body.contractFile?.data && !isDocxFile(body.contractFile)) {
     return validationError('Only DOCX contract files are allowed')
   }
@@ -47,7 +43,7 @@ export async function createSettingContract(request) {
 
   return json(201, {
     ok: true,
-    message: 'Contract saved. First party must sign before sending to recipient.',
+    message: 'Project saved successfully.',
     contract,
     email: { sent: false, reason: 'First party signature required before email is sent' },
   })
@@ -76,10 +72,6 @@ export async function updateSettingContract(request, { token }) {
 
   if (!body.title || !body.recipientName || !body.recipientEmail) {
     return validationError('Title, recipient name, and recipient email are required')
-  }
-
-  if (!body.contractFile?.data && !existingContract.contractFile?.data) {
-    return validationError('Upload a DOCX contract file')
   }
 
   if (body.contractFile?.data && !isDocxFile(body.contractFile)) {

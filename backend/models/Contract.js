@@ -152,6 +152,7 @@ export function normalizeContract(contract) {
     signedContractFile: normalizeContractFile(contract.signedContractFile),
     senderName: String(contract.senderName || 'Cromgen Technology').trim(),
     status: String(contract.status || 'pending').trim(),
+    projectStatus: normalizeProjectStatus(contract.projectStatus),
     finalContractBody: String(contract.finalContractBody || contract.contractBody || '').trim(),
     contractDate: String(contract.contractDate || '').trim(),
     contractTimestamp: String(contract.contractTimestamp || '').trim(),
@@ -181,7 +182,13 @@ function sanitizeContractFields(body) {
     googleDocUrl: String(body.googleDocUrl || '').trim(),
     contractFile: normalizeContractFile(body.contractFile),
     senderName: String(body.senderName || 'Cromgen Technology').trim(),
+    projectStatus: normalizeProjectStatus(body.projectStatus),
   }
+}
+
+function normalizeProjectStatus(status) {
+  const value = String(status || 'active').trim().toLowerCase()
+  return ['live', 'active', 'inactive', 'closed'].includes(value) ? value : 'active'
 }
 
 function normalizeContractFile(file) {

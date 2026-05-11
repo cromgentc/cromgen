@@ -49,8 +49,16 @@ const emptyContractForm = {
   recipientName: '',
   recipientEmail: '',
   senderName: 'Cromgen Technology',
+  projectStatus: 'active',
   contractFile: { name: '', type: '', data: '' },
 }
+
+const projectStatusOptions = [
+  ['live', 'Live Project'],
+  ['active', 'Active Project'],
+  ['inactive', 'Inactive Project'],
+  ['closed', 'Closed Project'],
+]
 
 function AdminIcon({ name }) {
   const paths = {
@@ -95,6 +103,7 @@ export function AdminDashboard() {
   const [selectedLeadIds, setSelectedLeadIds] = useState([])
   const [selectedJobSlugs, setSelectedJobSlugs] = useState([])
   const [selectedApplicationIds, setSelectedApplicationIds] = useState([])
+  const [selectedContractIds, setSelectedContractIds] = useState([])
   const [contracts, setContracts] = useState([])
   const [status, setStatus] = useState({ type: '', message: '' })
   const token = localStorage.getItem('cromgen_auth_token')
@@ -204,9 +213,11 @@ export function AdminDashboard() {
   const selectedVisibleLeadIds = visibleLeads.map((lead) => lead.id).filter(Boolean)
   const selectedVisibleJobSlugs = visibleJobs.map((job) => job.slug).filter(Boolean)
   const selectedVisibleApplicationIds = visibleApplications.map((application) => application.id).filter(Boolean)
+  const selectedVisibleContractIds = visibleContracts.map((contract) => contract.signingToken || contract.slug).filter(Boolean)
   const areVisibleLeadsSelected = selectedVisibleLeadIds.length > 0 && selectedVisibleLeadIds.every((id) => selectedLeadIds.includes(id))
   const areVisibleJobsSelected = selectedVisibleJobSlugs.length > 0 && selectedVisibleJobSlugs.every((slug) => selectedJobSlugs.includes(slug))
   const areVisibleApplicationsSelected = selectedVisibleApplicationIds.length > 0 && selectedVisibleApplicationIds.every((id) => selectedApplicationIds.includes(id))
+  const areVisibleContractsSelected = selectedVisibleContractIds.length > 0 && selectedVisibleContractIds.every((id) => selectedContractIds.includes(id))
 
   if (!token || role !== 'admin') {
     return (
@@ -301,6 +312,7 @@ export function AdminDashboard() {
     try {
       const data = await apiRequest(CONTRACT_ENDPOINTS.settingsList)
       setContracts(data.contracts || [])
+      setSelectedContractIds((current) => current.filter((id) => (data.contracts || []).some((contract) => (contract.signingToken || contract.slug) === id)))
     } catch (error) {
       setStatus({
         type: 'error',
@@ -543,6 +555,13 @@ export function AdminDashboard() {
     ))
   }
 
+  const toggleContractSelection = (id) => {
+    if (!id) return
+    setSelectedContractIds((current) => (
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    ))
+  }
+
   const toggleVisibleLeads = () => {
     setSelectedLeadIds((current) => (
       areVisibleLeadsSelected
@@ -567,6 +586,14 @@ export function AdminDashboard() {
     ))
   }
 
+  const toggleVisibleContracts = () => {
+    setSelectedContractIds((current) => (
+      areVisibleContractsSelected
+        ? current.filter((id) => !selectedVisibleContractIds.includes(id))
+        : [...new Set([...current, ...selectedVisibleContractIds])]
+    ))
+  }
+
   const downloadCsv = (fileName, rows) => {
     const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -587,6 +614,21 @@ export function AdminDashboard() {
         lead.service,
         lead.query,
         lead.createdAt ? new Date(lead.createdAt).toLocaleString() : '',
+      ]),
+    ])
+  }
+
+  const downloadProjectsCsv = () => {
+    downloadCsv('cromgen-projects.csv', [
+      ['Project', 'Client Name', 'Client Email', 'Project Status', 'Contract Status', 'Created', 'Signed'],
+      ...visibleContracts.map((contract) => [
+        contract.title,
+        contract.recipientName,
+        contract.recipientEmail,
+        contract.projectStatus || 'active',
+        contract.status,
+        contract.createdAt ? new Date(contract.createdAt).toLocaleString() : '',
+        contract.signedAt ? new Date(contract.signedAt).toLocaleString() : '',
       ]),
     ])
   }
@@ -645,11 +687,6 @@ export function AdminDashboard() {
   const sendContract = async (event) => {
     event.preventDefault()
 
-    if (!contractForm.contractFile?.data && !editingContractId) {
-      setStatus({ type: 'error', message: 'Please upload a DOCX contract file.' })
-      return
-    }
-
     try {
       const data = await apiRequest(
         editingContractId ? CONTRACT_ENDPOINTS.settingsDetail(editingContractId) : CONTRACT_ENDPOINTS.settingsList,
@@ -690,6 +727,7 @@ export function AdminDashboard() {
       recipientName: contract.recipientName || '',
       recipientEmail: contract.recipientEmail || '',
       senderName: contract.senderName || 'Cromgen Technology',
+      projectStatus: contract.projectStatus || 'active',
       contractFile: contract.contractFile || { name: '', type: '', data: '' },
     })
     setActiveMenu('contract-send')
@@ -716,6 +754,12 @@ export function AdminDashboard() {
 
     const html = createAdminSignedHtml(contract, isDocx ? '' : fileUrl, docxHtml)
     openAdminPdfPrintWindow(html, contract.slug || 'signed-contract')
+  }
+
+  const viewContract = (contract) => {
+    const contractId = contract.signingToken || contract.slug
+    if (!contractId) return
+    window.open(`/contract-sign/${contractId}`, '_blank', 'noopener,noreferrer')
   }
 
   const saveJobPost = async (event) => {
@@ -880,11 +924,43 @@ export function AdminDashboard() {
       setContracts((current) => current.filter((contract) => (
         (contract.signingToken || contract.slug) !== contractId
       )))
+      setSelectedContractIds((current) => current.filter((item) => item !== contractId))
       setStatus({ type: 'success', message: 'Contract deleted.' })
     } catch (error) {
       setStatus({
         type: 'error',
         message: error instanceof Error ? error.message : 'Unable to delete contract.',
+      })
+    }
+  }
+
+  const deleteSelectedContracts = async () => {
+    if (!selectedContractIds.length) return
+
+    try {
+      await Promise.all(selectedContractIds.map((id) => apiRequest(CONTRACT_ENDPOINTS.settingsDelete(id), { method: 'DELETE' })))
+      setContracts((current) => current.filter((contract) => !selectedContractIds.includes(contract.signingToken || contract.slug)))
+      setSelectedContractIds([])
+      setStatus({ type: 'success', message: 'Selected projects deleted.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to delete selected projects.',
+      })
+    }
+  }
+
+  const deleteAllContracts = async () => {
+    try {
+      const contractIds = contracts.map((contract) => contract.signingToken || contract.slug).filter(Boolean)
+      await Promise.all(contractIds.map((id) => apiRequest(CONTRACT_ENDPOINTS.settingsDelete(id), { method: 'DELETE' })))
+      setContracts([])
+      setSelectedContractIds([])
+      setStatus({ type: 'success', message: 'All projects deleted.' })
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to delete all projects.',
       })
     }
   }
@@ -1317,11 +1393,14 @@ export function AdminDashboard() {
             <section className="admin-policy-editor">
               <div className="admin-editor-head">
                 <div>
-                  <span>Legal</span>
-                  <h2>Contract Requests</h2>
+                  <span>Projects</span>
+                  <h2>Project Management</h2>
                 </div>
                 <div className="admin-editor-actions">
-                  <button type="button" onClick={() => setActiveMenu('contract-send')}>Contract Send</button>
+                  <button type="button" onClick={downloadProjectsCsv}>Download All</button>
+                  <button type="button" onClick={deleteSelectedContracts} disabled={!selectedContractIds.length}>Delete Selected</button>
+                  <button type="button" onClick={deleteAllContracts} disabled={!contracts.length}>Delete All</button>
+                  <button type="button" onClick={() => setActiveMenu('contract-send')}>Add Project</button>
                 </div>
               </div>
 
@@ -1335,29 +1414,40 @@ export function AdminDashboard() {
                 <table className="admin-applications-table">
                   <thead>
                     <tr>
-                      <th>Contract</th>
-                      <th>Recipient</th>
-                      <th>CompanyStatus</th>
-                      <th>UsersStatus</th>
-                      <th>Signature</th>
-                      <th>Sent</th>
-                      <th>Signed</th>
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={areVisibleContractsSelected}
+                          onChange={toggleVisibleContracts}
+                        />
+                      </th>
+                      <th>Project</th>
+                      <th>Client</th>
+                      <th>Project Status</th>
+                      <th>Contract Status</th>
+                      <th>Created</th>
                       <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {visibleContracts.length ? visibleContracts.map((contract) => {
                       const contractId = contract.signingToken || contract.slug
-                      const companyStatus = contract.companySignatureData ? 'signed' : 'pending'
                       const usersStatus = contract.status === 'signed' || contract.signatureData ? 'signed' : 'pending'
 
                       return (
                         <tr key={contractId}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedContractIds.includes(contractId)}
+                              onChange={() => toggleContractSelection(contractId)}
+                            />
+                          </td>
                           <td>{contract.title}</td>
                           <td>{contract.recipientName}<br />{contract.recipientEmail}</td>
                           <td>
-                            <span className={`admin-status-pill is-${companyStatus}`}>
-                              {companyStatus}
+                            <span className={`admin-status-pill is-${contract.projectStatus || 'active'}`}>
+                              {projectStatusOptions.find(([value]) => value === (contract.projectStatus || 'active'))?.[1] || 'Active Project'}
                             </span>
                           </td>
                           <td>
@@ -1365,15 +1455,11 @@ export function AdminDashboard() {
                               {usersStatus}
                             </span>
                           </td>
-                          <td>{contract.signatureName || '-'}</td>
                           <td>{contract.createdAt ? new Date(contract.createdAt).toLocaleString() : '-'}</td>
-                          <td>{contract.signedAt ? new Date(contract.signedAt).toLocaleString() : '-'}</td>
                           <td>
-                            {contractId ? (
-                              <a href={`/contract-sign/${contractId}`} target="_blank" rel="noreferrer">
-                                Sign
-                              </a>
-                            ) : null}
+                            <button type="button" onClick={() => viewContract(contract)}>
+                              View
+                            </button>
                             {contract.status === 'signed' ? (
                               <button type="button" onClick={() => downloadContractCopy(contract)}>
                                 Download
@@ -1390,7 +1476,7 @@ export function AdminDashboard() {
                       )
                     }) : (
                       <tr>
-                        <td colSpan="8">No contract requests yet.</td>
+                        <td colSpan="7">No projects added yet.</td>
                       </tr>
                     )}
                   </tbody>
@@ -1402,8 +1488,8 @@ export function AdminDashboard() {
               <form className="admin-policy-editor" onSubmit={sendContract}>
                 <div className="admin-editor-head">
                   <div>
-                    <span>Online Contract Signing</span>
-                    <h2>{editingContractId ? 'Edit Contract' : 'Send Contract for Signature'}</h2>
+                    <span>Projects</span>
+                    <h2>{editingContractId ? 'Edit Project' : 'Add Project'}</h2>
                   </div>
                   <div className="admin-editor-actions">
                     {editingContractId ? (
@@ -1418,7 +1504,7 @@ export function AdminDashboard() {
                         Cancel
                       </button>
                     ) : null}
-                    <button type="submit">{editingContractId ? 'Update Contract' : 'Save Contract'}</button>
+                    <button type="submit">{editingContractId ? 'Update Project' : 'Save Project'}</button>
                   </div>
                 </div>
 
@@ -1430,10 +1516,10 @@ export function AdminDashboard() {
 
                 <div className="admin-form-grid">
                   {[
-                    ['title', 'Contract Title', 'Service Agreement'],
-                    ['recipientName', 'Recipient Name', 'Client name'],
-                    ['recipientEmail', 'Recipient Email', 'client@example.com'],
-                    ['senderName', 'Sender Name', 'Cromgen Technology'],
+                    ['title', 'Project Name', 'Website redesign'],
+                    ['recipientName', 'Client Name', 'Client name'],
+                    ['recipientEmail', 'Client Email', 'client@example.com'],
+                    ['senderName', 'Project Owner', 'Cromgen Technology'],
                   ].map(([field, label, placeholder]) => (
                     <label key={field}>
                       <span>{label}</span>
@@ -1446,8 +1532,19 @@ export function AdminDashboard() {
                       />
                     </label>
                   ))}
+                  <label>
+                    <span>Project Status</span>
+                    <select
+                      value={contractForm.projectStatus}
+                      onChange={(event) => updateContractField('projectStatus', event.target.value)}
+                    >
+                      {projectStatusOptions.map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
                   <label className="admin-wide-field admin-image-upload">
-                    <span>Upload DOCX Contract File</span>
+                    <span>Upload DOCX Contract File (Optional)</span>
                     <input
                       type="file"
                       accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -1819,12 +1916,15 @@ export function AdminDashboard() {
                   <h2>Enterprise SaaS dashboard</h2>
                   <p>Manage AI, digital marketing, call center, IT, software development, HR consulting, and telecom operations from one control panel.</p>
                 </div>
-                <button type="button" onClick={() => setActiveMenu('contract-send')}>New Contract</button>
+                <button type="button" onClick={() => setActiveMenu('contract-send')}>Add Project</button>
               </div>
               {[
                 ['Total Users', `${applications.length + leads.length + 1} profiles`, 'CRM Network'],
                 ['Total Leads / Inquiries', `${leads.length} active enquiries`, 'Sales Pipeline'],
-                ['Active Projects', `${contracts.filter((contract) => contract.status !== 'signed').length} in progress`, 'Delivery'],
+                ['Live Projects', `${contracts.filter((contract) => contract.projectStatus === 'live').length} live`, 'Delivery'],
+                ['Active Projects', `${contracts.filter((contract) => (contract.projectStatus || 'active') === 'active').length} active`, 'Delivery'],
+                ['Inactive Projects', `${contracts.filter((contract) => contract.projectStatus === 'inactive').length} inactive`, 'Delivery'],
+                ['Closed Projects', `${contracts.filter((contract) => contract.projectStatus === 'closed').length} closed`, 'Operations'],
                 ['Completed Tasks', `${contracts.filter((contract) => contract.status === 'signed').length} completed`, 'Operations'],
                 ['Revenue/Reports', '75.5% target', 'Executive View'],
               ].map(([title, copy, meta]) => (
