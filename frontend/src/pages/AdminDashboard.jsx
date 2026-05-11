@@ -133,7 +133,6 @@ const formDefaults = {
   'login-history': { name: '', email: '', ipAddress: '', device: '', status: 'Success', lastLogin: '', notes: '' },
   'activity-logs': { name: '', email: '', action: '', category: 'Admin', severity: 'Low', status: 'Logged', notes: '' },
   'two-factor-authentication': { name: '', email: '', method: 'Authenticator App', enabled: 'Enabled', status: 'Active', notes: '' },
-  applications: { name: '', email: '', phone: '', role: '', department: '', location: '', status: 'Submitted', notes: '' },
   'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
   'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
   deadlines: { name: '', project: '', deadline: '', priority: 'Medium', status: 'Upcoming', notes: '' },
@@ -320,6 +319,7 @@ function EnterpriseAdminApp() {
   const liveNotifications = useMemo(() => (clearedNotifications ? [] : createNotifications(data)), [clearedNotifications, data])
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
+  const canCreateActivePage = supportedCreatePages.includes(activePage)
 
   const navigateAdmin = (page) => {
     if (page === 'logout') {
@@ -564,9 +564,11 @@ function EnterpriseAdminApp() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={supportedCreatePages.includes(activePage) ? openCreateModal : () => setQuickActionsOpen(true)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
-                      <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
-                    </button>
+                    {canCreateActivePage ? (
+                      <button type="button" onClick={openCreateModal} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
+                        <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
+                      </button>
+                    ) : null}
                     <button type="button" onClick={() => loadMongoData(activePage)} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
                       <WandSparkles size={18} /> Refresh Data
                     </button>
@@ -646,6 +648,7 @@ function EnterpriseAdminApp() {
           open={modalOpen}
           page={activePage}
           form={form}
+          data={data}
           editingRecord={editingRecord}
           saving={saving}
           onChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))}
@@ -1617,11 +1620,15 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
   )
 }
 
-function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubmit, onClose }) {
-  const fields = getFormFields(page)
+function RecordModal({ open, page, form, data, editingRecord, saving, onChange, onSubmit, onClose }) {
+  const fields = getFormFields(page, data)
   const applyTextStyle = (fieldName, wrapper) => {
     const value = form[fieldName] || ''
     onChange(fieldName, `${value}${value ? ' ' : ''}${wrapper}selected text${wrapper}`)
+  }
+  const appendText = (fieldName, text) => {
+    const value = form[fieldName] || ''
+    onChange(fieldName, `${value}${value ? '\n' : ''}${text}`)
   }
 
   const updateFileField = async (fieldName, file) => {
@@ -1643,6 +1650,8 @@ function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubm
                     <div className="mb-2 flex gap-2">
                       <button type="button" onClick={() => applyTextStyle(field.name, '**')} className="rounded-xl bg-white/10 px-3 py-1 text-xs font-black text-white hover:bg-white/15">Bold</button>
                       <button type="button" onClick={() => applyTextStyle(field.name, '*')} className="rounded-xl bg-white/10 px-3 py-1 text-xs font-black italic text-white hover:bg-white/15">Italic</button>
+                      <button type="button" onClick={() => appendText(field.name, '- list item')} className="rounded-xl bg-white/10 px-3 py-1 text-xs font-black text-white hover:bg-white/15">Bullet</button>
+                      <button type="button" onClick={() => appendText(field.name, '1. numbered item')} className="rounded-xl bg-white/10 px-3 py-1 text-xs font-black text-white hover:bg-white/15">Number</button>
                     </div>
                   ) : null}
                 <textarea
@@ -2262,8 +2271,10 @@ function countMonth(items, monthNumber) {
   }).length
 }
 
-function getFormFields(page) {
+function getFormFields(page, data = emptyData) {
   const commonRequired = { required: true }
+  const jobRoleOptions = Array.from(new Set((data.jobs || []).map((job) => job.title).filter(Boolean)))
+  const hiringRoleOptions = jobRoleOptions.length ? jobRoleOptions : ['AI Solutions Associate', 'Digital Marketing Executive', 'Customer Support Specialist', 'Frontend Developer', 'HR Recruitment Coordinator']
   const map = {
     'user-management': [
       { name: 'name', label: 'Name', ...commonRequired },
@@ -2597,10 +2608,10 @@ function getFormFields(page) {
     ],
     'hiring-pipeline': [
       { name: 'name', label: 'Candidate Name', ...commonRequired },
-      { name: 'role', label: 'Role' },
+      { name: 'role', label: 'Role', type: 'select', options: hiringRoleOptions },
       { name: 'stage', label: 'Stage', type: 'select', options: ['Screening', 'Interview', 'Offer', 'Hired', 'Rejected'] },
       { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Hold', 'Closed'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
+      { name: 'notes', label: 'Details', type: 'richtext' },
     ],
     'support-tickets': [
       { name: 'ticketId', label: 'Ticket ID' },
