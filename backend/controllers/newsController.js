@@ -1,5 +1,5 @@
 import { requireRole } from '../middleware/auth.js'
-import { createNewsPost, deleteNewsPostBySlug, findNewsPosts } from '../models/NewsPost.js'
+import { createNewsPost, deleteNewsPostBySlug, findNewsPosts, updateNewsPostBySlug } from '../models/NewsPost.js'
 import { json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
@@ -34,6 +34,26 @@ export async function createSettingNewsPost(request) {
   return json(201, {
     ok: true,
     message: 'News post published',
+    post,
+  })
+}
+
+export async function updateSettingNewsPost(request, { slug }) {
+  const auth = settingsAuth(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+
+  if (!body.title || !body.summary) {
+    return validationError('Title and summary are required')
+  }
+
+  const post = await updateNewsPostBySlug(slug, body)
+  if (!post) return notFound('News post not found')
+
+  return json(200, {
+    ok: true,
+    message: 'News post updated',
     post,
   })
 }

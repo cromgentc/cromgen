@@ -22,6 +22,20 @@ export const defaultSiteSettings = {
     { label: 'X', url: 'https://x.com/' },
     { label: 'YouTube', url: 'https://www.youtube.com/' },
   ],
+  seo: {
+    title: 'Cromgen Technology',
+    description: 'Enterprise technology, AI, recruitment, and digital operations services.',
+    keywords: 'Cromgen Technology, AI services, IT services, recruitment, digital marketing',
+    canonicalUrl: 'https://cromgen.vercel.app/',
+    ogImage: '',
+  },
+  theme: {
+    primaryColor: '#22d3ee',
+    accentColor: '#8b5cf6',
+    mode: 'dark',
+    radius: 24,
+    fontFamily: 'Inter',
+  },
 }
 
 export async function seedSiteSettings() {
@@ -76,6 +90,8 @@ export function normalizeSiteSettings(settings) {
     faviconLogoSize: clampLogoSize(settings.faviconLogoSize, 32),
     emailConfig: normalizeEmailConfig(settings.emailConfig),
     socialLinks: normalizeSocialLinks(settings.socialLinks),
+    seo: normalizeSeo(settings.seo),
+    theme: normalizeTheme(settings.theme),
   }
 }
 
@@ -102,6 +118,14 @@ function sanitizeSiteSettings(body) {
     fields.emailConfig = normalizeEmailConfig(body.emailConfig)
   }
 
+  if (body.seo && typeof body.seo === 'object') {
+    fields.seo = normalizeSeo(body.seo)
+  }
+
+  if (body.theme && typeof body.theme === 'object') {
+    fields.theme = normalizeTheme(body.theme)
+  }
+
   return fields
 }
 
@@ -125,6 +149,26 @@ function normalizeSocialLinks(links) {
       url: String(link?.url || '').trim(),
     }))
     .filter((link) => link.label && link.url)
+}
+
+function normalizeSeo(seo = {}) {
+  return {
+    title: String(seo.title || defaultSiteSettings.seo.title).trim(),
+    description: String(seo.description || defaultSiteSettings.seo.description).trim(),
+    keywords: String(seo.keywords || defaultSiteSettings.seo.keywords).trim(),
+    canonicalUrl: String(seo.canonicalUrl || defaultSiteSettings.seo.canonicalUrl).trim(),
+    ogImage: String(seo.ogImage || '').trim(),
+  }
+}
+
+function normalizeTheme(theme = {}) {
+  return {
+    primaryColor: String(theme.primaryColor || defaultSiteSettings.theme.primaryColor).trim(),
+    accentColor: String(theme.accentColor || defaultSiteSettings.theme.accentColor).trim(),
+    mode: ['dark', 'light', 'system'].includes(theme.mode) ? theme.mode : defaultSiteSettings.theme.mode,
+    radius: clampLogoSize(theme.radius, defaultSiteSettings.theme.radius),
+    fontFamily: String(theme.fontFamily || defaultSiteSettings.theme.fontFamily).trim(),
+  }
 }
 
 function clampLogoSize(value, fallback) {

@@ -44,6 +44,7 @@ import {
   CONTRACT_ENDPOINTS,
   JOB_ENDPOINTS,
   LEAD_ENDPOINTS,
+  NEWS_ENDPOINTS,
   POLICY_ENDPOINTS,
   SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
@@ -60,6 +61,7 @@ const emptyData = {
   jobs: [],
   siteSettings: null,
   policies: [],
+  newsPosts: [],
   candidates: [],
   teams: [],
   roles: [],
@@ -149,6 +151,7 @@ const formDefaults = {
   'help-center': { name: '', category: '', articleUrl: '', status: 'Published', notes: '' },
   'faq-management': { question: '', answer: '', category: '', status: 'Published', notes: '' },
   'contact-requests': { name: '', email: '', subject: '', priority: 'Medium', status: 'Open', notes: '' },
+  'blog-management': { title: '', category: 'Company Update', summary: '', image: '', date: '' },
 }
 
 const supportedCreatePages = Object.keys(formDefaults)
@@ -231,13 +234,14 @@ function EnterpriseAdminApp() {
       apiRequest(SITE_ENDPOINTS.settingsDetail),
       apiRequest(AUTH_ENDPOINTS.currentUser),
       apiRequest(POLICY_ENDPOINTS.settingsList),
+      apiRequest(NEWS_ENDPOINTS.settingsList),
     ])
     const requiredWorkforceTypes = workforceTypesForPage(page)
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, policies] = coreRequests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, policies, newsPosts] = coreRequests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
     const workforceData = Object.fromEntries(
@@ -256,6 +260,7 @@ function EnterpriseAdminApp() {
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
       policies: policies.policies || [],
+      newsPosts: newsPosts.posts || [],
       ...Object.fromEntries(workforceRecordTypes.map((type) => [type, current[type] || []])),
       ...workforceData,
     }))
@@ -355,6 +360,8 @@ function EnterpriseAdminApp() {
         await apiRequest(JOB_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
       } else if (activePage === 'applications') {
         await apiRequest(APPLICATION_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(applicationPayload(form)) })
+      } else if (activePage === 'blog-management') {
+        await apiRequest(NEWS_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
       } else {
         const type = workforceTypeForPage(activePage)
         if (!type) throw new Error('Create API is not configured for this module yet.')
@@ -389,6 +396,14 @@ function EnterpriseAdminApp() {
       return
     }
 
+    if (page === 'blog-management') {
+      await apiRequest(NEWS_ENDPOINTS.settingsDetail(id), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      return
+    }
+
     const type = workforceTypeForPage(page)
     if (!type) throw new Error('Update API is not configured for this module yet.')
     await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, id), {
@@ -411,6 +426,8 @@ function EnterpriseAdminApp() {
         await apiRequest(APPLICATION_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (module.type === 'jobs') {
         await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (module.type === 'newsPosts') {
+        await apiRequest(NEWS_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (workforceRecordTypes.includes(module.type)) {
         await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(module.type, row.id), { method: 'DELETE' })
       } else {
@@ -550,6 +567,12 @@ function EnterpriseAdminApp() {
               ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : activePage === 'system-settings' ? (
+                <PolicySettingsPage policies={data.policies} onSave={savePolicySettings} />
+              ) : activePage === 'seo-settings' ? (
+                <SeoSettingsPage settings={data.siteSettings} onSave={saveSiteSettings} />
+              ) : activePage === 'theme-customization' ? (
+                <ThemeCustomizationPage settings={data.siteSettings} onSave={saveSiteSettings} />
+              ) : activePage === 'legal-pages' ? (
                 <PolicySettingsPage policies={data.policies} onSave={savePolicySettings} />
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
@@ -977,6 +1000,166 @@ function PolicySettingsPage({ policies, onSave }) {
                 <textarea value={copy} rows={4} onChange={(event) => updateSection(index, 1, event.target.value)} className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+    </motion.form>
+  )
+}
+
+function SeoSettingsPage({ settings, onSave }) {
+  const [draft, setDraft] = useState(settings || createEmptySiteSettings())
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDraft(settings || createEmptySiteSettings())
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [settings])
+
+  const updateSeo = (field, value) => {
+    setDraft((current) => ({
+      ...current,
+      seo: {
+        ...(current.seo || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const updateOgImage = async (file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    updateSeo('ogImage', dataUrl)
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    await onSave(draft)
+    setSaving(false)
+  }
+
+  return (
+    <motion.form initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="space-y-7">
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">SEO Settings</p>
+            <h2 className="mt-2 text-2xl font-black text-white">Search & Social Preview</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">Update title, description, keywords, canonical URL, and Open Graph image.</p>
+          </div>
+          <button type="submit" disabled={saving} className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/20 disabled:opacity-60">
+            {saving ? 'Saving...' : 'Update SEO'}
+          </button>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1fr_0.55fr]">
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="grid gap-4">
+            {[
+              ['title', 'Meta Title'],
+              ['keywords', 'Keywords'],
+              ['canonicalUrl', 'Canonical URL'],
+            ].map(([field, label]) => (
+              <label key={field}>
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</span>
+                <input value={draft.seo?.[field] || ''} onChange={(event) => updateSeo(field, event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+              </label>
+            ))}
+            <label>
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Meta Description</span>
+              <textarea value={draft.seo?.description || ''} rows={4} onChange={(event) => updateSeo('description', event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+            </label>
+            <label>
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Open Graph Image</span>
+              <input type="file" accept="image/*" onChange={(event) => updateOgImage(event.target.files?.[0])} className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300" />
+            </label>
+          </div>
+        </div>
+        <article className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <div className="overflow-hidden rounded-3xl bg-slate-950/50">
+            {draft.seo?.ogImage ? <img src={draft.seo.ogImage} alt="SEO preview" className="h-44 w-full object-cover" /> : <div className="grid h-44 place-items-center text-sm font-semibold text-slate-500">No OG image</div>}
+            <div className="p-4">
+              <p className="text-xs font-bold text-slate-500">{draft.seo?.canonicalUrl || 'https://cromgen.vercel.app'}</p>
+              <h3 className="mt-2 font-black text-white">{draft.seo?.title || 'Meta title'}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{draft.seo?.description || 'Meta description preview'}</p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </motion.form>
+  )
+}
+
+function ThemeCustomizationPage({ settings, onSave }) {
+  const [draft, setDraft] = useState(settings || createEmptySiteSettings())
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDraft(settings || createEmptySiteSettings())
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [settings])
+
+  const updateTheme = (field, value) => {
+    setDraft((current) => ({
+      ...current,
+      theme: {
+        ...(current.theme || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    await onSave(draft)
+    setSaving(false)
+  }
+
+  return (
+    <motion.form initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="grid gap-7 xl:grid-cols-[0.8fr_1.2fr]">
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Theme Customization</p>
+        <h2 className="mt-2 text-2xl font-black text-white">Brand Theme</h2>
+        <div className="mt-6 space-y-4">
+          {[
+            ['primaryColor', 'Primary Color', 'color'],
+            ['accentColor', 'Accent Color', 'color'],
+            ['fontFamily', 'Font Family', 'text'],
+            ['radius', 'Corner Radius', 'number'],
+          ].map(([field, label, type]) => (
+            <label key={field}>
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</span>
+              <input type={type} value={draft.theme?.[field] || ''} onChange={(event) => updateTheme(field, event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
+            </label>
+          ))}
+          <label>
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Theme Mode</span>
+            <select value={draft.theme?.mode || 'dark'} onChange={(event) => updateTheme('mode', event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60">
+              {['dark', 'light', 'system'].map((mode) => <option key={mode} value={mode}>{titleize(mode)}</option>)}
+            </select>
+          </label>
+          <button type="submit" disabled={saving} className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/20 disabled:opacity-60">
+            {saving ? 'Saving...' : 'Update Theme'}
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.08] p-6 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Preview</p>
+        <div className="mt-6 rounded-[28px] p-6" style={{ background: `linear-gradient(135deg, ${draft.theme?.primaryColor || '#22d3ee'}, ${draft.theme?.accentColor || '#8b5cf6'})`, borderRadius: Number(draft.theme?.radius || 24) }}>
+          <div className="rounded-3xl bg-slate-950/80 p-5">
+            <h3 className="text-2xl font-black text-white" style={{ fontFamily: draft.theme?.fontFamily || 'Inter' }}>Cromgen Technology</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-300">This preview reflects the saved theme values for brand controls.</p>
+            <button type="button" className="mt-5 rounded-2xl px-4 py-3 text-sm font-black text-slate-950" style={{ background: draft.theme?.primaryColor || '#22d3ee' }}>Primary Action</button>
           </div>
         </div>
       </section>
@@ -1665,6 +1848,27 @@ function getModuleConfig(page, data) {
     }
   }
 
+  if (page === 'blog-management') {
+    return {
+      type: 'newsPosts',
+      title: 'Blog Management',
+      source: NEWS_ENDPOINTS.settingsList,
+      isLive: true,
+      canEdit: true,
+      rows: data.newsPosts.map((post) => ({
+        id: post.slug,
+        title: post.title,
+        category: post.category,
+        summary: post.summary,
+        image: post.image,
+        date: post.date,
+        createdAt: formatDate(post.createdAt),
+      })),
+      columns: commonColumns(['title', 'category', 'summary', 'date', 'createdAt']),
+      emptyText: 'The blog/news collection is empty.',
+    }
+  }
+
   if (['applications', 'candidate-management', 'interview-management', 'hiring-pipeline'].includes(page)) {
     return {
       type: 'applications',
@@ -2031,6 +2235,13 @@ function getFormFields(page) {
       { name: 'type', label: 'Type', type: 'select', options: ['Full Time', 'Part Time', 'Contract', 'Internship'] },
       { name: 'experience', label: 'Experience' },
       { name: 'summary', label: 'Summary', type: 'textarea', ...commonRequired },
+    ],
+    'blog-management': [
+      { name: 'title', label: 'Blog Title', ...commonRequired },
+      { name: 'category', label: 'Category' },
+      { name: 'summary', label: 'Summary', type: 'textarea', ...commonRequired },
+      { name: 'image', label: 'Image URL' },
+      { name: 'date', label: 'Date Label' },
     ],
     'candidate-management': [
       { name: 'name', label: 'Candidate Name', ...commonRequired },

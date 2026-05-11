@@ -20,6 +20,20 @@ export async function createNewsPost(fields) {
   return post
 }
 
+export async function updateNewsPostBySlug(slug, fields) {
+  const existing = await collection().findOne({ slug })
+  if (!existing) return null
+
+  const post = normalizeNewsPost({
+    ...existing,
+    ...sanitizeNewsPostFields(fields),
+    slug,
+  })
+
+  await collection().updateOne({ slug }, { $set: post })
+  return post
+}
+
 export async function deleteNewsPostBySlug(slug) {
   const result = await collection().deleteOne({ slug })
   return result.deletedCount > 0

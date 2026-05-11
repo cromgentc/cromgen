@@ -47,6 +47,7 @@ export const POLICY_ENDPOINTS = {
 export const NEWS_ENDPOINTS = {
   publicList: '/api/news-posts',
   settingsList: '/api/settings/news-posts',
+  settingsDetail: (slug) => `/api/settings/news-posts/${encodeURIComponent(slug)}`,
   settingsDelete: (slug) => `/api/settings/news-posts/${slug}`,
 }
 
