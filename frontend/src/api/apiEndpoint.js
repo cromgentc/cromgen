@@ -88,6 +88,11 @@ export const SITE_ENDPOINTS = {
   settingsDetail: '/api/settings/site',
 }
 
+export const WORKFORCE_ENDPOINTS = {
+  settingsList: (type) => `/api/settings/workforce/${encodeURIComponent(type)}`,
+  settingsDetail: (type, id) => `/api/settings/workforce/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+}
+
 export async function apiRequest(path, options = {}) {
   try {
     const isJsonBody = typeof options.body === 'string'

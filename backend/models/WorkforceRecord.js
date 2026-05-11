@@ -1,0 +1,91 @@
+import { ObjectId } from 'mongodb'
+import { getDB } from '../config/db.js'
+
+const allowedTypes = new Set(['teams', 'roles', 'attendance', 'performance', 'candidates'])
+
+export function isAllowedWorkforceType(type) {
+  return allowedTypes.has(type)
+}
+
+export async function findWorkforceRecords(type) {
+  if (!isAllowedWorkforceType(type)) return []
+
+  const records = await collection()
+    .find({ type })
+    .sort({ createdAt: -1 })
+    .toArray()
+
+  return records.map(toPublicWorkforceRecord)
+}
+
+export async function createWorkforceRecord(type, payload) {
+  if (!isAllowedWorkforceType(type)) return null
+
+  const now = new Date()
+  const record = {
+    type,
+    ...sanitizePayload(payload),
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  const result = await collection().insertOne(record)
+  return toPublicWorkforceRecord({ ...record, _id: result.insertedId })
+}
+
+export async function updateWorkforceRecord(type, id, payload) {
+  if (!isAllowedWorkforceType(type) || !ObjectId.isValid(id)) return null
+
+  await collection().updateOne(
+    { _id: new ObjectId(id), type },
+    {
+      $set: {
+        ...sanitizePayload(payload),
+        updatedAt: new Date(),
+      },
+    },
+  )
+
+  const record = await collection().findOne({ _id: new ObjectId(id), type })
+  return record ? toPublicWorkforceRecord(record) : null
+}
+
+export async function deleteWorkforceRecord(type, id) {
+  if (!isAllowedWorkforceType(type) || !ObjectId.isValid(id)) return false
+
+  const result = await collection().deleteOne({ _id: new ObjectId(id), type })
+  return result.deletedCount > 0
+}
+
+function sanitizePayload(payload = {}) {
+  const fields = {}
+  for (const [key, value] of Object.entries(payload)) {
+    if (key === 'id' || key === '_id' || key === 'type' || key === 'createdAt' || key === 'updatedAt') continue
+    fields[key] = typeof value === 'string' ? value.trim() : value
+  }
+  return fields
+}
+
+function toPublicWorkforceRecord(record) {
+  return {
+    id: String(record._id),
+    type: record.type,
+    name: record.name || '',
+    email: record.email || '',
+    role: record.role || '',
+    department: record.department || '',
+    status: record.status || '',
+    permission: record.permission || '',
+    date: record.date || '',
+    checkIn: record.checkIn || '',
+    checkOut: record.checkOut || '',
+    score: record.score || '',
+    notes: record.notes || '',
+    createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : '',
+    updatedAt: record.updatedAt ? new Date(record.updatedAt).toISOString() : '',
+  }
+}
+
+function collection() {
+  return getDB().collection('workforceRecords')
+}

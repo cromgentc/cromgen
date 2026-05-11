@@ -1,10 +1,11 @@
-import { ChevronDown, Download, FileDown, MoreHorizontal, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, Download, Eye, FileDown, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-export function EnterpriseTable({ title, rows, columns, onDelete, emptyText = 'No records found.' }) {
+export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState(columns[0]?.key || 'id')
   const [page, setPage] = useState(1)
+  const [openActionId, setOpenActionId] = useState('')
   const pageSize = 8
 
   const filteredRows = useMemo(() => {
@@ -88,15 +89,32 @@ export function EnterpriseTable({ title, rows, columns, onDelete, emptyText = 'N
                   </td>
                 ))}
                 <td className="rounded-r-2xl bg-slate-950/35 px-3 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    {onDelete ? (
-                      <button type="button" onClick={() => onDelete(row)} className="rounded-xl p-2 text-rose-200 hover:bg-rose-400/10" aria-label="Delete record">
-                        <Trash2 size={18} />
-                      </button>
-                    ) : null}
-                    <button type="button" className="rounded-xl p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="Open actions">
+                  <div className="relative flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setOpenActionId((current) => (current === (row.id || row.slug || row.email || row.name) ? '' : (row.id || row.slug || row.email || row.name)))}
+                      className="rounded-xl p-2 text-slate-300 hover:bg-white/10 hover:text-white"
+                      aria-label="Open actions"
+                    >
                       <MoreHorizontal size={18} />
                     </button>
+                    {openActionId === (row.id || row.slug || row.email || row.name) ? (
+                      <div className="absolute right-0 top-10 z-20 w-44 rounded-2xl border border-white/10 bg-slate-950/95 p-2 text-left shadow-2xl shadow-black/30">
+                        <button type="button" onClick={() => { setOpenActionId(''); onView?.(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
+                          <Eye size={15} /> Details
+                        </button>
+                        {onEdit ? (
+                          <button type="button" onClick={() => { setOpenActionId(''); onEdit(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
+                            <Pencil size={15} /> Edit
+                          </button>
+                        ) : null}
+                        {onDelete ? (
+                          <button type="button" onClick={() => { setOpenActionId(''); onDelete(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-rose-200 hover:bg-rose-400/10">
+                            <Trash2 size={15} /> Delete
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </td>
               </tr>

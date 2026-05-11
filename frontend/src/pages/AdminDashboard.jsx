@@ -46,6 +46,7 @@ import {
   LEAD_ENDPOINTS,
   SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
+  WORKFORCE_ENDPOINTS,
   apiRequest,
 } from '../api/apiEndpoint.js'
 
@@ -57,6 +58,11 @@ const emptyData = {
   applications: [],
   jobs: [],
   siteSettings: null,
+  candidates: [],
+  teams: [],
+  roles: [],
+  attendance: [],
+  performance: [],
 }
 
 const formDefaults = {
@@ -65,6 +71,11 @@ const formDefaults = {
   'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: '', location: '', type: 'Full Time', experience: '', summary: '' },
+  'candidate-management': { name: '', email: '', role: '', status: 'New', notes: '' },
+  'team-management': { name: '', email: '', role: '', department: '', status: 'Active', notes: '' },
+  'role-permissions': { name: '', role: '', permission: 'Read', status: 'Active', notes: '' },
+  attendance: { name: '', email: '', date: '', checkIn: '', checkOut: '', status: 'Present', notes: '' },
+  'team-performance': { name: '', role: '', department: '', score: '', status: 'On Track', notes: '' },
 }
 
 const supportedCreatePages = Object.keys(formDefaults)
@@ -82,6 +93,8 @@ function EnterpriseAdminApp() {
   const [data, setData] = useState(emptyData)
   const [form, setForm] = useState(formDefaults['user-management'])
   const [currentAdmin, setCurrentAdmin] = useState(null)
+  const [editingRecord, setEditingRecord] = useState(null)
+  const [detailsRecord, setDetailsRecord] = useState(null)
 
   const loadMongoData = async () => {
     const requests = await Promise.allSettled([
@@ -93,9 +106,14 @@ function EnterpriseAdminApp() {
       apiRequest(JOB_ENDPOINTS.settingsList),
       apiRequest(SITE_ENDPOINTS.settingsDetail),
       apiRequest(AUTH_ENDPOINTS.currentUser),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('candidates')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('teams')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('roles')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('attendance')),
+      apiRequest(WORKFORCE_ENDPOINTS.settingsList('performance')),
     ])
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser] = requests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, candidates, teams, roles, attendance, performance] = requests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
 
@@ -107,6 +125,11 @@ function EnterpriseAdminApp() {
       applications: applications.applications || [],
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
+      candidates: candidates.records || [],
+      teams: teams.records || [],
+      roles: roles.records || [],
+      attendance: attendance.records || [],
+      performance: performance.records || [],
     })
     setCurrentAdmin(currentUser.user || null)
 
@@ -156,6 +179,17 @@ function EnterpriseAdminApp() {
       return
     }
     setForm(formDefaults[activePage])
+    setEditingRecord(null)
+    setModalOpen(true)
+  }
+
+  const openEditModal = (row) => {
+    if (!supportedCreatePages.includes(activePage)) {
+      setToast('Edit API is not configured for this module yet.')
+      return
+    }
+    setEditingRecord(row)
+    setForm({ ...formDefaults[activePage], ...row })
     setModalOpen(true)
   }
 
@@ -164,7 +198,9 @@ function EnterpriseAdminApp() {
     setSaving(true)
 
     try {
-      if (activePage === 'user-management') {
+      if (editingRecord) {
+        await updateRecord(activePage, editingRecord.id, form)
+      } else if (activePage === 'user-management') {
         await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(form) })
       } else if (activePage === 'vendor-management') {
         await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
@@ -174,16 +210,30 @@ function EnterpriseAdminApp() {
         await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(form) })
       } else if (activePage === 'job-postings') {
         await apiRequest(JOB_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+      } else {
+        const type = workforceTypeForPage(activePage)
+        if (!type) throw new Error('Create API is not configured for this module yet.')
+        await apiRequest(WORKFORCE_ENDPOINTS.settingsList(type), { method: 'POST', body: JSON.stringify(form) })
       }
 
       setModalOpen(false)
-      setToast('Record saved successfully.')
+      setToast(editingRecord ? 'Record updated successfully.' : 'Record saved successfully.')
+      setEditingRecord(null)
       await loadMongoData()
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Record could not be saved.')
     } finally {
       setSaving(false)
     }
+  }
+
+  const updateRecord = async (page, id, payload) => {
+    const type = workforceTypeForPage(page)
+    if (!type) throw new Error('Update API is not configured for this module yet.')
+    await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, id), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
   }
 
   const deleteRecord = async (row) => {
@@ -200,6 +250,8 @@ function EnterpriseAdminApp() {
         await apiRequest(APPLICATION_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (module.type === 'jobs') {
         await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (['candidates', 'teams', 'roles', 'attendance', 'performance'].includes(module.type)) {
+        await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(module.type, row.id), { method: 'DELETE' })
       } else {
         setToast('Delete API is not configured for this module yet.')
         return
@@ -311,13 +363,13 @@ function EnterpriseAdminApp() {
               </motion.header>
 
               {['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage) ? (
-                <DashboardOverview data={data} onDelete={deleteRecord} />
+                <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} />
               ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : (
-                <EnterpriseModule pageMeta={pageMeta} module={module} onDelete={deleteRecord} />
+                <EnterpriseModule pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} />
               )}
             </div>
 
@@ -332,17 +384,19 @@ function EnterpriseAdminApp() {
           open={modalOpen}
           page={activePage}
           form={form}
+          editingRecord={editingRecord}
           saving={saving}
           onChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))}
           onSubmit={createRecord}
           onClose={() => setModalOpen(false)}
         />
+        <DetailsModal record={detailsRecord} onClose={() => setDetailsRecord(null)} />
       </main>
     </div>
   )
 }
 
-function DashboardOverview({ data, onDelete }) {
+function DashboardOverview({ data, onView, onDelete }) {
   const stats = createStats(data)
   const chartData = createChartData(data)
   const pieData = createProjectPie(data.contracts)
@@ -411,7 +465,7 @@ function DashboardOverview({ data, onDelete }) {
       </section>
 
       <section className="grid gap-7 xl:grid-cols-[1fr_0.78fr]">
-        <EnterpriseTable title="Recent Projects" rows={projectModule.rows} columns={projectModule.columns} onDelete={onDelete} />
+        <EnterpriseTable title="Recent Projects" rows={projectModule.rows} columns={projectModule.columns} onView={onView} onDelete={onDelete} />
         <OperationsPanel data={data} />
       </section>
     </motion.div>
@@ -471,7 +525,7 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ pageMeta, module, onDelete }) {
+function EnterpriseModule({ pageMeta, module, onView, onEdit, onDelete }) {
   const ModuleIcon = pageMeta.icon
 
   return (
@@ -499,7 +553,15 @@ function EnterpriseModule({ pageMeta, module, onDelete }) {
         <ModuleSummary module={module} />
       </section>
 
-      <EnterpriseTable title={module.title} rows={module.rows} columns={module.columns} onDelete={module.isLive ? onDelete : null} emptyText={module.emptyText} />
+      <EnterpriseTable
+        title={module.title}
+        rows={module.rows}
+        columns={module.columns}
+        onView={onView}
+        onEdit={module.canEdit ? onEdit : null}
+        onDelete={module.isLive ? onDelete : null}
+        emptyText={module.emptyText}
+      />
     </motion.div>
   )
 }
@@ -519,9 +581,6 @@ function ModuleSummary({ module }) {
           <p className="mt-1 text-sm font-semibold text-slate-400">Backend status</p>
         </article>
       </div>
-      <p className="mt-5 text-sm leading-7 text-slate-400">
-        Data source: {module.source}
-      </p>
     </section>
   )
 }
@@ -867,11 +926,11 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
   )
 }
 
-function RecordModal({ open, page, form, saving, onChange, onSubmit, onClose }) {
+function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubmit, onClose }) {
   const fields = getFormFields(page)
 
   return (
-    <Modal open={open} title={`Create ${titleize(page)}`} onClose={onClose}>
+    <Modal open={open} title={`${editingRecord ? 'Edit' : 'Create'} ${titleize(page)}`} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           {fields.map((field) => (
@@ -906,15 +965,34 @@ function RecordModal({ open, page, form, saving, onChange, onSubmit, onClose }) 
           ))}
         </div>
         <button type="submit" disabled={saving} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/20 disabled:opacity-60">
-          {saving ? 'Saving...' : 'Save Record'} <ChevronRight size={18} />
+          {saving ? 'Saving...' : editingRecord ? 'Update Record' : 'Save Record'} <ChevronRight size={18} />
         </button>
       </form>
     </Modal>
   )
 }
 
+function DetailsModal({ record, onClose }) {
+  if (!record) return null
+
+  return (
+    <Modal open={Boolean(record)} title="Record Details" onClose={onClose}>
+      <div className="grid gap-3 md:grid-cols-2">
+        {Object.entries(record)
+          .filter(([, value]) => value !== undefined && value !== null && value !== '')
+          .map(([key, value]) => (
+            <div key={key} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{titleize(key)}</p>
+              <p className="mt-2 break-words text-sm font-semibold text-white">{String(value)}</p>
+            </div>
+          ))}
+      </div>
+    </Modal>
+  )
+}
+
 function getModuleConfig(page, data) {
-  if (['user-management', 'team-management', 'role-permissions'].includes(page)) {
+  if (['user-management'].includes(page)) {
     return {
       type: 'users',
       title: 'Users',
@@ -931,6 +1009,26 @@ function getModuleConfig(page, data) {
       columns: commonColumns(['name', 'email', 'role', 'status', 'createdAt']),
       emptyText: 'The users collection is empty.',
     }
+  }
+
+  if (page === 'candidate-management') {
+    return workforceModule('candidates', 'Candidate Management', data.candidates, ['name', 'email', 'role', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'team-management') {
+    return workforceModule('teams', 'Team Management', data.teams, ['name', 'email', 'role', 'department', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'role-permissions') {
+    return workforceModule('roles', 'Role Permissions', data.roles, ['name', 'role', 'permission', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'attendance') {
+    return workforceModule('attendance', 'Attendance', data.attendance, ['name', 'email', 'date', 'checkIn', 'checkOut', 'status', 'notes'])
+  }
+
+  if (page === 'team-performance') {
+    return workforceModule('performance', 'Team Performance', data.performance, ['name', 'role', 'department', 'score', 'status', 'notes', 'createdAt'])
   }
 
   if (['vendor-management', 'agency-management', 'partner-network', 'vendor-performance', 'vendor-payouts'].includes(page)) {
@@ -1040,6 +1138,45 @@ function getModuleConfig(page, data) {
     columns: commonColumns(['name', 'status', 'createdAt']),
     emptyText: 'The API for this module has not been configured yet.',
   }
+}
+
+function workforceModule(type, title, records, fields) {
+  return {
+    type,
+    title,
+    source: WORKFORCE_ENDPOINTS.settingsList(type),
+    isLive: true,
+    canEdit: true,
+    rows: (records || []).map((record) => ({
+      id: record.id,
+      name: record.name,
+      email: record.email,
+      role: record.role,
+      department: record.department,
+      status: record.status,
+      permission: record.permission,
+      date: record.date,
+      checkIn: record.checkIn,
+      checkOut: record.checkOut,
+      score: record.score,
+      notes: record.notes,
+      createdAt: formatDate(record.createdAt),
+    })),
+    columns: commonColumns(fields),
+    emptyText: `${title} records are empty.`,
+  }
+}
+
+function workforceTypeForPage(page) {
+  const map = {
+    'candidate-management': 'candidates',
+    'team-management': 'teams',
+    'role-permissions': 'roles',
+    attendance: 'attendance',
+    'team-performance': 'performance',
+  }
+
+  return map[page] || ''
 }
 
 function isSettingsPage(page) {
@@ -1195,6 +1332,45 @@ function getFormFields(page) {
       { name: 'experience', label: 'Experience' },
       { name: 'summary', label: 'Summary', type: 'textarea', ...commonRequired },
     ],
+    'candidate-management': [
+      { name: 'name', label: 'Candidate Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'role', label: 'Role Applied For' },
+      { name: 'status', label: 'Status', type: 'select', options: ['New', 'Screening', 'Interview', 'Selected', 'Rejected'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'team-management': [
+      { name: 'name', label: 'Member Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'role', label: 'Role' },
+      { name: 'department', label: 'Department' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'On Leave'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'role-permissions': [
+      { name: 'name', label: 'Permission Group', ...commonRequired },
+      { name: 'role', label: 'Role' },
+      { name: 'permission', label: 'Permission Level', type: 'select', options: ['Read', 'Write', 'Manage', 'Admin'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    attendance: [
+      { name: 'name', label: 'Member Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'date', label: 'Date', type: 'date' },
+      { name: 'checkIn', label: 'Check In', type: 'time' },
+      { name: 'checkOut', label: 'Check Out', type: 'time' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Present', 'Absent', 'Late', 'Half Day'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'team-performance': [
+      { name: 'name', label: 'Member Name', ...commonRequired },
+      { name: 'role', label: 'Role' },
+      { name: 'department', label: 'Department' },
+      { name: 'score', label: 'Performance Score', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
   }
 
   return map[page] || []
@@ -1218,6 +1394,12 @@ function commonColumns(keys) {
     department: 'Department',
     location: 'Location',
     type: 'Type',
+    permission: 'Permission',
+    date: 'Date',
+    checkIn: 'Check In',
+    checkOut: 'Check Out',
+    score: 'Score',
+    notes: 'Details',
   }
 
   return keys.map((key) => ({

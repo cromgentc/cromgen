@@ -8,6 +8,7 @@ import { newsRoutes } from './newsRoutes.js'
 import { policyRoutes } from './policyRoutes.js'
 import { serviceRoutes } from './serviceRoutes.js'
 import { siteSettingsRoutes } from './siteSettingsRoutes.js'
+import { workforceRoutes } from './workforceRoutes.js'
 
 export const routes = [
   ...serviceRoutes,
@@ -19,5 +20,6 @@ export const routes = [
   ...siteSettingsRoutes,
   ...newsRoutes,
   ...leadRoutes,
+  ...workforceRoutes,
   ...chatbotRoutes,
 ]
