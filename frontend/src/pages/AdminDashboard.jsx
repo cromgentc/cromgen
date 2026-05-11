@@ -130,8 +130,6 @@ const formDefaults = {
   'support-requests': { name: '', email: '', priority: 'Medium', status: 'Open', notes: '' },
   'admin-access-control': { name: '', email: '', role: 'Admin', accessLevel: 'Full Access', status: 'Active', lastLogin: '', notes: '' },
   'security-settings': { name: '', category: 'Access Policy', severity: 'Medium', enforcement: 'Required', scope: 'All Admins', reviewDate: '', status: 'Active', notes: '' },
-  'login-history': { name: '', email: '', ipAddress: '', device: '', status: 'Success', lastLogin: '', notes: '' },
-  'activity-logs': { name: '', email: '', action: '', category: 'Admin', severity: 'Low', status: 'Logged', notes: '' },
   'two-factor-authentication': { name: '', email: '', method: 'Authenticator App', enabled: 'Enabled', status: 'Active', notes: '' },
   'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
   'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
@@ -320,6 +318,7 @@ function EnterpriseAdminApp() {
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
   const canCreateActivePage = supportedCreatePages.includes(activePage)
+  const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
   const navigateAdmin = (page) => {
     if (page === 'logout') {
@@ -564,7 +563,7 @@ function EnterpriseAdminApp() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {canCreateActivePage ? (
+                    {canCreateActivePage && !isReadOnlyAuditPage ? (
                       <button type="button" onClick={openCreateModal} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
                         <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
                       </button>
@@ -1749,8 +1748,8 @@ const workforcePageModules = {
   'faq-management': { type: 'faqs', title: 'FAQ Management', fields: ['question', 'answer', 'category', 'status', 'notes', 'createdAt'] },
   'contact-requests': { type: 'contactRequests', title: 'Contact Requests', fields: ['name', 'email', 'subject', 'priority', 'status', 'notes', 'createdAt'] },
   'security-settings': { type: 'securitySettings', title: 'Security Settings', fields: ['name', 'category', 'severity', 'enforcement', 'scope', 'reviewDate', 'status', 'notes', 'createdAt'] },
-  'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'ipAddress', 'device', 'status', 'lastLogin', 'notes', 'createdAt'] },
-  'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'notes', 'createdAt'] },
+  'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'ipAddress', 'device', 'status', 'lastLogin', 'notes', 'createdAt'], readOnly: true },
+  'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'notes', 'createdAt'], readOnly: true },
   'two-factor-authentication': { type: 'twoFactorAuthentication', title: 'Two-Factor Authentication', fields: ['name', 'email', 'method', 'enabled', 'status', 'notes', 'createdAt'] },
 }
 
@@ -1983,7 +1982,8 @@ function workforceModule(type, title, records, fields) {
     title,
     source: WORKFORCE_ENDPOINTS.settingsList(type),
     isLive: true,
-    canEdit: true,
+    canEdit: !workforcePageModulesByType[type]?.readOnly,
+    readOnly: Boolean(workforcePageModulesByType[type]?.readOnly),
     rows: (records || []).map((record) => ({
       id: record.id,
       name: record.name,
@@ -2040,6 +2040,10 @@ function workforceModule(type, title, records, fields) {
     emptyText: `${title} records are empty.`,
   }
 }
+
+const workforcePageModulesByType = Object.fromEntries(
+  Object.values(workforcePageModules).map((config) => [config.type, config]),
+)
 
 function applicationPayload(form) {
   return {
