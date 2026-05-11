@@ -6332,6 +6332,7 @@ header #mobile-navigation summary:hover {
 }
 
 .admin-form-grid input,
+.admin-form-grid select,
 .admin-form-grid textarea,
 .admin-editor-section input,
 .admin-section-row textarea {
@@ -6345,6 +6346,15 @@ header #mobile-navigation summary:hover {
   font-size: 0.95rem;
   font-weight: 650;
   outline: none;
+}
+
+.admin-form-grid select {
+  color: #0f172a;
+}
+
+.admin-form-grid select option {
+  background: #0f172a;
+  color: #ffffff;
 }
 
 .admin-image-upload input {

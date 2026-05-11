@@ -50,6 +50,7 @@ const emptyContractForm = {
   recipientEmail: '',
   senderName: 'Cromgen Technology',
   projectStatus: 'active',
+  contractBody: '',
   contractFile: { name: '', type: '', data: '' },
 }
 
@@ -728,6 +729,7 @@ export function AdminDashboard() {
       recipientEmail: contract.recipientEmail || '',
       senderName: contract.senderName || 'Cromgen Technology',
       projectStatus: contract.projectStatus || 'active',
+      contractBody: contract.contractBody || '',
       contractFile: contract.contractFile || { name: '', type: '', data: '' },
     })
     setActiveMenu('contract-send')
@@ -1034,7 +1036,7 @@ export function AdminDashboard() {
           <div className="admin-sidebar-group">
             <button
               type="button"
-              className={activeMenu === 'contracts' || activeMenu === 'contract-send' ? 'is-active' : ''}
+              className={activeMenu === 'contract-send' ? 'is-active' : ''}
               onClick={() => setOpenAdminGroup((current) => (current === 'legal' ? '' : 'legal'))}
             >
               <span><AdminIcon name="legal" /></span>
@@ -1045,7 +1047,7 @@ export function AdminDashboard() {
               <div>
                 <button
                   type="button"
-                  className={activeMenu === 'contracts' || activeMenu === 'contract-send' ? 'is-active' : ''}
+                  className={activeMenu === 'contract-send' ? 'is-active' : ''}
                   onClick={() => {
                     loadContracts()
                     setActiveMenu('contracts')
@@ -1543,12 +1545,13 @@ export function AdminDashboard() {
                       ))}
                     </select>
                   </label>
-                  <label className="admin-wide-field admin-image-upload">
-                    <span>Upload DOCX Contract File (Optional)</span>
-                    <input
-                      type="file"
-                      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      onChange={handleContractFileChange}
+                  <label className="admin-wide-field">
+                    <span>Description</span>
+                    <textarea
+                      value={contractForm.contractBody}
+                      placeholder="Type project description, scope, notes, delivery details, or contract summary..."
+                      onChange={(event) => updateContractField('contractBody', event.target.value)}
+                      rows={8}
                     />
                   </label>
                   {contractForm.contractFile?.name ? (
