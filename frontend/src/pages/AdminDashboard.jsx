@@ -15,7 +15,6 @@ import {
   YAxis,
 } from 'recharts'
 import {
-  BadgeDollarSign,
   Bot,
   BriefcaseBusiness,
   Building2,
@@ -130,6 +129,7 @@ function EnterpriseAdminApp() {
   }, [activePage])
 
   const module = useMemo(() => getModuleConfig(activePage, data), [activePage, data])
+  const liveNotifications = useMemo(() => createNotifications(data), [data])
   const PageIcon = pageMeta.icon
 
   const openCreateModal = () => {
@@ -256,7 +256,7 @@ function EnterpriseAdminApp() {
                     </span>
                     <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{pageMeta.title}</h1>
                     <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                      Demo data removed. Dashboard ab backend REST APIs aur MongoDB collections se live data render karta hai.
+                      Dashboard backend REST APIs aur MongoDB collections se live data render karta hai.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -283,7 +283,7 @@ function EnterpriseAdminApp() {
           </section>
         </div>
 
-        <NotificationPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+        <NotificationPanel open={notificationsOpen} notifications={liveNotifications} onClose={() => setNotificationsOpen(false)} />
         <RecordModal
           open={modalOpen}
           page={activePage}
@@ -441,10 +441,10 @@ function EnterpriseModule({ pageMeta, module, onDelete }) {
           <p className="mt-3 text-sm leading-7 text-slate-400">
             {module.isLive
               ? 'Ye module MongoDB se live data read karta hai. Search, sort, pagination, CSV/PDF export aur delete connected hai.'
-              : 'Is sidebar module ke liye backend collection/API abhi configured nahi hai, isliye demo data nahi dikhaya gaya.'}
+              : 'Is sidebar module ke liye backend collection/API abhi configured nahi hai.'}
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {['MongoDB live', 'JWT protected', 'CSV/PDF export', 'No demo data'].map((item) => (
+            {['MongoDB live', 'JWT protected', 'CSV/PDF export', 'Real records only'].map((item) => (
               <div key={item} className="rounded-2xl bg-slate-950/35 p-4 text-sm font-bold text-slate-200">
                 <CheckCircle2 className="mb-3 text-cyan-200" size={18} /> {item}
               </div>
@@ -649,11 +649,11 @@ function getModuleConfig(page, data) {
   return {
     type: 'none',
     title: `${titleize(page)} Records`,
-    source: 'No backend route configured yet',
+    source: 'Backend route not configured yet',
     isLive: false,
     rows: [],
     columns: commonColumns(['name', 'status', 'createdAt']),
-    emptyText: 'Demo data removed. Is module ke liye MongoDB API configure karna baaki hai.',
+    emptyText: 'Is module ke liye MongoDB API configure karna baaki hai.',
   }
 }
 
@@ -661,11 +661,31 @@ function createStats(data) {
   return [
     { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
     { label: 'Active Projects', value: data.contracts.filter((item) => (item.projectStatus || 'active') === 'active').length, change: 'MongoDB', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500' },
-    { label: 'Revenue', value: '$0', change: 'No finance API', icon: BadgeDollarSign, tone: 'from-emerald-400 to-teal-500' },
     { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
-    { label: 'AI Tasks', value: 0, change: 'No AI API', icon: Bot, tone: 'from-sky-300 to-indigo-500' },
+    { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
+    { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
     { label: 'Pending QC', value: data.contracts.filter((item) => item.status !== 'signed').length, change: 'Live', icon: ShieldCheck, tone: 'from-rose-300 to-red-500' },
   ]
+}
+
+function createNotifications(data) {
+  return [
+    ...data.leads.slice(0, 3).map((lead) => ({
+      title: 'New lead',
+      meta: `${lead.name || lead.email || 'Lead'} - ${lead.service || 'Service enquiry'}`,
+      tone: 'bg-cyan-400',
+    })),
+    ...data.contracts.filter((contract) => contract.status !== 'signed').slice(0, 3).map((contract) => ({
+      title: 'Pending project / contract',
+      meta: `${contract.title || 'Untitled'} - ${contract.recipientEmail || 'No email'}`,
+      tone: 'bg-amber-400',
+    })),
+    ...data.applications.slice(0, 3).map((application) => ({
+      title: 'New application',
+      meta: `${application.name || application.email || 'Candidate'} - ${application.jobTitle || application.role || 'Role'}`,
+      tone: 'bg-emerald-400',
+    })),
+  ].slice(0, 8)
 }
 
 function createChartData(data) {
