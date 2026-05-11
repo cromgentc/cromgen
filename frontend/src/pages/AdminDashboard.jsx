@@ -112,6 +112,7 @@ const formDefaults = {
   'user-management': { name: '', email: '', password: '', role: 'staff' },
   'vendor-management': { name: '', company: '', email: '', phone: '', serviceCategory: '', password: '', status: 'active' },
   'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
+  'legal-team': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', googleDocUrl: '', contractFile: null, contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
   'candidate-management': { name: '', email: '', role: '', status: 'New', notes: '' },
@@ -363,7 +364,7 @@ function EnterpriseAdminApp() {
         await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(form) })
       } else if (activePage === 'vendor-management') {
         await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
-      } else if (activePage === 'project-management') {
+      } else if (activePage === 'project-management' || activePage === 'legal-team') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
       } else if (activePage === 'leads-management') {
         await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(form) })
@@ -403,6 +404,14 @@ function EnterpriseAdminApp() {
       await apiRequest(APPLICATION_ENDPOINTS.settingsDetail(id), {
         method: 'POST',
         body: JSON.stringify(applicationPayload(payload)),
+      })
+      return
+    }
+
+    if (page === 'project-management' || page === 'legal-team') {
+      await apiRequest(CONTRACT_ENDPOINTS.settingsDetail(id), {
+        method: 'POST',
+        body: JSON.stringify(payload),
       })
       return
     }
@@ -1636,12 +1645,22 @@ function RecordModal({ open, page, form, data, editingRecord, saving, onChange, 
     onChange(fieldName, dataUrl)
   }
 
+  const updateDocxField = async (fieldName, file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    onChange(fieldName, {
+      name: file.name,
+      type: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      data: dataUrl,
+    })
+  }
+
   return (
     <Modal open={open} title={`${editingRecord ? 'Edit' : 'Create'} ${titleize(page)}`} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           {fields.map((field) => (
-            <label key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+            <label key={field.name} className={['textarea', 'richtext', 'docx'].includes(field.type) ? 'md:col-span-2' : ''}>
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{field.label}</span>
               {field.type === 'textarea' || field.type === 'richtext' ? (
                 <>
@@ -1678,6 +1697,20 @@ function RecordModal({ open, page, form, data, editingRecord, saving, onChange, 
                     type="file"
                     accept="image/*"
                     onChange={(event) => updateFileField(field.name, event.target.files?.[0])}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300"
+                    required={field.required && !form[field.name]}
+                  />
+                </div>
+              ) : field.type === 'docx' ? (
+                <div className="space-y-3 rounded-3xl border border-dashed border-white/15 bg-slate-950/35 p-4">
+                  <div>
+                    <p className="text-sm font-black text-white">{form[field.name]?.name || 'No DOCX contract uploaded'}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">Upload an optional .docx contract file from the backend form.</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(event) => updateDocxField(field.name, event.target.files?.[0])}
                     className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300"
                     required={field.required && !form[field.name]}
                   />
@@ -1859,22 +1892,33 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['project-management', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
+  if (['project-management', 'legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
+    const isLegalTeam = page === 'legal-team'
     return {
       type: 'contracts',
-      title: 'Projects / Contracts',
+      title: isLegalTeam ? 'Legal Team Contracts' : 'Projects / Contracts',
       source: CONTRACT_ENDPOINTS.settingsList,
       isLive: true,
+      canEdit: isLegalTeam || page === 'project-management',
       rows: data.contracts.map((contract) => ({
         id: contract.signingToken || contract.slug,
         title: contract.title,
+        recipientName: contract.recipientName,
+        recipientEmail: contract.recipientEmail,
         client: contract.recipientName,
         email: contract.recipientEmail,
+        senderName: contract.senderName,
+        googleDocUrl: contract.googleDocUrl,
+        contractFile: contract.contractFile || null,
+        contractFileName: contract.contractFile?.name || '',
+        contractBody: contract.contractBody,
         status: contract.status || 'pending',
         projectStatus: contract.projectStatus || 'active',
         createdAt: formatDate(contract.createdAt),
       })),
-      columns: commonColumns(['title', 'client', 'email', 'projectStatus', 'status', 'createdAt']),
+      columns: commonColumns(isLegalTeam
+        ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'contractFileName', 'createdAt']
+        : ['title', 'client', 'email', 'projectStatus', 'status', 'createdAt']),
       emptyText: 'The contracts/projects collection is empty.',
     }
   }
@@ -2310,6 +2354,16 @@ function getFormFields(page, data = emptyData) {
       { name: 'projectStatus', label: 'Project Status', type: 'select', options: ['live', 'active', 'inactive', 'closed'] },
       { name: 'contractBody', label: 'Description', type: 'textarea' },
     ],
+    'legal-team': [
+      { name: 'title', label: 'Contract / Project Name', ...commonRequired },
+      { name: 'recipientName', label: 'Client Name', ...commonRequired },
+      { name: 'recipientEmail', label: 'Client Email', type: 'email', ...commonRequired },
+      { name: 'senderName', label: 'Legal Owner' },
+      { name: 'projectStatus', label: 'Project Status', type: 'select', options: ['live', 'active', 'inactive', 'closed'] },
+      { name: 'googleDocUrl', label: 'Google Doc URL' },
+      { name: 'contractFile', label: 'Upload DOCX Contract File (Optional)', type: 'docx' },
+      { name: 'contractBody', label: 'Description', type: 'richtext' },
+    ],
     'leads-management': [
       { name: 'name', label: 'Name', ...commonRequired },
       { name: 'email', label: 'Email', type: 'email', ...commonRequired },
@@ -2708,7 +2762,12 @@ function commonColumns(keys) {
     service: 'Service',
     title: 'Title',
     client: 'Client',
+    senderName: 'Sender',
     projectStatus: 'Project Status',
+    googleDocUrl: 'Google Doc',
+    contractFile: 'Contract File',
+    contractFileName: 'Contract File',
+    contractBody: 'Description',
     query: 'Query',
     department: 'Department',
     location: 'Location',

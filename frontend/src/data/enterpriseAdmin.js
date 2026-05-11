@@ -103,6 +103,13 @@ export const adminNavigation = [
     ],
   },
   {
+    label: 'Legal Team',
+    icon: FileCog,
+    items: [
+      ['legal-team', 'Contracts'],
+    ],
+  },
+  {
     label: 'Finance',
     icon: Wallet,
     items: [
@@ -221,6 +228,7 @@ export const pageCatalog = {
   'user-management': { title: 'User Management', tag: 'Identity Control', icon: Users },
   'vendor-management': { title: 'Vendor Management', tag: 'Partner Network', icon: Building2 },
   'project-management': { title: 'Project Management', tag: 'Delivery Command', icon: BriefcaseBusiness },
+  'legal-team': { title: 'Legal Team', tag: 'Contracts & Signatures', icon: FileCog },
   payments: { title: 'Finance', tag: 'Revenue Operations', icon: Wallet },
   'leads-management': { title: 'CRM & Sales', tag: 'Growth Pipeline', icon: Contact },
   recruitment: { title: 'Recruitment', tag: 'Hiring Operations', icon: CalendarClock },
