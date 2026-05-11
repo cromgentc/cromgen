@@ -101,9 +101,9 @@ export async function apiRequest(path, options = {}) {
   } catch (error) {
     const message = error.response?.data?.message || 'Request failed'
     if (/^api route not found$/i.test(message)) {
-      throw new Error('Updated backend route is not loaded yet. Please restart the backend server once.')
+      throw new Error('Updated backend route is not loaded yet. Please restart the backend server once.', { cause: error })
     }
 
-    throw new Error(message)
+    throw new Error(message, { cause: error })
   }
 }
