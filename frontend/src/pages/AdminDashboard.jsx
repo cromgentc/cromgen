@@ -102,6 +102,10 @@ const emptyData = {
   helpCenter: [],
   faqs: [],
   contactRequests: [],
+  securitySettings: [],
+  loginHistory: [],
+  activityLogs: [],
+  twoFactorAuthentication: [],
 }
 
 const formDefaults = {
@@ -125,6 +129,10 @@ const formDefaults = {
   'client-reports': { name: '', company: '', category: '', status: 'Draft', notes: '' },
   'support-requests': { name: '', email: '', priority: 'Medium', status: 'Open', notes: '' },
   'admin-access-control': { name: '', email: '', role: 'Admin', accessLevel: 'Full Access', status: 'Active', lastLogin: '', notes: '' },
+  'security-settings': { name: '', category: 'Access Policy', severity: 'Medium', status: 'Active', notes: '' },
+  'login-history': { name: '', email: '', ipAddress: '', device: '', status: 'Success', lastLogin: '', notes: '' },
+  'activity-logs': { name: '', email: '', action: '', category: 'Admin', severity: 'Low', status: 'Logged', notes: '' },
+  'two-factor-authentication': { name: '', email: '', method: 'Authenticator App', enabled: 'Enabled', status: 'Active', notes: '' },
   applications: { name: '', email: '', phone: '', role: '', department: '', location: '', status: 'Submitted', notes: '' },
   'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
   'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
@@ -199,6 +207,10 @@ const workforceRecordTypes = [
   'helpCenter',
   'faqs',
   'contactRequests',
+  'securitySettings',
+  'loginHistory',
+  'activityLogs',
+  'twoFactorAuthentication',
 ]
 
 function EnterpriseAdminApp() {
@@ -908,6 +920,12 @@ function PolicySettingsPage({ policies, onSave }) {
     setDraft((current) => ({ ...current, sections: (current.sections || []).filter((_, itemIndex) => itemIndex !== index) }))
   }
 
+  const updateHeroImage = async (file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    updateField('image', dataUrl)
+  }
+
   const submit = async (event) => {
     event.preventDefault()
     setSaving(true)
@@ -955,7 +973,6 @@ function PolicySettingsPage({ policies, onSave }) {
           <div className="grid gap-4 md:grid-cols-2">
             {[
               ['title', 'Title'],
-              ['image', 'Hero Image URL'],
               ['updated', 'Updated Label'],
             ].map(([field, label]) => (
               <label key={field}>
@@ -963,6 +980,15 @@ function PolicySettingsPage({ policies, onSave }) {
                 <input value={draft[field] || ''} onChange={(event) => updateField(field, event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
               </label>
             ))}
+            <label className="md:col-span-2">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Hero Image</span>
+              <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+                <div className="grid h-36 place-items-center overflow-hidden rounded-3xl bg-slate-950/35">
+                  {draft.image ? <img src={draft.image} alt="Policy hero preview" className="h-full w-full object-cover" /> : <span className="text-sm font-semibold text-slate-500">No image uploaded</span>}
+                </div>
+                <input type="file" accept="image/*" onChange={(event) => updateHeroImage(event.target.files?.[0])} className="h-12 rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300" />
+              </div>
+            </label>
             <label className="md:col-span-2">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Summary</span>
               <textarea value={draft.summary || ''} rows={4} onChange={(event) => updateField('summary', event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/60" />
@@ -1682,6 +1708,10 @@ const workforcePageModules = {
   'help-center': { type: 'helpCenter', title: 'Help Center', fields: ['name', 'category', 'articleUrl', 'status', 'notes', 'createdAt'] },
   'faq-management': { type: 'faqs', title: 'FAQ Management', fields: ['question', 'answer', 'category', 'status', 'notes', 'createdAt'] },
   'contact-requests': { type: 'contactRequests', title: 'Contact Requests', fields: ['name', 'email', 'subject', 'priority', 'status', 'notes', 'createdAt'] },
+  'security-settings': { type: 'securitySettings', title: 'Security Settings', fields: ['name', 'category', 'severity', 'status', 'notes', 'createdAt'] },
+  'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'ipAddress', 'device', 'status', 'lastLogin', 'notes', 'createdAt'] },
+  'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'notes', 'createdAt'] },
+  'two-factor-authentication': { type: 'twoFactorAuthentication', title: 'Two-Factor Authentication', fields: ['name', 'email', 'method', 'enabled', 'status', 'notes', 'createdAt'] },
 }
 
 function getModuleConfig(page, data) {
@@ -1945,6 +1975,11 @@ function workforceModule(type, title, records, fields) {
       articleUrl: record.articleUrl,
       accessLevel: record.accessLevel,
       lastLogin: record.lastLogin,
+      ipAddress: record.ipAddress,
+      device: record.device,
+      action: record.action,
+      severity: record.severity,
+      enabled: record.enabled,
       status: record.status,
       permission: record.permission,
       date: record.date,
@@ -2565,6 +2600,39 @@ function getFormFields(page) {
       { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
       { name: 'notes', label: 'Request Details', type: 'textarea' },
     ],
+    'security-settings': [
+      { name: 'name', label: 'Security Rule', ...commonRequired },
+      { name: 'category', label: 'Category', type: 'select', options: ['Access Policy', 'Password Policy', 'Session Policy', 'Data Protection', 'Network'] },
+      { name: 'severity', label: 'Severity', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Review', 'Disabled'] },
+      { name: 'notes', label: 'Policy Details', type: 'textarea' },
+    ],
+    'login-history': [
+      { name: 'name', label: 'User Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'ipAddress', label: 'IP Address' },
+      { name: 'device', label: 'Device' },
+      { name: 'lastLogin', label: 'Login Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Success', 'Failed', 'Blocked'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'activity-logs': [
+      { name: 'name', label: 'Actor Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'action', label: 'Action', ...commonRequired },
+      { name: 'category', label: 'Category', type: 'select', options: ['Admin', 'User', 'Vendor', 'Finance', 'Content', 'Security'] },
+      { name: 'severity', label: 'Severity', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Logged', 'Reviewed', 'Flagged'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'two-factor-authentication': [
+      { name: 'name', label: 'User Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'method', label: 'Method', type: 'select', options: ['Authenticator App', 'Email OTP', 'SMS OTP', 'Security Key'] },
+      { name: 'enabled', label: '2FA State', type: 'select', options: ['Enabled', 'Disabled', 'Required'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Pending', 'Disabled'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
   }
 
   return map[page] || []
@@ -2616,6 +2684,11 @@ function commonColumns(keys) {
     articleUrl: 'Article URL',
     accessLevel: 'Access Level',
     lastLogin: 'Last Login',
+    ipAddress: 'IP Address',
+    device: 'Device',
+    action: 'Action',
+    severity: 'Severity',
+    enabled: '2FA',
     date: 'Date',
     checkIn: 'Check In',
     checkOut: 'Check Out',

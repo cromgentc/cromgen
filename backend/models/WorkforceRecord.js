@@ -42,6 +42,10 @@ const allowedTypes = new Set([
   'faqs',
   'contactRequests',
   'adminAccessControls',
+  'securitySettings',
+  'loginHistory',
+  'activityLogs',
+  'twoFactorAuthentication',
 ])
 
 export function isAllowedWorkforceType(type) {
@@ -144,6 +148,11 @@ function toPublicWorkforceRecord(record) {
     articleUrl: record.articleUrl || '',
     accessLevel: record.accessLevel || '',
     lastLogin: record.lastLogin || '',
+    ipAddress: record.ipAddress || '',
+    device: record.device || '',
+    action: record.action || '',
+    severity: record.severity || '',
+    enabled: record.enabled || '',
     status: record.status || '',
     permission: record.permission || '',
     date: record.date || '',
