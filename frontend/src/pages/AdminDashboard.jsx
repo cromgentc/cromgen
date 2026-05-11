@@ -1899,21 +1899,25 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['job-postings'].includes(page)) {
+  if (['recruitment', 'job-postings'].includes(page)) {
     return {
       type: 'jobs',
-      title: 'Jobs',
+      title: page === 'recruitment' ? 'Recruitment Job Posts' : 'Job Postings',
       source: JOB_ENDPOINTS.settingsList,
       isLive: true,
+      canEdit: page === 'job-postings',
       rows: data.jobs.map((job) => ({
         id: job.slug,
         title: job.title,
         department: job.department,
         location: job.location,
         type: job.type,
+        experience: job.experience,
+        image: job.image ? 'Uploaded' : '-',
+        summary: job.summary,
         createdAt: formatDate(job.createdAt),
       })),
-      columns: commonColumns(['title', 'department', 'location', 'type', 'createdAt']),
+      columns: commonColumns(['title', 'department', 'location', 'type', 'experience', 'image', 'summary', 'createdAt']),
       emptyText: 'The jobs collection is empty.',
     }
   }
@@ -2712,6 +2716,9 @@ function commonColumns(keys) {
     channel: 'Channel',
     subject: 'Subject',
     invoiceNumber: 'Invoice',
+    image: 'Image',
+    summary: 'Summary',
+    experience: 'Experience',
     cycle: 'Cycle',
     method: 'Method',
     balance: 'Balance',

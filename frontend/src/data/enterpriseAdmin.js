@@ -140,6 +140,7 @@ export const adminNavigation = [
     label: 'Recruitment',
     icon: CalendarClock,
     items: [
+      ['recruitment', 'Recruitment Overview'],
       ['job-postings', 'Job Postings'],
       ['applications', 'Applications'],
       ['interview-management', 'Interview Management'],
@@ -222,7 +223,8 @@ export const pageCatalog = {
   'project-management': { title: 'Project Management', tag: 'Delivery Command', icon: BriefcaseBusiness },
   payments: { title: 'Finance', tag: 'Revenue Operations', icon: Wallet },
   'leads-management': { title: 'CRM & Sales', tag: 'Growth Pipeline', icon: Contact },
-  'job-postings': { title: 'Recruitment', tag: 'Hiring Operations', icon: CalendarClock },
+  recruitment: { title: 'Recruitment', tag: 'Hiring Operations', icon: CalendarClock },
+  'job-postings': { title: 'Job Postings', tag: 'Hiring Operations', icon: CalendarClock },
   'performance-reports': { title: 'Reports', tag: 'Executive Analytics', icon: ChartArea },
   'system-settings': { title: 'Settings', tag: 'Platform Control', icon: Settings },
 }
