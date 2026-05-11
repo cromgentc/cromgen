@@ -15,10 +15,8 @@ import logo from '../assets/cromgen-logo.png'
 const menuItems = [
   ['overview', 'Dashboard', 'overview'],
   ['users', 'Users', 'profile'],
-  ['services', 'Services', 'settings'],
-  ['leads', 'Leads', 'leads'],
+  ['services', 'Services', 'services'],
   ['projects', 'Projects', 'contracts'],
-  ['inquiries', 'Inquiries', 'leads'],
   ['reports', 'Reports', 'overview'],
 ]
 
@@ -911,31 +909,17 @@ export function AdminDashboard() {
               <b>{label}</b>
             </button>
           ))}
-          <div className="admin-sidebar-group">
-            <button
-              type="button"
-              className={activeMenu === 'leads' ? 'is-active' : ''}
-              onClick={() => setOpenAdminGroup((current) => (current === 'sales' ? '' : 'sales'))}
-            >
-              <span><AdminIcon name="sales" /></span>
-              <b>Sales</b>
-              <i>{openAdminGroup === 'sales' ? '-' : '+'}</i>
-            </button>
-            {openAdminGroup === 'sales' ? (
-              <div>
-                <button
-                  type="button"
-                  className={activeMenu === 'leads' ? 'is-active' : ''}
-                  onClick={() => {
-                    loadLeads()
-                    setActiveMenu('leads')
-                  }}
-                >
-                  Leads
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            className={activeMenu === 'leads' ? 'is-active' : ''}
+            onClick={() => {
+              loadLeads()
+              setActiveMenu('leads')
+            }}
+          >
+            <span><AdminIcon name="inquiries" /></span>
+            <b>Leads / Inquiries</b>
+          </button>
           <div className="admin-sidebar-group">
             <button
               type="button"
@@ -1479,12 +1463,31 @@ export function AdminDashboard() {
               </form>
 
             </section>
+          ) : activeMenu === 'services' ? (
+            <section className="admin-policy-editor">
+              <div className="admin-editor-head">
+                <div>
+                  <span>Services</span>
+                  <h2>Service Management</h2>
+                </div>
+              </div>
+              <div className="admin-service-management">
+                <div>
+                  {['Artificial Intelligence', 'Digital Marketing', 'Call Center', 'IT Services', 'Software Development', 'Telecommunications'].map((item) => (
+                    <section key={item}>
+                      <strong>{item}</strong>
+                      <p>Enterprise service page active</p>
+                    </section>
+                  ))}
+                </div>
+              </div>
+            </section>
           ) : activeMenu === 'leads' ? (
             <section className="admin-policy-editor">
               <div className="admin-editor-head">
                 <div>
-                  <span>Leads</span>
-                  <h2>Enquiry Leads</h2>
+                  <span>Leads / Inquiries</span>
+                  <h2>Enquiry Queue</h2>
                 </div>
                 <div className="admin-editor-actions">
                   <button type="button" onClick={downloadLeadsCsv}>Download All</button>
@@ -1820,9 +1823,8 @@ export function AdminDashboard() {
               </div>
               {[
                 ['Total Users', `${applications.length + leads.length + 1} profiles`, 'CRM Network'],
-                ['Total Leads', `${leads.length} active enquiries`, 'Sales Pipeline'],
+                ['Total Leads / Inquiries', `${leads.length} active enquiries`, 'Sales Pipeline'],
                 ['Active Projects', `${contracts.filter((contract) => contract.status !== 'signed').length} in progress`, 'Delivery'],
-                ['Pending Inquiries', `${leads.length + contracts.filter((contract) => contract.status !== 'signed').length} awaiting action`, 'Support Desk'],
                 ['Completed Tasks', `${contracts.filter((contract) => contract.status === 'signed').length} completed`, 'Operations'],
                 ['Revenue/Reports', '75.5% target', 'Executive View'],
               ].map(([title, copy, meta]) => (
@@ -1853,7 +1855,7 @@ export function AdminDashboard() {
               <article className="admin-dashboard-table">
                 <div className="admin-section-title">
                   <div>
-                    <span>Recent Inquiries</span>
+                    <span>Leads / Inquiries</span>
                     <h2>Latest requests</h2>
                   </div>
                   <button type="button" onClick={() => setActiveMenu('leads')}>View All</button>
@@ -1888,47 +1890,13 @@ export function AdminDashboard() {
                   <button type="button">Next</button>
                 </div>
               </article>
-              <article className="admin-dashboard-table">
-                <div className="admin-section-title">
-                  <div>
-                    <span>Latest Leads</span>
-                    <h2>Sales queue</h2>
-                  </div>
-                  <label>
-                    <input type="search" value={adminSearch} placeholder="Search leads" onChange={(event) => setAdminSearch(event.target.value)} />
-                  </label>
-                </div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Email</th>
-                      <th>Query</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(visibleLeads.slice(0, 4).length ? visibleLeads.slice(0, 4) : [{ email: 'No lead available', query: '-', id: '' }]).map((lead, index) => (
-                      <tr key={`${lead.email}-${index}`}>
-                        <td>{lead.email}</td>
-                        <td>{lead.query || '-'}</td>
-                        <td><span className="admin-status-badge is-active">Active</span></td>
-                        <td>
-                          <button type="button" onClick={() => setActiveMenu('leads')}>View</button>
-                          <button type="button" onClick={() => setActiveMenu('leads')}>Edit</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </article>
               <article className="admin-service-management">
                 <div className="admin-section-title">
                   <div>
                     <span>Services</span>
                     <h2>Service management</h2>
                   </div>
-                  <button type="button" onClick={() => setActiveMenu('settings')}>Manage</button>
+                  <button type="button" onClick={() => setActiveMenu('services')}>Manage</button>
                 </div>
                 <div>
                   {['Artificial Intelligence', 'Digital Marketing', 'Call Center', 'IT Services', 'Software Development', 'Telecommunications'].map((item) => (
