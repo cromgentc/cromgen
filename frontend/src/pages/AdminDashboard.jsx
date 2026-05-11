@@ -96,14 +96,14 @@ function EnterpriseAdminApp() {
 
   return (
     <div className={isDark ? 'dark' : ''}>
-      <main className={`min-h-screen overflow-hidden ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-950'}`}>
+      <main className={`h-screen overflow-hidden ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-950'}`}>
         <div className="pointer-events-none fixed inset-0">
           <div className="absolute left-[-12%] top-[-20%] h-[520px] w-[520px] rounded-full bg-cyan-500/20 blur-3xl"></div>
           <div className="absolute right-[-10%] top-[10%] h-[540px] w-[540px] rounded-full bg-violet-500/20 blur-3xl"></div>
           <div className="absolute bottom-[-18%] left-[30%] h-[520px] w-[520px] rounded-full bg-blue-500/10 blur-3xl"></div>
         </div>
 
-        <div className="relative flex min-h-screen">
+        <div className="relative flex h-screen overflow-hidden">
           <Sidebar
             activePage={activePage}
             collapsed={collapsed}
@@ -122,7 +122,7 @@ function EnterpriseAdminApp() {
             }}
           />
 
-          <section className="min-w-0 flex-1">
+          <section className="h-screen min-w-0 flex-1 overflow-y-auto">
             <Navbar
               onToggleSidebar={() => setCollapsed((value) => !value)}
               onOpenMobile={() => setMobileOpen(true)}
@@ -177,7 +177,7 @@ function EnterpriseAdminApp() {
             </div>
 
             <footer className="px-7 pb-7 text-sm text-slate-500">
-              Cromgen Technology Enterprise Admin • API-ready architecture • Secure admin workspace
+              Cromgen Technology Enterprise Admin - API-ready architecture - Secure admin workspace
             </footer>
           </section>
         </div>
