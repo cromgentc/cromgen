@@ -58,6 +58,7 @@ export const LEAD_ENDPOINTS = {
 export const APPLICATION_ENDPOINTS = {
   publicCreate: '/api/applications',
   settingsList: '/api/settings/applications',
+  settingsDetail: (id) => `/api/settings/applications/${encodeURIComponent(id)}`,
   settingsDeleteAll: '/api/settings/applications',
   settingsDelete: (id) => `/api/settings/applications/${encodeURIComponent(id)}`,
   settingsResume: (id) => `/api/settings/applications/${encodeURIComponent(id)}/resume`,

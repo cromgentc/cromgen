@@ -5,6 +5,7 @@ import {
   deleteApplicationById,
   findApplicationById,
   findApplications,
+  updateApplicationById,
 } from '../models/Application.js'
 import { json, notFound, readJson, validationError } from '../utils/http.js'
 import { verifyToken } from '../utils/security.js'
@@ -36,6 +37,47 @@ export async function listSettingApplications(request) {
 
   return json(200, {
     applications: await findApplications(),
+  })
+}
+
+export async function createSettingApplication(request) {
+  const auth = settingsAuth(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+  const candidate = body.candidate || {}
+
+  if (!body.job || !body.title || !candidate.name || !candidate.email || !candidate.phone) {
+    return validationError('Job, title, candidate name, email, and phone are required')
+  }
+
+  const application = await createApplication(body)
+
+  return json(201, {
+    ok: true,
+    message: 'Application created',
+    application,
+  })
+}
+
+export async function updateSettingApplication(request, { id }) {
+  const auth = settingsAuth(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+  const candidate = body.candidate || {}
+
+  if (!body.job || !body.title || !candidate.name || !candidate.email || !candidate.phone) {
+    return validationError('Job, title, candidate name, email, and phone are required')
+  }
+
+  const application = await updateApplicationById(id, body)
+  if (!application) return notFound('Application not found')
+
+  return json(200, {
+    ok: true,
+    message: 'Application updated',
+    application,
   })
 }
 

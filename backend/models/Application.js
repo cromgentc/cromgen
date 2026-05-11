@@ -26,6 +26,22 @@ export async function findApplicationById(id) {
   return application ? normalizeApplication(application) : null
 }
 
+export async function updateApplicationById(id, fields) {
+  if (!ObjectId.isValid(id)) return null
+
+  const updateFields = sanitizeApplicationFields(fields)
+  if (!Object.prototype.hasOwnProperty.call(fields, 'resume')) delete updateFields.resume
+
+  await collection().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: updateFields,
+    },
+  )
+
+  return findApplicationById(id)
+}
+
 export async function deleteApplicationById(id) {
   if (!ObjectId.isValid(id)) return false
   const result = await collection().deleteOne({ _id: new ObjectId(id) })
@@ -46,6 +62,7 @@ export function normalizeApplication(application) {
     location: String(application.location || '').trim(),
     candidate: normalizeCandidate(application.candidate || {}),
     resume: normalizeResume(application.resume || {}),
+    status: String(application.status || 'Submitted').trim(),
     createdAt: application.createdAt ? new Date(application.createdAt).toISOString() : new Date().toISOString(),
   }
 }
@@ -78,6 +95,7 @@ function sanitizeApplicationFields(body) {
     location: String(body.location || '').trim(),
     candidate: normalizeCandidate(body.candidate || {}),
     resume: normalizeResume(body.resume || {}),
+    status: String(body.status || 'Submitted').trim(),
   }
 }
 

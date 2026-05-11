@@ -72,6 +72,31 @@ const emptyData = {
   clientBilling: [],
   clientReports: [],
   supportRequests: [],
+  tasks: [],
+  assignedTasks: [],
+  deadlines: [],
+  projectAnalytics: [],
+  finance: [],
+  billingCycles: [],
+  invoices: [],
+  revenueAnalytics: [],
+  wallets: [],
+  withdrawRequests: [],
+  salesPipeline: [],
+  followUps: [],
+  emailCampaigns: [],
+  whatsappCampaigns: [],
+  reports: [],
+  userReports: [],
+  vendorReports: [],
+  revenueReports: [],
+  aiAnalytics: [],
+  interviews: [],
+  hiringPipeline: [],
+  supportTickets: [],
+  helpCenter: [],
+  faqs: [],
+  contactRequests: [],
 }
 
 const formDefaults = {
@@ -94,13 +119,79 @@ const formDefaults = {
   'client-billing': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
   'client-reports': { name: '', company: '', category: '', status: 'Draft', notes: '' },
   'support-requests': { name: '', email: '', priority: 'Medium', status: 'Open', notes: '' },
+  applications: { name: '', email: '', phone: '', role: '', department: '', location: '', status: 'Submitted', notes: '' },
+  'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
+  'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
+  deadlines: { name: '', project: '', deadline: '', priority: 'Medium', status: 'Upcoming', notes: '' },
+  'project-analytics': { name: '', project: '', metric: '', progress: '', status: 'On Track', notes: '' },
+  payments: { name: '', category: '', amount: '', status: 'Pending', notes: '' },
+  'billing-cycle': { name: '', cycle: '', amount: '', dueDate: '', status: 'Active', notes: '' },
+  'invoice-management': { name: '', invoiceNumber: '', company: '', amount: '', dueDate: '', status: 'Unpaid', notes: '' },
+  'revenue-analytics': { name: '', category: '', amount: '', metric: '', status: 'Tracked', notes: '' },
+  wallet: { name: '', balance: '', amount: '', method: '', status: 'Active', notes: '' },
+  'withdraw-requests': { name: '', amount: '', method: '', requestDate: '', status: 'Pending', notes: '' },
+  'sales-pipeline': { name: '', company: '', amount: '', stage: 'New', nextAction: '', status: 'Open', notes: '' },
+  'follow-ups': { name: '', company: '', dueDate: '', channel: 'Call', status: 'Pending', notes: '' },
+  'email-campaigns': { name: '', subject: '', category: '', openRate: '', status: 'Draft', notes: '' },
+  'whatsapp-campaigns': { name: '', subject: '', category: '', openRate: '', status: 'Draft', notes: '' },
+  'performance-reports': { name: '', reportType: '', category: '', status: 'Draft', notes: '' },
+  'user-reports': { name: '', reportType: '', metric: '', status: 'Ready', notes: '' },
+  'vendor-reports': { name: '', reportType: '', metric: '', status: 'Ready', notes: '' },
+  'revenue-reports': { name: '', reportType: '', amount: '', metric: '', status: 'Ready', notes: '' },
+  'ai-analytics': { name: '', metric: '', progress: '', status: 'Active', notes: '' },
+  'interview-management': { name: '', email: '', role: '', dueDate: '', status: 'Scheduled', notes: '' },
+  'hiring-pipeline': { name: '', role: '', stage: 'Screening', status: 'Active', notes: '' },
+  'support-tickets': { name: '', email: '', ticketId: '', priority: 'Medium', status: 'Open', notes: '' },
+  'help-center': { name: '', category: '', articleUrl: '', status: 'Published', notes: '' },
+  'faq-management': { question: '', answer: '', category: '', status: 'Published', notes: '' },
+  'contact-requests': { name: '', email: '', subject: '', priority: 'Medium', status: 'Open', notes: '' },
 }
 
 const supportedCreatePages = Object.keys(formDefaults)
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
-const workforceRecordTypes = ['candidates', 'teams', 'roles', 'attendance', 'performance', 'agencies', 'partners', 'vendorPerformance', 'vendorPayouts', 'clients', 'clientProjects', 'clientBilling', 'clientReports', 'supportRequests']
+const workforceRecordTypes = [
+  'candidates',
+  'teams',
+  'roles',
+  'attendance',
+  'performance',
+  'agencies',
+  'partners',
+  'vendorPerformance',
+  'vendorPayouts',
+  'clients',
+  'clientProjects',
+  'clientBilling',
+  'clientReports',
+  'supportRequests',
+  'tasks',
+  'assignedTasks',
+  'deadlines',
+  'projectAnalytics',
+  'finance',
+  'billingCycles',
+  'invoices',
+  'revenueAnalytics',
+  'wallets',
+  'withdrawRequests',
+  'salesPipeline',
+  'followUps',
+  'emailCampaigns',
+  'whatsappCampaigns',
+  'reports',
+  'userReports',
+  'vendorReports',
+  'revenueReports',
+  'aiAnalytics',
+  'interviews',
+  'hiringPipeline',
+  'supportTickets',
+  'helpCenter',
+  'faqs',
+  'contactRequests',
+]
 
 function EnterpriseAdminApp() {
   const { isDark } = useAdminTheme()
@@ -119,7 +210,7 @@ function EnterpriseAdminApp() {
   const [detailsRecord, setDetailsRecord] = useState(null)
 
   const loadMongoData = async () => {
-    const requests = await Promise.allSettled([
+    const coreRequests = await Promise.allSettled([
       apiRequest(AUTH_ENDPOINTS.settingsUsers),
       apiRequest(VENDOR_ENDPOINTS.settingsList),
       apiRequest(CONTRACT_ENDPOINTS.settingsList),
@@ -128,25 +219,20 @@ function EnterpriseAdminApp() {
       apiRequest(JOB_ENDPOINTS.settingsList),
       apiRequest(SITE_ENDPOINTS.settingsDetail),
       apiRequest(AUTH_ENDPOINTS.currentUser),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('candidates')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('teams')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('roles')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('attendance')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('performance')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('agencies')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('partners')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('vendorPerformance')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('vendorPayouts')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clients')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clientProjects')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clientBilling')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('clientReports')),
-      apiRequest(WORKFORCE_ENDPOINTS.settingsList('supportRequests')),
     ])
+    const workforceRequests = await Promise.allSettled(
+      workforceRecordTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
+    )
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, candidates, teams, roles, attendance, performance, agencies, partners, vendorPerformance, vendorPayouts, clients, clientProjects, clientBilling, clientReports, supportRequests] = requests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser] = coreRequests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
+    const workforceData = Object.fromEntries(
+      workforceRecordTypes.map((type, index) => [
+        type,
+        workforceRequests[index].status === 'fulfilled' ? workforceRequests[index].value.records || [] : [],
+      ]),
+    )
 
     setData({
       users: users.users || [],
@@ -156,24 +242,11 @@ function EnterpriseAdminApp() {
       applications: applications.applications || [],
       jobs: jobs.jobs || [],
       siteSettings: siteSettings.settings || null,
-      candidates: candidates.records || [],
-      teams: teams.records || [],
-      roles: roles.records || [],
-      attendance: attendance.records || [],
-      performance: performance.records || [],
-      agencies: agencies.records || [],
-      partners: partners.records || [],
-      vendorPerformance: vendorPerformance.records || [],
-      vendorPayouts: vendorPayouts.records || [],
-      clients: clients.records || [],
-      clientProjects: clientProjects.records || [],
-      clientBilling: clientBilling.records || [],
-      clientReports: clientReports.records || [],
-      supportRequests: supportRequests.records || [],
+      ...workforceData,
     })
     setCurrentAdmin(currentUser.user || null)
 
-    const failedCount = requests.filter((result) => result.status === 'rejected').length
+    const failedCount = [...coreRequests, ...workforceRequests].filter((result) => result.status === 'rejected').length
     setToast(failedCount ? `${failedCount} data collections could not load. Check backend login/API.` : 'Live data synced.')
     setLoading(false)
   }
@@ -250,6 +323,8 @@ function EnterpriseAdminApp() {
         await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(form) })
       } else if (activePage === 'job-postings') {
         await apiRequest(JOB_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+      } else if (activePage === 'applications') {
+        await apiRequest(APPLICATION_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(applicationPayload(form)) })
       } else {
         const type = workforceTypeForPage(activePage)
         if (!type) throw new Error('Create API is not configured for this module yet.')
@@ -268,6 +343,22 @@ function EnterpriseAdminApp() {
   }
 
   const updateRecord = async (page, id, payload) => {
+    if (page === 'job-postings') {
+      await apiRequest(JOB_ENDPOINTS.settingsDetail(id), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      return
+    }
+
+    if (page === 'applications') {
+      await apiRequest(APPLICATION_ENDPOINTS.settingsDetail(id), {
+        method: 'POST',
+        body: JSON.stringify(applicationPayload(payload)),
+      })
+      return
+    }
+
     const type = workforceTypeForPage(page)
     if (!type) throw new Error('Update API is not configured for this module yet.')
     await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, id), {
@@ -1031,6 +1122,34 @@ function DetailsModal({ record, onClose }) {
   )
 }
 
+const workforcePageModules = {
+  'task-management': { type: 'tasks', title: 'Task Management', fields: ['name', 'project', 'assignee', 'priority', 'status', 'deadline', 'notes', 'createdAt'] },
+  'assign-tasks': { type: 'assignedTasks', title: 'Assign Tasks', fields: ['name', 'project', 'assignee', 'deadline', 'status', 'notes', 'createdAt'] },
+  deadlines: { type: 'deadlines', title: 'Deadlines', fields: ['name', 'project', 'deadline', 'priority', 'status', 'notes', 'createdAt'] },
+  'project-analytics': { type: 'projectAnalytics', title: 'Project Analytics', fields: ['name', 'project', 'metric', 'progress', 'status', 'notes', 'createdAt'] },
+  payments: { type: 'finance', title: 'Payments', fields: ['name', 'category', 'amount', 'status', 'notes', 'createdAt'] },
+  'billing-cycle': { type: 'billingCycles', title: 'Billing Cycle', fields: ['name', 'cycle', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
+  'invoice-management': { type: 'invoices', title: 'Invoice Management', fields: ['name', 'invoiceNumber', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
+  'revenue-analytics': { type: 'revenueAnalytics', title: 'Revenue Analytics', fields: ['name', 'category', 'amount', 'metric', 'status', 'notes', 'createdAt'] },
+  wallet: { type: 'wallets', title: 'Wallet', fields: ['name', 'balance', 'amount', 'method', 'status', 'notes', 'createdAt'] },
+  'withdraw-requests': { type: 'withdrawRequests', title: 'Withdraw Requests', fields: ['name', 'amount', 'method', 'requestDate', 'status', 'notes', 'createdAt'] },
+  'sales-pipeline': { type: 'salesPipeline', title: 'Sales Pipeline', fields: ['name', 'company', 'amount', 'stage', 'nextAction', 'status', 'notes', 'createdAt'] },
+  'follow-ups': { type: 'followUps', title: 'Follow Ups', fields: ['name', 'company', 'dueDate', 'channel', 'status', 'notes', 'createdAt'] },
+  'email-campaigns': { type: 'emailCampaigns', title: 'Email Campaigns', fields: ['name', 'subject', 'category', 'openRate', 'status', 'notes', 'createdAt'] },
+  'whatsapp-campaigns': { type: 'whatsappCampaigns', title: 'WhatsApp Campaigns', fields: ['name', 'subject', 'category', 'openRate', 'status', 'notes', 'createdAt'] },
+  'performance-reports': { type: 'reports', title: 'Reports', fields: ['name', 'reportType', 'category', 'status', 'notes', 'createdAt'] },
+  'user-reports': { type: 'userReports', title: 'User Reports', fields: ['name', 'reportType', 'metric', 'status', 'notes', 'createdAt'] },
+  'vendor-reports': { type: 'vendorReports', title: 'Vendor Reports', fields: ['name', 'reportType', 'metric', 'status', 'notes', 'createdAt'] },
+  'revenue-reports': { type: 'revenueReports', title: 'Revenue Reports', fields: ['name', 'reportType', 'amount', 'metric', 'status', 'notes', 'createdAt'] },
+  'ai-analytics': { type: 'aiAnalytics', title: 'AI Analytics', fields: ['name', 'metric', 'progress', 'status', 'notes', 'createdAt'] },
+  'interview-management': { type: 'interviews', title: 'Interview Management', fields: ['name', 'email', 'role', 'dueDate', 'status', 'notes', 'createdAt'] },
+  'hiring-pipeline': { type: 'hiringPipeline', title: 'Hiring Pipeline', fields: ['name', 'role', 'stage', 'status', 'notes', 'createdAt'] },
+  'support-tickets': { type: 'supportTickets', title: 'Support Tickets', fields: ['ticketId', 'name', 'email', 'priority', 'status', 'notes', 'createdAt'] },
+  'help-center': { type: 'helpCenter', title: 'Help Center', fields: ['name', 'category', 'articleUrl', 'status', 'notes', 'createdAt'] },
+  'faq-management': { type: 'faqs', title: 'FAQ Management', fields: ['question', 'answer', 'category', 'status', 'notes', 'createdAt'] },
+  'contact-requests': { type: 'contactRequests', title: 'Contact Requests', fields: ['name', 'email', 'subject', 'priority', 'status', 'notes', 'createdAt'] },
+}
+
 function getModuleConfig(page, data) {
   if (['user-management'].includes(page)) {
     return {
@@ -1107,6 +1226,11 @@ function getModuleConfig(page, data) {
     return workforceModule('supportRequests', 'Support Requests', data.supportRequests, ['name', 'email', 'priority', 'status', 'notes', 'createdAt'])
   }
 
+  if (workforcePageModules[page]) {
+    const config = workforcePageModules[page]
+    return workforceModule(config.type, config.title, data[config.type], config.fields)
+  }
+
   if (['vendor-management'].includes(page)) {
     return {
       type: 'vendors',
@@ -1128,7 +1252,7 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['project-management', 'task-management', 'assign-tasks', 'deadlines', 'project-analytics', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
+  if (['project-management', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
     return {
       type: 'contracts',
       title: 'Projects / Contracts',
@@ -1148,7 +1272,7 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['leads-management', 'sales-pipeline', 'follow-ups', 'email-campaigns', 'whatsapp-campaigns', 'contact-requests'].includes(page)) {
+  if (['leads-management'].includes(page)) {
     return {
       type: 'leads',
       title: 'Leads',
@@ -1194,13 +1318,17 @@ function getModuleConfig(page, data) {
       isLive: true,
       rows: data.applications.map((application) => ({
         id: application.id,
-        name: application.name,
-        email: application.email,
-        role: application.jobTitle || application.role,
-        status: application.status || 'submitted',
+        name: application.candidate?.name,
+        email: application.candidate?.email,
+        phone: application.candidate?.phone,
+        role: application.title || application.job,
+        department: application.department,
+        location: application.location,
+        status: application.status || 'Submitted',
+        notes: application.candidate?.message,
         createdAt: formatDate(application.createdAt),
       })),
-      columns: commonColumns(['name', 'email', 'role', 'status', 'createdAt']),
+      columns: commonColumns(['name', 'email', 'phone', 'role', 'department', 'location', 'status', 'createdAt']),
       emptyText: 'The applications collection is empty.',
     }
   }
@@ -1229,6 +1357,33 @@ function workforceModule(type, title, records, fields) {
       email: record.email,
       role: record.role,
       department: record.department,
+      company: record.company,
+      contact: record.contact,
+      phone: record.phone,
+      project: record.project,
+      amount: record.amount,
+      dueDate: record.dueDate,
+      priority: record.priority,
+      category: record.category,
+      assignee: record.assignee,
+      deadline: record.deadline,
+      progress: record.progress,
+      channel: record.channel,
+      subject: record.subject,
+      invoiceNumber: record.invoiceNumber,
+      cycle: record.cycle,
+      method: record.method,
+      balance: record.balance,
+      requestDate: record.requestDate,
+      stage: record.stage,
+      nextAction: record.nextAction,
+      openRate: record.openRate,
+      reportType: record.reportType,
+      metric: record.metric,
+      ticketId: record.ticketId,
+      question: record.question,
+      answer: record.answer,
+      articleUrl: record.articleUrl,
       status: record.status,
       permission: record.permission,
       date: record.date,
@@ -1243,7 +1398,25 @@ function workforceModule(type, title, records, fields) {
   }
 }
 
+function applicationPayload(form) {
+  return {
+    job: form.role || 'general-application',
+    title: form.role || 'General Application',
+    department: form.department || '',
+    location: form.location || '',
+    candidate: {
+      name: form.name || '',
+      email: form.email || '',
+      phone: form.phone || '',
+      message: form.notes || '',
+    },
+    status: form.status || 'Submitted',
+  }
+}
+
 function workforceTypeForPage(page) {
+  if (workforcePageModules[page]) return workforcePageModules[page].type
+
   const map = {
     'candidate-management': 'candidates',
     'team-management': 'teams',
@@ -1525,6 +1698,211 @@ function getFormFields(page) {
       { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
       { name: 'notes', label: 'Request Details', type: 'textarea' },
     ],
+    applications: [
+      { name: 'name', label: 'Candidate Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email', ...commonRequired },
+      { name: 'phone', label: 'Phone', ...commonRequired },
+      { name: 'role', label: 'Role Applied For', ...commonRequired },
+      { name: 'department', label: 'Department' },
+      { name: 'location', label: 'Location' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Submitted', 'Screening', 'Interview', 'Selected', 'Rejected'] },
+      { name: 'notes', label: 'Candidate Notes', type: 'textarea' },
+    ],
+    'task-management': [
+      { name: 'name', label: 'Task Name', ...commonRequired },
+      { name: 'project', label: 'Project' },
+      { name: 'assignee', label: 'Assignee' },
+      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'deadline', label: 'Deadline', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Review', 'Completed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'assign-tasks': [
+      { name: 'name', label: 'Task Name', ...commonRequired },
+      { name: 'project', label: 'Project' },
+      { name: 'assignee', label: 'Assign To', ...commonRequired },
+      { name: 'deadline', label: 'Deadline', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Assigned', 'Accepted', 'In Progress', 'Completed'] },
+      { name: 'notes', label: 'Instructions', type: 'textarea' },
+    ],
+    deadlines: [
+      { name: 'name', label: 'Deadline Name', ...commonRequired },
+      { name: 'project', label: 'Project' },
+      { name: 'deadline', label: 'Deadline', type: 'date' },
+      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Upcoming', 'Due Today', 'Overdue', 'Completed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'project-analytics': [
+      { name: 'name', label: 'Analytics Name', ...commonRequired },
+      { name: 'project', label: 'Project' },
+      { name: 'metric', label: 'Metric' },
+      { name: 'progress', label: 'Progress', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    payments: [
+      { name: 'name', label: 'Payment Name', ...commonRequired },
+      { name: 'category', label: 'Category' },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Paid', 'Failed', 'Refunded'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'billing-cycle': [
+      { name: 'name', label: 'Billing Name', ...commonRequired },
+      { name: 'cycle', label: 'Cycle' },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'dueDate', label: 'Due Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Paused', 'Completed', 'Cancelled'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'invoice-management': [
+      { name: 'name', label: 'Invoice Name', ...commonRequired },
+      { name: 'invoiceNumber', label: 'Invoice Number' },
+      { name: 'company', label: 'Company' },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'dueDate', label: 'Due Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Unpaid', 'Paid', 'Overdue', 'Cancelled'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'revenue-analytics': [
+      { name: 'name', label: 'Revenue Metric', ...commonRequired },
+      { name: 'category', label: 'Category' },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'metric', label: 'Metric' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Tracked', 'Review', 'Final', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    wallet: [
+      { name: 'name', label: 'Wallet Name', ...commonRequired },
+      { name: 'balance', label: 'Balance', type: 'number' },
+      { name: 'amount', label: 'Last Amount', type: 'number' },
+      { name: 'method', label: 'Method' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Hold', 'Closed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'withdraw-requests': [
+      { name: 'name', label: 'Requester Name', ...commonRequired },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'method', label: 'Method' },
+      { name: 'requestDate', label: 'Request Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Paid', 'Rejected'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'sales-pipeline': [
+      { name: 'name', label: 'Lead / Deal Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'amount', label: 'Deal Value', type: 'number' },
+      { name: 'stage', label: 'Stage', type: 'select', options: ['New', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'] },
+      { name: 'nextAction', label: 'Next Action' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Open', 'Won', 'Lost', 'Paused'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'follow-ups': [
+      { name: 'name', label: 'Contact Name', ...commonRequired },
+      { name: 'company', label: 'Company' },
+      { name: 'dueDate', label: 'Follow Up Date', type: 'date' },
+      { name: 'channel', label: 'Channel', type: 'select', options: ['Call', 'Email', 'WhatsApp', 'Meeting'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Done', 'Missed', 'Rescheduled'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'email-campaigns': [
+      { name: 'name', label: 'Campaign Name', ...commonRequired },
+      { name: 'subject', label: 'Subject' },
+      { name: 'category', label: 'Audience' },
+      { name: 'openRate', label: 'Open Rate', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Draft', 'Scheduled', 'Sent', 'Paused'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'whatsapp-campaigns': [
+      { name: 'name', label: 'Campaign Name', ...commonRequired },
+      { name: 'subject', label: 'Message Title' },
+      { name: 'category', label: 'Audience' },
+      { name: 'openRate', label: 'Response Rate', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Draft', 'Scheduled', 'Sent', 'Paused'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'performance-reports': [
+      { name: 'name', label: 'Report Name', ...commonRequired },
+      { name: 'reportType', label: 'Report Type' },
+      { name: 'category', label: 'Category' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Draft', 'Ready', 'Shared', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'user-reports': [
+      { name: 'name', label: 'Report Name', ...commonRequired },
+      { name: 'reportType', label: 'Report Type' },
+      { name: 'metric', label: 'Metric' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Ready', 'Review', 'Shared', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'vendor-reports': [
+      { name: 'name', label: 'Report Name', ...commonRequired },
+      { name: 'reportType', label: 'Report Type' },
+      { name: 'metric', label: 'Metric' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Ready', 'Review', 'Shared', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'revenue-reports': [
+      { name: 'name', label: 'Report Name', ...commonRequired },
+      { name: 'reportType', label: 'Report Type' },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'metric', label: 'Metric' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Ready', 'Review', 'Shared', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'ai-analytics': [
+      { name: 'name', label: 'AI Metric', ...commonRequired },
+      { name: 'metric', label: 'Metric' },
+      { name: 'progress', label: 'Progress', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Training', 'Review', 'Archived'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'interview-management': [
+      { name: 'name', label: 'Candidate Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'role', label: 'Role' },
+      { name: 'dueDate', label: 'Interview Date', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Scheduled', 'Completed', 'Rescheduled', 'Cancelled'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'hiring-pipeline': [
+      { name: 'name', label: 'Candidate Name', ...commonRequired },
+      { name: 'role', label: 'Role' },
+      { name: 'stage', label: 'Stage', type: 'select', options: ['Screening', 'Interview', 'Offer', 'Hired', 'Rejected'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Hold', 'Closed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'support-tickets': [
+      { name: 'ticketId', label: 'Ticket ID' },
+      { name: 'name', label: 'Requester Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
+      { name: 'notes', label: 'Details', type: 'textarea' },
+    ],
+    'help-center': [
+      { name: 'name', label: 'Article Title', ...commonRequired },
+      { name: 'category', label: 'Category' },
+      { name: 'articleUrl', label: 'Article URL' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Draft', 'Published', 'Archived'] },
+      { name: 'notes', label: 'Content Summary', type: 'textarea' },
+    ],
+    'faq-management': [
+      { name: 'question', label: 'Question', ...commonRequired },
+      { name: 'answer', label: 'Answer', type: 'textarea', ...commonRequired },
+      { name: 'category', label: 'Category' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Draft', 'Published', 'Archived'] },
+      { name: 'notes', label: 'Internal Notes', type: 'textarea' },
+    ],
+    'contact-requests': [
+      { name: 'name', label: 'Requester Name', ...commonRequired },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'subject', label: 'Subject' },
+      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
+      { name: 'notes', label: 'Request Details', type: 'textarea' },
+    ],
   }
 
   return map[page] || []
@@ -1555,6 +1933,25 @@ function commonColumns(keys) {
     amount: 'Amount',
     dueDate: 'Due Date',
     priority: 'Priority',
+    assignee: 'Assignee',
+    deadline: 'Deadline',
+    progress: 'Progress',
+    channel: 'Channel',
+    subject: 'Subject',
+    invoiceNumber: 'Invoice',
+    cycle: 'Cycle',
+    method: 'Method',
+    balance: 'Balance',
+    requestDate: 'Request Date',
+    stage: 'Stage',
+    nextAction: 'Next Action',
+    openRate: 'Rate',
+    reportType: 'Report Type',
+    metric: 'Metric',
+    ticketId: 'Ticket ID',
+    question: 'Question',
+    answer: 'Answer',
+    articleUrl: 'Article URL',
     date: 'Date',
     checkIn: 'Check In',
     checkOut: 'Check Out',
