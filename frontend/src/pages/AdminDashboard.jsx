@@ -113,7 +113,7 @@ const formDefaults = {
   'vendor-management': { name: '', company: '', email: '', phone: '', serviceCategory: '', password: '', status: 'active' },
   'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
-  'job-postings': { title: '', department: '', location: '', type: 'Full Time', experience: '', summary: '' },
+  'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
   'candidate-management': { name: '', email: '', role: '', status: 'New', notes: '' },
   'team-management': { name: '', email: '', role: 'User', department: '', status: 'Active', notes: '' },
   'role-permissions': { name: 'Dashboard', role: 'User', permission: 'Read', status: 'Active', notes: '' },
@@ -565,7 +565,7 @@ function EnterpriseAdminApp() {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <button type="button" onClick={supportedCreatePages.includes(activePage) ? openCreateModal : () => setQuickActionsOpen(true)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
-                      <Plus size={18} /> Create Record
+                      <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
                     </button>
                     <button type="button" onClick={() => loadMongoData(activePage)} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
                       <WandSparkles size={18} /> Refresh Data
@@ -1619,6 +1619,16 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
 
 function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubmit, onClose }) {
   const fields = getFormFields(page)
+  const applyTextStyle = (fieldName, wrapper) => {
+    const value = form[fieldName] || ''
+    onChange(fieldName, `${value}${value ? ' ' : ''}${wrapper}selected text${wrapper}`)
+  }
+
+  const updateFileField = async (fieldName, file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    onChange(fieldName, dataUrl)
+  }
 
   return (
     <Modal open={open} title={`${editingRecord ? 'Edit' : 'Create'} ${titleize(page)}`} onClose={onClose}>
@@ -1627,7 +1637,14 @@ function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubm
           {fields.map((field) => (
             <label key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{field.label}</span>
-              {field.type === 'textarea' ? (
+              {field.type === 'textarea' || field.type === 'richtext' ? (
+                <>
+                  {field.type === 'richtext' ? (
+                    <div className="mb-2 flex gap-2">
+                      <button type="button" onClick={() => applyTextStyle(field.name, '**')} className="rounded-xl bg-white/10 px-3 py-1 text-xs font-black text-white hover:bg-white/15">Bold</button>
+                      <button type="button" onClick={() => applyTextStyle(field.name, '*')} className="rounded-xl bg-white/10 px-3 py-1 text-xs font-black italic text-white hover:bg-white/15">Italic</button>
+                    </div>
+                  ) : null}
                 <textarea
                   rows={4}
                   value={form[field.name] || ''}
@@ -1635,6 +1652,7 @@ function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubm
                   className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
                   required={field.required}
                 />
+                </>
               ) : field.type === 'select' ? (
                 <select
                   value={form[field.name] || field.options[0]}
@@ -1643,6 +1661,19 @@ function RecordModal({ open, page, form, editingRecord, saving, onChange, onSubm
                 >
                   {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
+              ) : field.type === 'file' ? (
+                <div className="space-y-3">
+                  <div className="grid h-36 place-items-center overflow-hidden rounded-3xl bg-slate-950/35">
+                    {form[field.name] ? <img src={form[field.name]} alt={`${field.label} preview`} className="h-full w-full object-cover" /> : <span className="text-sm font-semibold text-slate-500">No image uploaded</span>}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => updateFileField(field.name, event.target.files?.[0])}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300"
+                    required={field.required && !form[field.name]}
+                  />
+                </div>
               ) : (
                 <input
                   type={field.type || 'text'}
@@ -2265,11 +2296,12 @@ function getFormFields(page) {
     ],
     'job-postings': [
       { name: 'title', label: 'Title', ...commonRequired },
-      { name: 'department', label: 'Department', ...commonRequired },
-      { name: 'location', label: 'Location', ...commonRequired },
+      { name: 'department', label: 'Department', type: 'select', options: ['Artificial Intelligence', 'Digital Marketing', 'Call Center', 'Information Technology', 'Software Development', 'HR Consultant', 'Telecommunications', 'Operations'], ...commonRequired },
+      { name: 'location', label: 'Location', type: 'select', options: ['Remote', 'Office', 'Hybrid', 'Remote / Hybrid', 'Remote / Office', 'Office / Hybrid', 'Mumbai', 'Delhi NCR', 'Bengaluru', 'Hyderabad', 'Pune', 'Kolkata', 'Chennai', 'United States'], ...commonRequired },
       { name: 'type', label: 'Type', type: 'select', options: ['Full Time', 'Part Time', 'Contract', 'Internship'] },
-      { name: 'experience', label: 'Experience' },
-      { name: 'summary', label: 'Summary', type: 'textarea', ...commonRequired },
+      { name: 'experience', label: 'Experience', type: 'select', options: ['Fresher', '0-1 years', '1-3 years', '2-5 years', '3-6 years', '5+ years', 'Internship'] },
+      { name: 'image', label: 'Job Image', type: 'file' },
+      { name: 'summary', label: 'Summary', type: 'richtext', ...commonRequired },
     ],
     'blog-management': [
       { name: 'title', label: 'Blog Title', ...commonRequired },

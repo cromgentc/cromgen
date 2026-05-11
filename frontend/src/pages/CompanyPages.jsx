@@ -340,6 +340,22 @@ function getAllCareerOpenings(apiJobs = []) {
   ]
 }
 
+function renderFormattedText(text) {
+  const parts = String(text || '').split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean)
+
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>
+    }
+
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={index}>{part.slice(1, -1)}</em>
+    }
+
+    return part
+  })
+}
+
 const policyLinks = [
   ['Privacy Policy', '/privacy-policy'],
   ['Terms of Service', '/terms-of-service'],
@@ -1070,7 +1086,7 @@ export function CareerPage() {
                     <span>{job.experience}</span>
                   </div>
                   <h3>{job.title}</h3>
-                  <p>{job.summary}</p>
+                  <p>{renderFormattedText(job.summary)}</p>
                   <a href={`/career/apply/${job.slug}`}>View and Apply</a>
                 </div>
               </article>

@@ -13,8 +13,6 @@ export async function createJobPost(fields) {
   const job = normalizeJobPost({
     ...sanitizeJobPostFields(fields),
     slug: createSlug(fields.title),
-    image: '',
-    responsibilities: ['Review role requirements', 'Coordinate with Cromgen teams', 'Deliver assigned responsibilities'],
     createdAt: new Date(),
   })
 
@@ -56,7 +54,9 @@ export function normalizeJobPost(job) {
     experience: String(job.experience || '').trim(),
     summary: String(job.summary || '').trim(),
     image: String(job.image || '').trim(),
-    responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.map(String) : [],
+    responsibilities: Array.isArray(job.responsibilities) && job.responsibilities.length
+      ? job.responsibilities.map(String)
+      : ['Review role requirements', 'Coordinate with Cromgen teams', 'Deliver assigned responsibilities'],
     createdAt: job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
   }
 }
@@ -69,6 +69,8 @@ function sanitizeJobPostFields(body) {
     type: String(body.type || 'Full Time').trim(),
     experience: String(body.experience || '').trim(),
     summary: String(body.summary || '').trim(),
+    image: String(body.image || '').trim(),
+    responsibilities: Array.isArray(body.responsibilities) ? body.responsibilities.map(String).filter(Boolean) : undefined,
   }
 }
 
