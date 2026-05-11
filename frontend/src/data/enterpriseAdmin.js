@@ -203,7 +203,7 @@ export const adminNavigation = [
     icon: Settings,
     items: [
       ['system-settings', 'System Settings'],
-      ['notification-settings', 'Notification Settings'],
+      ['notification-settings', 'Social Settings'],
       ['email-settings', 'Email Settings'],
       ['profile-settings', 'Profile Settings'],
     ],

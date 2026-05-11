@@ -293,7 +293,7 @@ function EnterpriseAdminApp() {
     }
 
     return pageCatalog[activePage] || {
-      title: titleize(activePage),
+      title: activePage === 'notification-settings' ? 'Social Settings' : titleize(activePage),
       tag: 'Live Module',
       icon: Layers3,
     }
