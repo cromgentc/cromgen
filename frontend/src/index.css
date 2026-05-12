@@ -7377,11 +7377,12 @@ header #mobile-navigation summary:hover {
 
 .legal-sign-workspace {
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 28px;
-  background: #ffffff;
-  color: #000000;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(22px);
 }
 
 .legal-sign-workspace.is-list {
@@ -7394,8 +7395,8 @@ header #mobile-navigation summary:hover {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  background: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.24);
   padding: 16px 18px;
 }
 
@@ -7406,7 +7407,7 @@ header #mobile-navigation summary:hover {
 
 .legal-create-bar p {
   margin: 0;
-  color: #23865f;
+  color: #67e8c2;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.18em;
@@ -7419,7 +7420,7 @@ header #mobile-navigation summary:hover {
 
 .legal-create-bar h2 {
   margin: 4px 0 0;
-  color: #000000;
+  color: #ffffff;
   font-size: 1.25rem;
   font-weight: 700;
 }
@@ -7433,11 +7434,11 @@ header #mobile-navigation summary:hover {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid #23865f;
+  border: 1px solid rgba(103, 232, 194, 0.62);
   border-radius: 8px;
-  background: #23865f;
+  background: linear-gradient(135deg, #67e8c2, #38bdf8);
   padding: 10px 14px;
-  color: #ffffff;
+  color: #0f172a;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 800;
@@ -7465,7 +7466,7 @@ header #mobile-navigation summary:hover {
   place-content: center;
   grid-template-columns: repeat(2, minmax(180px, 215px));
   gap: 30px;
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.18);
   padding: 44px 22px;
 }
 
@@ -7473,16 +7474,16 @@ header #mobile-navigation summary:hover {
   display: grid;
   min-height: 160px;
   place-items: center;
-  border: 1px solid #2c8c6b;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #000000;
+  border: 1px solid rgba(103, 232, 194, 0.55);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.36);
+  color: #ffffff;
   font: inherit;
   cursor: pointer;
 }
 
 .legal-sign-choice-card svg {
-  color: #2c8c6b;
+  color: #67e8c2;
 }
 
 .legal-sign-choice-card strong {
@@ -7492,8 +7493,9 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-sign-choice-card.is-active {
-  background: #2c8c6b;
+  background: linear-gradient(135deg, #14b8a6, #2563eb);
   color: #ffffff;
+  box-shadow: 0 18px 45px rgba(8, 145, 178, 0.28);
 }
 
 .legal-sign-choice-card.is-active svg {
@@ -7503,7 +7505,7 @@ header #mobile-navigation summary:hover {
 .legal-documents-step,
 .legal-details-step,
 .legal-editor-step {
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.16);
   min-height: 420px;
   max-width: 100%;
 }
@@ -7515,9 +7517,9 @@ header #mobile-navigation summary:hover {
 .legal-documents-step h2,
 .legal-details-step h2 {
   margin: 0;
-  background: #f4f4f4;
+  background: rgba(15, 23, 42, 0.32);
   padding: 12px 14px;
-  color: #000000;
+  color: #ffffff;
   font-size: 1.45rem;
   font-weight: 500;
 }
@@ -7525,7 +7527,7 @@ header #mobile-navigation summary:hover {
 .legal-documents-step h3,
 .legal-details-step h3 {
   margin: 20px 14px 16px;
-  color: #000000;
+  color: #e2e8f0;
   font-size: 1rem;
   font-weight: 500;
 }
@@ -7535,12 +7537,12 @@ header #mobile-navigation summary:hover {
   width: min(290px, calc(100vw - 70px));
   min-height: 305px;
   place-items: center;
-  border: 1px dashed #d9d9d9;
-  border-radius: 2px;
-  background: #ffffff;
+  border: 1px dashed rgba(103, 232, 194, 0.4);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.28);
   margin: 0 14px 22px;
   padding: 38px 18px;
-  color: #1f2937;
+  color: #e2e8f0;
   text-align: center;
   cursor: pointer;
 }
@@ -7550,17 +7552,17 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-document-drop svg {
-  color: #6b7280;
+  color: #67e8c2;
 }
 
 .legal-document-drop strong {
-  color: #111827;
+  color: #ffffff;
   font-size: 1.38rem;
   font-weight: 400;
 }
 
 .legal-document-drop span {
-  color: #111827;
+  color: #cbd5e1;
   font-size: 0.88rem;
 }
 
@@ -7573,9 +7575,9 @@ header #mobile-navigation summary:hover {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px solid #23865f;
-  border-radius: 3px;
-  background: #23865f;
+  border: 1px solid rgba(103, 232, 194, 0.55);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #14b8a6, #2563eb);
   padding: 7px 14px;
   color: #ffffff;
   font: inherit;
@@ -7587,7 +7589,7 @@ header #mobile-navigation summary:hover {
 .legal-document-drop.is-compact {
   width: 220px;
   min-height: 228px;
-  border-color: #23865f;
+  border-color: rgba(103, 232, 194, 0.5);
   margin: 0;
 }
 
@@ -7604,9 +7606,9 @@ header #mobile-navigation summary:hover {
 
 .legal-flow-actions button.is-muted,
 .legal-editor-topbar button.is-muted {
-  border-color: #cfd4dc;
-  background: #ffffff;
-  color: #111827;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
 }
 
 .legal-details-step {
@@ -7628,18 +7630,18 @@ header #mobile-navigation summary:hover {
   min-height: 228px;
   align-content: center;
   justify-items: center;
-  border: 1px solid #d9d9d9;
-  border-radius: 2px;
-  background: #f7f7f7;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.38);
   padding: 14px;
-  color: #000000;
+  color: #e2e8f0;
 }
 
 .legal-document-thumb > svg:first-child {
   position: absolute;
   top: 16px;
   right: 12px;
-  color: #000000;
+  color: #cbd5e1;
 }
 
 .legal-document-thumb img {
@@ -7652,7 +7654,7 @@ header #mobile-navigation summary:hover {
 .legal-document-thumb strong {
   justify-self: start;
   margin-top: 16px;
-  color: #000000;
+  color: #ffffff;
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -7668,7 +7670,7 @@ header #mobile-navigation summary:hover {
 
 .legal-document-name span,
 .legal-note-field span {
-  color: #000000;
+  color: #e2e8f0;
   font-size: 0.82rem;
 }
 
@@ -7677,11 +7679,11 @@ header #mobile-navigation summary:hover {
 .legal-recipient-row select,
 .legal-note-field textarea {
   height: 26px;
-  border: 1px solid #bfc5ce;
-  border-radius: 3px;
-  background: #ffffff;
-  padding: 4px 7px;
-  color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.38);
+  padding: 4px 8px;
+  color: #ffffff;
   font: inherit;
   font-size: 0.76rem;
 }
@@ -7706,17 +7708,17 @@ header #mobile-navigation summary:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #d9d9d9;
-  border-radius: 3px;
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
   padding: 6px 9px;
-  color: #000000;
+  color: #ffffff;
   font-size: 0.72rem;
   font-weight: 600;
 }
 
 .legal-recipient-tools svg {
-  color: #23865f;
+  color: #67e8c2;
 }
 
 .legal-recipient-row {
@@ -7724,8 +7726,9 @@ header #mobile-navigation summary:hover {
   grid-template-columns: auto 28px minmax(180px, 1fr) minmax(180px, 1fr) 120px 108px;
   gap: 4px;
   align-items: center;
-  border: 1px solid #e0e0e0;
-  border-left: 3px solid #2589ff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid #38bdf8;
+  border-radius: 12px;
   padding: 20px 16px;
 }
 
@@ -7733,17 +7736,17 @@ header #mobile-navigation summary:hover {
   display: grid;
   height: 25px;
   place-items: center;
-  border: 1px solid #cfd4dc;
-  border-radius: 3px;
-  color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #ffffff;
   font-size: 0.8rem;
 }
 
 .legal-add-recipient {
   margin-top: 18px;
-  border-color: #cfd4dc;
-  background: #ffffff;
-  color: #000000;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
 }
 
 .legal-note-field {
@@ -7762,8 +7765,8 @@ header #mobile-navigation summary:hover {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border-bottom: 1px solid #d9d9d9;
-  background: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.32);
   padding: 10px 14px;
 }
 
@@ -7774,7 +7777,7 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-editor-topbar strong {
-  color: #000000;
+  color: #ffffff;
   font-size: 1.05rem;
   font-weight: 500;
 }
@@ -7795,20 +7798,20 @@ header #mobile-navigation summary:hover {
 
 .legal-editor-docs,
 .legal-editor-recipients {
-  background: #ffffff;
-  color: #000000;
+  background: rgba(15, 23, 42, 0.3);
+  color: #ffffff;
   min-width: 0;
   overflow: auto;
 }
 
 .legal-editor-docs {
-  border-right: 1px solid #cfd4dc;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .legal-editor-docs h3,
 .legal-editor-recipients h3 {
   margin: 0;
-  border-bottom: 1px solid #e1e4e8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px 16px;
   font-size: 1rem;
   font-weight: 500;
@@ -7832,7 +7835,7 @@ header #mobile-navigation summary:hover {
 
 .legal-editor-canvas {
   overflow: auto;
-  background: #d9d9d9;
+  background: rgba(15, 23, 42, 0.52);
   padding: 32px 48px;
   min-width: 0;
 }
@@ -7916,7 +7919,7 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-editor-recipients {
-  border-left: 1px solid #cfd4dc;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .legal-recipient-pill {
@@ -7928,8 +7931,8 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-recipient-pill.is-active {
-  background: #d8f8ef;
-  border-left: 3px solid #20d0a0;
+  background: rgba(20, 184, 166, 0.16);
+  border-left: 3px solid #67e8c2;
 }
 
 .legal-recipient-pill span {
@@ -7944,29 +7947,29 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-recipient-pill.is-active span {
-  background: #31d6aa;
+  background: linear-gradient(135deg, #14b8a6, #38bdf8);
   color: #ffffff;
 }
 
 .legal-recipient-pill p {
   margin: 0;
-  color: #344054;
+  color: #e2e8f0;
   font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
 .legal-recipient-pill small {
-  color: #111827;
+  color: #cbd5e1;
   font-size: 0.8rem;
 }
 
 .legal-editor-recipients h4 {
   margin: 150px 0 12px;
-  border-top: 16px solid #e5e5e5;
-  border-bottom: 2px solid #23865f;
+  border-top: 16px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid #67e8c2;
   padding: 12px 16px 10px;
-  color: #000000;
+  color: #ffffff;
   text-align: center;
   font-size: 0.92rem;
   font-weight: 500;
@@ -7984,10 +7987,10 @@ header #mobile-navigation summary:hover {
   min-width: 0;
   align-items: center;
   gap: 4px;
-  border: 1px solid #23865f;
-  background: #ffffff;
+  border: 1px solid rgba(103, 232, 194, 0.46);
+  background: rgba(255, 255, 255, 0.08);
   padding: 6px 8px;
-  color: #000000;
+  color: #ffffff;
   font: inherit;
   font-size: 0.76rem;
   text-align: left;
@@ -8000,11 +8003,11 @@ header #mobile-navigation summary:hover {
 
 .legal-field-list button svg {
   flex: 0 0 auto;
-  color: #23865f;
+  color: #67e8c2;
 }
 
 .legal-field-options {
-  border-top: 1px solid #e1e4e8;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px;
 }
 
@@ -8022,7 +8025,7 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-field-options label span {
-  color: #667085;
+  color: #94a3b8;
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -8032,17 +8035,18 @@ header #mobile-navigation summary:hover {
 .legal-field-options input {
   width: 100%;
   min-width: 0;
-  border: 1px solid #cfd4dc;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
   padding: 7px 8px;
-  color: #000000;
+  background: rgba(15, 23, 42, 0.38);
+  color: #ffffff;
   font: inherit;
   font-size: 0.78rem;
 }
 
 .legal-field-options p {
   margin: 0;
-  color: #667085;
+  color: #cbd5e1;
   font-size: 0.78rem;
   font-weight: 650;
   line-height: 1.45;
