@@ -109,7 +109,6 @@ export function MachineLearningSolutionsPage() {
   })
   const [otpToken, setOtpToken] = useState('')
   const [status, setStatus] = useState({ type: '', message: '' })
-  const [devOtp, setDevOtp] = useState('')
   const [step, setStep] = useState('details')
   const [isBusy, setIsBusy] = useState(false)
   const [hasRequestedSamples, setHasRequestedSamples] = useState(false)
@@ -165,7 +164,6 @@ export function MachineLearningSolutionsPage() {
 
     setIsBusy(true)
     setStatus({ type: '', message: '' })
-    setDevOtp('')
 
     try {
       const data = await apiRequest(LEAD_ENDPOINTS.sendOtp, {
@@ -176,7 +174,6 @@ export function MachineLearningSolutionsPage() {
         throw new Error(data.message || 'Unable to send OTP.')
       }
       setStep('otp')
-      setDevOtp(data.devOtp || '')
       setStatus({ type: 'success', message: data.message || 'OTP sent to your email address.' })
     } catch (error) {
       setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Unable to send OTP.' })
@@ -445,7 +442,6 @@ export function MachineLearningSolutionsPage() {
           form={form}
           status={status}
           step={step}
-          devOtp={devOtp}
           isBusy={isBusy}
           otpToken={otpToken}
           selectedService={activeService}
@@ -460,7 +456,7 @@ export function MachineLearningSolutionsPage() {
   )
 }
 
-function SampleLeadModal({ form, status, step, devOtp, isBusy, otpToken, selectedService, onChange, onClose, onSendOtp, onVerifyOtp, onSubmit }) {
+function SampleLeadModal({ form, status, step, isBusy, otpToken, selectedService, onChange, onClose, onSendOtp, onVerifyOtp, onSubmit }) {
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center bg-[#0f172a]/55 px-4 py-6 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="ml-sample-title">
       <div className="max-h-[92vh] w-full max-w-[720px] overflow-y-auto rounded-[2rem] border border-white/60 bg-white text-[#0f172a] shadow-2xl shadow-slate-950/25">
@@ -504,9 +500,6 @@ function SampleLeadModal({ form, status, step, devOtp, isBusy, otpToken, selecte
             </div>
             {otpToken ? (
               <p className="mt-3 flex items-center gap-2 text-sm font-bold text-emerald-700"><CheckCircle2 size={18} /> Email verified successfully.</p>
-            ) : null}
-            {devOtp ? (
-              <p className="mt-3 text-xs font-bold text-[#92400e]">SMTP is not configured locally. Test OTP: {devOtp}</p>
             ) : null}
           </div>
 

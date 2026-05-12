@@ -62,19 +62,18 @@ export async function sendLeadOtp(request) {
     })
   } catch (error) {
     console.error('Lead OTP email failed:', error instanceof Error ? error.message : error)
+    emailOtps.delete(email)
     return json(200, {
-      ok: true,
-      message: 'OTP generated. Email delivery is not available right now, so use the displayed test OTP.',
-      devOtp: otp,
+      ok: false,
+      message: 'Email OTP service is not configured. Please contact Cromgen Technology support.',
     })
   }
 
   return json(200, {
-    ok: true,
+    ok: Boolean(emailResult.sent),
     message: emailResult.sent
       ? 'OTP sent to your email address'
-      : 'OTP generated. Configure SMTP to send emails from the backend.',
-    devOtp: emailResult.sent ? undefined : otp,
+      : 'Email OTP service is not configured. Please contact Cromgen Technology support.',
   })
 }
 
