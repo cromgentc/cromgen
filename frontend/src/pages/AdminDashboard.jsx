@@ -3057,7 +3057,7 @@ function RemarkDialog({ request, onChange, onSubmit, onClose }) {
             Cancel
           </button>
           <button type="submit" disabled={request?.saving} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-60">
-            {request?.saving ? 'Saving...' : 'Save Remark'}
+            {request?.saving ? 'Saving...' : 'OK'}
           </button>
         </div>
       </form>
@@ -3387,9 +3387,7 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
   const role = String(currentRole || '').toLowerCase()
   const vendorAssignedTaskView = role === 'vendor' && ['assignedTasks', 'tasks'].includes(type)
   const vendorWithdrawView = role === 'vendor' && type === 'withdrawRequests'
-  const visibleFields = type === 'withdrawRequests' && ['staff', 'vendor'].includes(role)
-    ? fields.filter((field) => field !== 'status')
-    : fields
+  const visibleFields = fields
   return {
     type,
     title,
