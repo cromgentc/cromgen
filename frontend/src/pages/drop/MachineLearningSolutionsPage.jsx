@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { BarChart3, BrainCircuit, CheckCircle2, Download, LineChart, Mail, ShieldCheck, Sparkles } from 'lucide-react'
 import aiServicesImage from '../../assets/artificial-intelligence-services.png'
 import { LEAD_ENDPOINTS, SERVICE_SAMPLE_ENDPOINTS, apiRequest } from '../../api/apiEndpoint.js'
@@ -112,16 +112,11 @@ export function MachineLearningSolutionsPage() {
   const [devOtp, setDevOtp] = useState('')
   const [step, setStep] = useState('details')
   const [isBusy, setIsBusy] = useState(false)
+  const [hasRequestedSamples, setHasRequestedSamples] = useState(false)
   const activeBackendSample = useMemo(() => {
     const aiSamples = backendSamples.filter((sample) => sample.category === 'Artificial Intelligence')
     return aiSamples.find((sample) => sample.title.toLowerCase().includes(activeService.title.toLowerCase())) || aiSamples[0] || null
   }, [activeService.title, backendSamples])
-
-  useEffect(() => {
-    apiRequest(SERVICE_SAMPLE_ENDPOINTS.publicList)
-      .then((data) => setBackendSamples(data.samples || []))
-      .catch(() => setBackendSamples([]))
-  }, [])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -136,6 +131,13 @@ export function MachineLearningSolutionsPage() {
     setActiveService(service)
     setStatus({ type: '', message: '' })
     setIsModalOpen(true)
+
+    if (!hasRequestedSamples) {
+      setHasRequestedSamples(true)
+      apiRequest(SERVICE_SAMPLE_ENDPOINTS.publicList)
+        .then((data) => setBackendSamples(data.samples || []))
+        .catch(() => setBackendSamples([]))
+    }
   }
 
   const scrollToServices = () => {

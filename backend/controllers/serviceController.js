@@ -15,7 +15,16 @@ export function health() {
     ok: true,
     service: 'cromgentechnology-backend',
     db: true,
+    version: 'service-samples-otp-safe-2026-05-12',
     message: 'Backend API is running',
+  })
+}
+
+export function version() {
+  return json(200, {
+    ok: true,
+    version: 'service-samples-otp-safe-2026-05-12',
+    routes: ['service-samples', 'lead-otp'],
   })
 }
 
