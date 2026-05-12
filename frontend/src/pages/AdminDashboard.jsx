@@ -349,7 +349,11 @@ function EnterpriseAdminApp() {
     const coreRequests = await Promise.allSettled(coreEntries.map(([key, endpoint]) => (
       key === 'projects' ? requestProjectList() : apiRequest(endpoint)
     )))
-    const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && ['assign-tasks', 'task-management'].includes(page)) ? workforceTypesForPage(page) : []
+    const requiredWorkforceTypes = currentRole === 'vendor' && page === 'assign-tasks'
+      ? ['assignedTasks', 'tasks']
+      : ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'task-management')
+        ? workforceTypesForPage(page)
+        : []
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
@@ -366,6 +370,9 @@ function EnterpriseAdminApp() {
         workforceRequests[index]?.status === 'fulfilled' ? workforceRequests[index].value.records || [] : [],
       ]),
     )
+    if (currentRole === 'vendor' && page === 'assign-tasks') {
+      workforceData.assignedTasks = mergeRecordsById(workforceData.assignedTasks, workforceData.tasks)
+    }
     const scopedCoreData = scopeDataForRole({
       ...(currentRole === 'user' && !coreData.users ? { users: [currentUser.user] } : {}),
       ...(currentRole === 'vendor' && !coreData.vendors ? { vendors: [currentUser.user] } : {}),
@@ -3206,6 +3213,17 @@ function createProfileDraft(user) {
     bio: user?.bio || '',
     socialLinks: Array.isArray(user?.socialLinks) ? user.socialLinks : [],
   }
+}
+
+function mergeRecordsById(...groups) {
+  const seen = new Set()
+  return groups.flat().filter((record) => {
+    if (!record) return false
+    const key = record.id || `${record.type}-${record.name}-${record.assignee}-${record.createdAt}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function fileToDataUrl(file) {

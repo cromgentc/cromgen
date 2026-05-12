@@ -47,7 +47,9 @@ export async function listWorkforceRecords(request, { type }) {
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 
-  const records = await findWorkforceRecords(type)
+  const records = type === 'assignedTasks' && auth.payload?.role === 'vendor'
+    ? await findVendorVisibleTaskRecords()
+    : await findWorkforceRecords(type)
 
   if (vendorTaskReadableTypes.has(type) && auth.payload?.role === 'vendor') {
     const vendor = await findVendorById(auth.payload.sub)
@@ -134,6 +136,25 @@ function isTaskAssignedToVendor(record = {}, vendor = {}) {
 
   return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
     || compactTokens.some((token) => compactAssignee.includes(token) || token.includes(compactAssignee))
+}
+
+async function findVendorVisibleTaskRecords() {
+  const [assignedTasks, tasks] = await Promise.all([
+    findWorkforceRecords('assignedTasks'),
+    findWorkforceRecords('tasks'),
+  ])
+
+  return dedupeRecordsById([...assignedTasks, ...tasks])
+}
+
+function dedupeRecordsById(records = []) {
+  const seen = new Set()
+  return records.filter((record) => {
+    const key = record.id || `${record.type}-${record.name}-${record.assignee}-${record.createdAt}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function normalizeAssigneeToken(value) {
