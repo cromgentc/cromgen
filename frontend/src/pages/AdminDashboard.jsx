@@ -857,7 +857,7 @@ function EnterpriseAdminApp() {
               </motion.header>
 
               {dashboardPages.includes(activePage) ? (
-                <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
+                <DashboardOverview data={data} currentRole={currentRole} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
               ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : activePage === 'system-settings' ? (
@@ -970,8 +970,8 @@ function EnterpriseAdminApp() {
   )
 }
 
-function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
-  const stats = createStats(data)
+function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, onOpenAi }) {
+  const stats = createStats(data, currentRole)
   const chartData = createChartData(data)
   const pieData = createProjectPie(data.projects)
   const projectAnalytics = createDashboardProjectAnalytics(data.projects, data.assignedTasks)
@@ -3487,7 +3487,8 @@ function scopeDataForRole(data, currentUser) {
   return scoped
 }
 
-function createStats(data) {
+function createStats(data, currentRole = 'admin') {
+  const role = String(currentRole || '').toLowerCase()
   return [
     { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
     { label: 'Contracts', value: data.contracts.length, change: 'Open', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500', page: 'legal-team' },
@@ -3496,7 +3497,7 @@ function createStats(data) {
     { label: 'Wallet', value: data.wallets.length, change: 'Live', icon: Wallet, tone: 'from-lime-300 to-emerald-500', page: 'wallet' },
     { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
     { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
-  ]
+  ].filter((card) => role !== 'vendor' || !['Total Leads', 'Applications'].includes(card.label))
 }
 
 function createNotifications(data) {
