@@ -75,7 +75,7 @@ export async function adminRegister(request) {
 }
 
 export function staffLogin(request) {
-  return loginUser(request, 'staff')
+  return loginUser(request, ['staff', 'user'])
 }
 
 export async function currentUser(request) {
@@ -322,7 +322,12 @@ async function loginUser(request, role) {
     return validationError('Email and password are required')
   }
 
-  const user = await findActiveUserByEmailAndRole(email, role)
+  const roles = Array.isArray(role) ? role : [role]
+  let user = null
+  for (const candidateRole of roles) {
+    user = await findActiveUserByEmailAndRole(email, candidateRole)
+    if (user) break
+  }
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return unauthorized('Invalid login details')

@@ -37,7 +37,7 @@ const authConfig = {
     fields: ['email', 'password'],
     switchLabel: 'Admin login',
     switchHref: '/admin-login',
-    redirectTo: '/staff-dashboard',
+    redirectTo: '/admin-dashboard',
   },
   'vendor-login': {
     eyebrow: 'Vendor Portal',
@@ -49,7 +49,7 @@ const authConfig = {
     fields: ['email', 'password'],
     switchLabel: 'Register as vendor',
     switchHref: '/vendor-register',
-    redirectTo: '/vendor-dashboard',
+    redirectTo: '/admin-dashboard',
   },
   'vendor-register': {
     eyebrow: 'Vendor Onboarding',
@@ -61,7 +61,7 @@ const authConfig = {
     fields: ['accountType', 'name', 'company', 'email', 'phone', 'serviceCategory', 'portfolio', 'experience', 'password'],
     switchLabel: 'Already registered?',
     switchHref: '/vendor-login',
-    redirectTo: '/vendor-dashboard',
+    redirectTo: '/admin-dashboard',
   },
   'candidate-login': {
     eyebrow: 'Candidate Portal',
@@ -84,6 +84,29 @@ const authConfig = {
     switchLabel: 'Already registered?',
     switchHref: '/candidate-login',
     redirectTo: '/career',
+  },
+}
+
+const unifiedLoginRoles = {
+  admin: {
+    label: 'Admin',
+    endpoint: AUTH_ENDPOINTS.adminLogin,
+    redirectTo: '/admin-dashboard',
+  },
+  staff: {
+    label: 'Staff',
+    endpoint: AUTH_ENDPOINTS.staffLogin,
+    redirectTo: '/admin-dashboard',
+  },
+  user: {
+    label: 'User',
+    endpoint: AUTH_ENDPOINTS.staffLogin,
+    redirectTo: '/admin-dashboard',
+  },
+  vendor: {
+    label: 'Vendor',
+    endpoint: AUTH_ENDPOINTS.vendorLogin,
+    redirectTo: '/admin-dashboard',
   },
 }
 
@@ -146,17 +169,21 @@ export function AuthPage({ type }) {
         return
       }
 
-      const data = await apiRequest(config.endpoint, {
+      const selectedLoginRole = type === 'login' ? formData.loginRole || 'admin' : config.role
+      const loginConfig = type === 'login' ? unifiedLoginRoles[selectedLoginRole] || unifiedLoginRoles.admin : config
+      const data = await apiRequest(loginConfig.endpoint, {
         method: 'POST',
         body: JSON.stringify(formData),
       })
 
       if (data.token) {
         localStorage.setItem('cromgen_auth_token', data.token)
-        localStorage.setItem('cromgen_auth_role', config.role)
+        localStorage.setItem('cromgen_auth_role', data.user?.role || data.vendor ? 'vendor' : selectedLoginRole)
       }
       if (data.user) {
         localStorage.setItem('cromgen_auth_user', JSON.stringify(data.user))
+      } else if (data.vendor) {
+        localStorage.setItem('cromgen_auth_user', JSON.stringify({ ...data.vendor, role: 'vendor' }))
       }
 
       setStatus({
@@ -164,7 +191,7 @@ export function AuthPage({ type }) {
         message: data.message || `${config.title} successful.`,
       })
 
-      window.location.assign(redirectTo)
+      window.location.assign(type === 'login' ? loginConfig.redirectTo : redirectTo)
     } catch (error) {
       setStatus({
         type: 'error',
@@ -430,6 +457,7 @@ function PasswordIcon({ visible }) {
 
 function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
   const [showPassword, setShowPassword] = useState(false)
+  const selectedRole = formData.loginRole || 'admin'
 
   return (
     <main className="min-h-screen bg-white pt-32 text-[#0f172a] sm:pt-36 lg:pt-28">
@@ -451,6 +479,25 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
 
           <div className="mt-8 space-y-5">
             <label className="block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">Login Type</span>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {Object.entries(unifiedLoginRoles).map(([role, option]) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => handleChange({ target: { name: 'loginRole', value: role } })}
+                    className={`min-h-[46px] rounded-2xl border px-3 text-xs font-black uppercase tracking-[0.1em] transition ${
+                      selectedRole === role
+                        ? 'border-[#ff4b2d] bg-[#fff1ed] text-[#ff4b2d] shadow-[0_0_0_4px_rgba(255,75,45,0.10)]'
+                        : 'border-[rgba(15,23,42,0.08)] bg-[#f8fafc] text-[#475569] hover:border-[#ff4b2d]/40 hover:bg-white'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </label>
+            <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">Email Address</span>
               <input
                 name="email"
@@ -459,7 +506,7 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
                 onChange={handleChange}
                 required
                 autoComplete="email"
-                placeholder="admin@example.com"
+                placeholder={`${selectedRole}@example.com`}
                 className="min-h-[52px] w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]"
               />
             </label>
@@ -494,7 +541,7 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
               Forgot Password?
             </a>
             <a href={switchHref} className="text-sm font-black text-[#0f172a] transition hover:text-[#ff4b2d]">
-              Register / Create Account
+              Vendor Register
             </a>
           </div>
 
