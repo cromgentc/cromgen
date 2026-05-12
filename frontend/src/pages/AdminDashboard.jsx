@@ -29,7 +29,6 @@ import {
   PenLine,
   Plus,
   Send,
-  ShieldCheck,
   Sparkles,
   Users,
   WandSparkles,
@@ -752,7 +751,7 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-7">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {stats.map((card) => (
-          <DashboardCard key={card.label} {...card} />
+          <DashboardCard key={card.label} {...card} onClick={card.page ? () => onNavigate(card.page) : undefined} />
         ))}
       </section>
 
@@ -2809,11 +2808,10 @@ function fileToDataUrl(file) {
 function createStats(data) {
   return [
     { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
-    { label: 'Active Projects', value: data.contracts.filter((item) => (item.projectStatus || 'active') === 'active').length, change: 'Live', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500' },
+    { label: 'Contracts', value: data.contracts.length, change: 'Open', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500', page: 'legal-team' },
     { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
     { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
     { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
-    { label: 'Pending QC', value: data.contracts.filter((item) => item.status !== 'signed').length, change: 'Live', icon: ShieldCheck, tone: 'from-rose-300 to-red-500' },
   ]
 }
 
