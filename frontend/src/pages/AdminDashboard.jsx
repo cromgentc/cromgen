@@ -484,7 +484,7 @@ function EnterpriseAdminApp() {
           if (!['admin', 'staff'].includes(String(currentRole || '').toLowerCase())) {
             throw new Error('Only admin or staff can create vendor accounts.')
           }
-          await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify({ ...normalizedForm, status: 'active' }) })
+          await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(createVendorPayload({ ...normalizedForm, status: 'active' })) })
           nextPage = 'vendor-management'
         } else {
           await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(normalizedForm) })
@@ -493,7 +493,7 @@ function EnterpriseAdminApp() {
         if (!['admin', 'staff'].includes(String(currentRole || '').toLowerCase())) {
           throw new Error('Only admin or staff can create vendor accounts.')
         }
-        await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
+        await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(createVendorPayload(normalizedForm)) })
       } else if (activePage === 'project-management' || activePage === 'legal-team') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'leads-management') {
@@ -2482,6 +2482,25 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
   )
 }
 
+function createVendorPayload(form = {}) {
+  const payload = {
+    ...form,
+    name: String(form.name || form.company || '').trim(),
+    company: String(form.company || '').trim(),
+    email: String(form.email || '').trim().toLowerCase(),
+    phone: String(form.phone || '').trim(),
+    serviceCategory: String(form.serviceCategory || '').trim(),
+    password: String(form.password || '').trim(),
+    status: form.status || 'active',
+  }
+
+  if (!payload.name || !payload.email || !payload.password) {
+    throw new Error('Vendor name, email, and password are required.')
+  }
+
+  return payload
+}
+
 function DetailsModal({ record, onClose }) {
   if (!record) return null
 
@@ -3167,8 +3186,9 @@ function canAccessPageForRole(page, currentRole) {
 
 function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
+  if (page === 'vendor-management') return false
   if (role === 'admin') return true
-  if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'staff') return page === 'user-management'
   if (role === 'vendor') return page === 'user-management'
   return false
 }

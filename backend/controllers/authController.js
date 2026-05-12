@@ -321,15 +321,20 @@ export async function createSettingVendor(request) {
   if (auth.error) return auth.error
 
   const body = await readJson(request)
-  const { name, email, password } = body
+  const email = String(body.email || '').trim().toLowerCase()
+  const password = String(body.password || '').trim()
+  const name = String(body.name || body.company || email.split('@')[0] || '').trim()
 
   if (!name || !email || !password) {
-    return validationError('Name, email, and password are required')
+    return validationError('Vendor name, email, and password are required')
   }
 
   try {
     const vendor = await createVendor({
       ...body,
+      name,
+      email,
+      password,
       createdBy: auth.payload?.sub,
       status: body.status || 'active',
     })
