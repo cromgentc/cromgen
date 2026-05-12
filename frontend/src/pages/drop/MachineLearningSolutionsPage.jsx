@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BarChart3, BrainCircuit, CheckCircle2, Download, LineChart, Mail, ShieldCheck, Sparkles } from 'lucide-react'
+import { BarChart3, BrainCircuit, Download, LineChart, Mail, ShieldCheck, Sparkles } from 'lucide-react'
 import aiServicesImage from '../../assets/artificial-intelligence-services.png'
 import { LEAD_ENDPOINTS, SERVICE_SAMPLE_ENDPOINTS, apiRequest } from '../../api/apiEndpoint.js'
 
@@ -93,8 +93,6 @@ const sampleRows = [
   ['Fraud signal', 'Low', 'No unusual transaction pattern detected'],
 ]
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 export function MachineLearningSolutionsPage() {
   const [activeService, setActiveService] = useState(serviceItems[0])
   const [backendSamples, setBackendSamples] = useState([])
@@ -105,11 +103,8 @@ export function MachineLearningSolutionsPage() {
     phone: '',
     company: '',
     useCase: '',
-    otp: '',
   })
-  const [otpToken, setOtpToken] = useState('')
   const [status, setStatus] = useState({ type: '', message: '' })
-  const [step, setStep] = useState('details')
   const [isBusy, setIsBusy] = useState(false)
   const [hasRequestedSamples, setHasRequestedSamples] = useState(false)
   const activeBackendSample = useMemo(() => {
@@ -120,10 +115,6 @@ export function MachineLearningSolutionsPage() {
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
-    if (name === 'email') {
-      setOtpToken('')
-      setStep('details')
-    }
   }
 
   const openSampleModal = (service = activeService) => {
@@ -155,63 +146,8 @@ export function MachineLearningSolutionsPage() {
     setIsModalOpen(false)
   }
 
-  const sendOtp = async () => {
-    const email = form.email.trim().toLowerCase()
-    if (!emailPattern.test(email)) {
-      setStatus({ type: 'error', message: 'Please enter a correct email address before OTP.' })
-      return
-    }
-
-    setIsBusy(true)
-    setStatus({ type: '', message: '' })
-
-    try {
-      const data = await apiRequest(LEAD_ENDPOINTS.sendOtp, {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      })
-      if (data.ok === false) {
-        throw new Error(data.message || 'Unable to send OTP.')
-      }
-      setStep('otp')
-      setStatus({ type: 'success', message: data.message || 'OTP sent to your email address.' })
-    } catch (error) {
-      setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Unable to send OTP.' })
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
-  const verifyOtp = async () => {
-    if (!form.otp.trim()) {
-      setStatus({ type: 'error', message: 'Please enter the OTP sent to your email.' })
-      return
-    }
-
-    setIsBusy(true)
-    setStatus({ type: '', message: '' })
-
-    try {
-      const data = await apiRequest(LEAD_ENDPOINTS.verifyOtp, {
-        method: 'POST',
-        body: JSON.stringify({ email: form.email.trim().toLowerCase(), otp: form.otp.trim() }),
-      })
-      setOtpToken(data.otpToken)
-      setStep('verified')
-      setStatus({ type: 'success', message: 'Email verified. Submit now to download the sample.' })
-    } catch (error) {
-      setStatus({ type: 'error', message: error instanceof Error ? error.message : 'Unable to verify OTP.' })
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
   const submitLead = async (event) => {
     event.preventDefault()
-    if (!otpToken) {
-      setStatus({ type: 'error', message: 'Please verify your email OTP first.' })
-      return
-    }
 
     setIsBusy(true)
     setStatus({ type: '', message: '' })
@@ -223,8 +159,6 @@ export function MachineLearningSolutionsPage() {
           name: form.name,
           email: form.email.trim().toLowerCase(),
           service: `Machine Learning Solutions - ${activeService.title}`,
-          requiresEmailVerification: true,
-          otpToken,
           query: [
             form.phone ? `Phone: ${form.phone}` : '',
             form.company ? `Company: ${form.company}` : '',
@@ -237,9 +171,7 @@ export function MachineLearningSolutionsPage() {
 
       downloadSample(activeService, activeBackendSample)
       setStatus({ type: 'success', message: 'Lead submitted. Your sample download has started.' })
-      setForm({ name: '', email: '', phone: '', company: '', useCase: '', otp: '' })
-      setOtpToken('')
-      setStep('details')
+      setForm({ name: '', email: '', phone: '', company: '', useCase: '' })
       window.setTimeout(() => {
         setIsModalOpen(false)
         setStatus({ type: '', message: '' })
@@ -326,7 +258,7 @@ export function MachineLearningSolutionsPage() {
           <SectionTitle
             eyebrow="ML Service Portfolio"
             title="Specialized machine learning services for enterprise teams."
-            copy="Select any service to view its enterprise scope, related capabilities, and a downloadable sample after email OTP verification."
+            copy="Select any service to view its enterprise scope, related capabilities, and a downloadable sample after lead submission."
           />
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {serviceItems.map((item, index) => (
@@ -395,7 +327,7 @@ export function MachineLearningSolutionsPage() {
             <SectionTitle
               eyebrow="Sample Preview"
               title={`${activeService.title} sample preview.`}
-              copy="Select a service, review the related enterprise scope, verify your email with OTP, submit the lead details, and the sample will download automatically."
+              copy="Select a service, review the related enterprise scope, submit your lead details, and the sample will download automatically."
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
@@ -441,14 +373,10 @@ export function MachineLearningSolutionsPage() {
         <SampleLeadModal
           form={form}
           status={status}
-          step={step}
           isBusy={isBusy}
-          otpToken={otpToken}
           selectedService={activeService}
           onChange={handleChange}
           onClose={closeSampleModal}
-          onSendOtp={sendOtp}
-          onVerifyOtp={verifyOtp}
           onSubmit={submitLead}
         />
       ) : null}
@@ -456,16 +384,16 @@ export function MachineLearningSolutionsPage() {
   )
 }
 
-function SampleLeadModal({ form, status, step, isBusy, otpToken, selectedService, onChange, onClose, onSendOtp, onVerifyOtp, onSubmit }) {
+function SampleLeadModal({ form, status, isBusy, selectedService, onChange, onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center bg-[#0f172a]/55 px-4 py-6 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="ml-sample-title">
       <div className="max-h-[92vh] w-full max-w-[720px] overflow-y-auto rounded-[2rem] border border-white/60 bg-white text-[#0f172a] shadow-2xl shadow-slate-950/25">
         <div className="border-b border-[rgba(15,23,42,0.08)] bg-[#fff7f4] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff4b2d]">Email OTP Required</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff4b2d]">Lead Details Required</p>
               <h2 id="ml-sample-title" className="mt-2 text-2xl font-black">Download {selectedService.sample}</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#475569]">After email verification, your lead details will be saved and the selected sample will download automatically.</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-[#475569]">Submit your details and the selected sample will download automatically.</p>
             </div>
             <button type="button" onClick={onClose} disabled={isBusy} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[rgba(15,23,42,0.08)] bg-white text-xl font-black text-[#475569] shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 hover:border-[#ff4b2d]/40 hover:text-[#ff4b2d] disabled:cursor-wait">
               x
@@ -486,30 +414,13 @@ function SampleLeadModal({ form, status, step, isBusy, otpToken, selectedService
             <textarea name="useCase" value={form.useCase} onChange={onChange} required rows="3" placeholder={`Example: ${selectedService.title} requirement, data source, goal, or report need`} className="w-full resize-none rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]" />
           </label>
 
-          <div className="rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] p-4">
-            <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-              <LeadField label="Email OTP" name="otp" value={form.otp} onChange={onChange} />
-              <div className="flex items-end gap-3">
-                <button type="button" onClick={onSendOtp} disabled={isBusy} className="min-h-[52px] rounded-2xl border border-[#ff4b2d]/25 bg-white px-5 text-xs font-black uppercase tracking-[0.12em] text-[#ff4b2d] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70">
-                  {step === 'details' ? 'Send OTP' : 'Resend OTP'}
-                </button>
-                <button type="button" onClick={onVerifyOtp} disabled={isBusy || step === 'details'} className="min-h-[52px] rounded-2xl bg-[#0f172a] px-5 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
-                  Verify
-                </button>
-              </div>
-            </div>
-            {otpToken ? (
-              <p className="mt-3 flex items-center gap-2 text-sm font-bold text-emerald-700"><CheckCircle2 size={18} /> Email verified successfully.</p>
-            ) : null}
-          </div>
-
           {status.message ? (
             <p className={`rounded-2xl px-4 py-3 text-sm font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
               {status.message}
             </p>
           ) : null}
 
-          <button type="submit" disabled={isBusy || !otpToken} className="w-full rounded-2xl bg-gradient-to-r from-[#ff4b2d] to-[#ff6b4a] px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl shadow-[#ff4b2d]/25 transition duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={isBusy} className="w-full rounded-2xl bg-gradient-to-r from-[#ff4b2d] to-[#ff6b4a] px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl shadow-[#ff4b2d]/25 transition duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60">
             {isBusy ? 'Processing...' : 'Submit Lead & Download Sample'}
           </button>
         </form>
