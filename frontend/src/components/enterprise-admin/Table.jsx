@@ -2,7 +2,7 @@ import { ChevronDown, Download, Eye, FileDown, MoreHorizontal, Pencil, Search, T
 import { useEffect, useMemo, useState } from 'react'
 import { Modal } from './Modal.jsx'
 
-export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, onDeleteSelected, rowActions = [], emptyText = 'No records found.' }) {
+export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, onDeleteSelected, rowActions = [], hideDefaultView = false, emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState(columns[0]?.key || 'id')
   const [page, setPage] = useState(1)
@@ -269,9 +269,11 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
                     </button>
                     {openActionId === (row.id || row.slug || row.email || row.name) ? (
                       <div className="absolute right-0 top-10 z-20 w-44 rounded-2xl border border-white/10 bg-slate-950/95 p-2 text-left shadow-2xl shadow-black/30">
-                        <button type="button" onClick={() => { setOpenActionId(''); onView?.(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
-                          <Eye size={15} /> View
-                        </button>
+                        {!hideDefaultView ? (
+                          <button type="button" onClick={() => { setOpenActionId(''); onView?.(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
+                            <Eye size={15} /> View
+                          </button>
+                        ) : null}
                         {onEdit ? (
                           <button type="button" onClick={() => { setOpenActionId(''); onEdit(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
                             <Pencil size={15} /> Edit

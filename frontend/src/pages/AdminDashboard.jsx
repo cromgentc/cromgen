@@ -1068,7 +1068,7 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
   const rowActions = activePage === 'project-management'
     ? [
         {
-          label: 'View Google',
+          label: 'View',
           icon: ExternalLink,
           hidden: (row) => !row.googleDocUrl,
           onClick: (row) => window.open(row.googleDocUrl, '_blank', 'noopener,noreferrer'),
@@ -1124,6 +1124,7 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
         onDelete={module.isLive && module.canDelete !== false ? onDelete : null}
         onDeleteSelected={module.isLive && module.canDelete !== false ? onDeleteSelected : null}
         rowActions={rowActions}
+        hideDefaultView={activePage === 'project-management'}
         emptyText={module.emptyText}
       />
     </motion.div>
