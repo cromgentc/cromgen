@@ -12,6 +12,7 @@ import { json, notFound, readJson, validationError } from '../utils/http.js'
 const settingsAuth = requireRole(['admin', 'staff'])
 const settingsOrVendorTaskAuth = requireRole(['admin', 'staff', 'vendor'])
 const vendorTaskReadableTypes = new Set(['assignedTasks', 'tasks'])
+const vendorFinanceTypes = new Set(['withdrawRequests'])
 const publicReadableTypes = new Set(['helpCenter', 'faqs'])
 const publicCreateTypes = new Set(['supportTickets', 'contactRequests'])
 
@@ -43,7 +44,7 @@ export async function createPublicWorkforceRecord(request, { type }) {
 }
 
 export async function listWorkforceRecords(request, { type }) {
-  const auth = vendorTaskReadableTypes.has(type) ? settingsOrVendorTaskAuth(request) : settingsAuth(request)
+  const auth = vendorTaskReadableTypes.has(type) || vendorFinanceTypes.has(type) ? settingsOrVendorTaskAuth(request) : settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 
@@ -60,6 +61,13 @@ export async function listWorkforceRecords(request, { type }) {
     })
   }
 
+  if (vendorFinanceTypes.has(type) && auth.payload?.role === 'vendor') {
+    return json(200, {
+      ok: true,
+      records: records.filter((record) => record.createdBy === auth.payload.sub),
+    })
+  }
+
   return json(200, {
     ok: true,
     records,
@@ -67,7 +75,7 @@ export async function listWorkforceRecords(request, { type }) {
 }
 
 export async function createSettingWorkforceRecord(request, { type }) {
-  const auth = settingsAuth(request)
+  const auth = vendorFinanceTypes.has(type) ? settingsOrVendorTaskAuth(request) : settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 

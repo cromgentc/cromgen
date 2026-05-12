@@ -152,7 +152,7 @@ const formDefaults = {
   'invoice-management': { name: '', invoiceNumber: '', company: '', amount: '', dueDate: '', status: 'Unpaid', notes: '' },
   'revenue-analytics': { name: '', category: '', amount: '', metric: '', status: 'Tracked', notes: '' },
   wallet: { name: '', balance: '', amount: '', method: '', status: 'Active', notes: '' },
-  'withdraw-requests': { name: '', amount: '', method: '', requestDate: '', status: 'Pending', notes: '' },
+  'withdraw-requests': { name: '', amount: '', method: 'PayPal', paypalEmail: '', accountNumber: '', upiId: '', qrScanner: '', requestDate: '', status: 'Pending', notes: '' },
   'sales-pipeline': { name: '', company: '', amount: '', stage: 'New', nextAction: '', status: 'Open', notes: '' },
   'follow-ups': { name: '', company: '', dueDate: '', channel: 'Call', status: 'Pending', notes: '' },
   'email-campaigns': { name: '', subject: '', category: '', openRate: '', status: 'Draft', notes: '' },
@@ -331,6 +331,8 @@ function EnterpriseAdminApp() {
       } else if (currentRole === 'vendor') {
         requestedCoreKeys.add('users')
       }
+    } else if (page === 'withdraw-requests') {
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('projects')
     } else if (['legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('contracts')
     } else if (page === 'leads-management') {
@@ -355,9 +357,11 @@ function EnterpriseAdminApp() {
     )))
     const requiredWorkforceTypes = currentRole === 'vendor' && page === 'assign-tasks'
       ? ['assignedTasks', 'tasks']
-      : ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'task-management')
-        ? workforceTypesForPage(page)
-        : []
+      : page === 'withdraw-requests' && ['staff', 'vendor'].includes(currentRole)
+        ? Array.from(new Set([...workforceTypesForPage(page), 'assignedTasks', 'tasks']))
+        : ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'task-management')
+          ? workforceTypesForPage(page)
+          : []
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
@@ -536,7 +540,8 @@ function EnterpriseAdminApp() {
       } else {
         const type = workforceTypeForPage(activePage)
         if (!type) throw new Error('Create API is not configured for this module yet.')
-        await apiRequest(WORKFORCE_ENDPOINTS.settingsList(type), { method: 'POST', body: JSON.stringify(normalizedForm) })
+        const payload = type === 'withdrawRequests' ? createWithdrawRequestPayload(normalizedForm, currentRole) : normalizedForm
+        await apiRequest(WORKFORCE_ENDPOINTS.settingsList(type), { method: 'POST', body: JSON.stringify(payload) })
       }
 
       setModalOpen(false)
@@ -599,9 +604,12 @@ function EnterpriseAdminApp() {
 
     const type = workforceTypeForPage(page)
     if (!type) throw new Error('Update API is not configured for this module yet.')
+    const workforcePayload = type === 'withdrawRequests'
+      ? createWithdrawRequestPayload(payload, currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || '')
+      : payload
     await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, id), {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(workforcePayload),
     })
   }
 
@@ -2481,9 +2489,20 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
 }
 
 function RecordModal({ open, page, form, data, currentRole, editingRecord, saving, onChange, onSubmit, onClose }) {
-  const fields = getFormFields(page, data, currentRole)
+  const fields = getFormFields(page, data, currentRole).filter((field) => (
+    typeof field.showWhen === 'function' ? field.showWhen(form) : true
+  ))
   const [visiblePasswordFields, setVisiblePasswordFields] = useState({})
   const isPasswordVisible = (fieldName) => Boolean(visiblePasswordFields[fieldName])
+  useEffect(() => {
+    if (!open) return
+    fields.forEach((field) => {
+      if (field.type === 'select' && !form[field.name] && field.options?.[0]) {
+        onChange(field.name, field.options[0])
+      }
+    })
+  }, [open, page, currentRole])
+
   const togglePasswordField = (fieldName) => {
     setVisiblePasswordFields((current) => ({
       ...current,
@@ -2757,6 +2776,48 @@ function createProjectPayload(form = {}) {
   }
 }
 
+function createWithdrawRequestPayload(form = {}, currentRole = 'admin') {
+  const role = String(currentRole || '').toLowerCase()
+  const billAmount = normalizeCurrencyAmount(form.billAmount || form.amount)
+  const billValue = Number(billAmount || 0)
+  const heldAmount = billValue ? roundMoney(billValue * 0.1) : ''
+  const withdrawableAmount = billValue ? roundMoney(billValue * 0.9) : ''
+  const requestDate = form.requestDate || new Date().toISOString().slice(0, 10)
+  const status = ['vendor', 'staff'].includes(role) ? 'Pending' : form.status || 'Pending'
+
+  return {
+    ...form,
+    name: String(form.name || '').trim(),
+    billAmount,
+    amount: withdrawableAmount,
+    withdrawableAmount,
+    platformFee: heldAmount,
+    heldAmount,
+    releaseDate: addMonthsToDate(requestDate, 3),
+    method: form.method || 'PayPal',
+    requestDate,
+    status,
+    notes: String(form.notes || '').trim(),
+  }
+}
+
+function normalizeCurrencyAmount(value) {
+  return String(value || '')
+    .replace(/[^\d.]/g, '')
+    .replace(/(\..*)\./g, '$1')
+}
+
+function roundMoney(value) {
+  return (Math.round(Number(value) * 100) / 100).toString()
+}
+
+function addMonthsToDate(dateValue, months) {
+  const date = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date()
+  if (Number.isNaN(date.getTime())) return ''
+  date.setMonth(date.getMonth() + months)
+  return date.toISOString().slice(0, 10)
+}
+
 function DetailsModal({ record, onClose }) {
   if (!record) return null
 
@@ -2834,7 +2895,7 @@ const workforcePageModules = {
   'invoice-management': { type: 'invoices', title: 'Invoice Management', fields: ['name', 'invoiceNumber', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
   'revenue-analytics': { type: 'revenueAnalytics', title: 'Revenue Analytics', fields: ['name', 'category', 'amount', 'metric', 'status', 'notes', 'createdAt'] },
   wallet: { type: 'wallets', title: 'Wallet', fields: ['name', 'balance', 'amount', 'method', 'status', 'notes', 'createdAt'] },
-  'withdraw-requests': { type: 'withdrawRequests', title: 'Withdraw Requests', fields: ['name', 'amount', 'method', 'requestDate', 'status', 'notes', 'createdAt'] },
+  'withdraw-requests': { type: 'withdrawRequests', title: 'Withdraw Requests', fields: ['name', 'billAmount', 'withdrawableAmount', 'method', 'requestDate', 'status', 'releaseDate', 'notes', 'createdAt'] },
   'sales-pipeline': { type: 'salesPipeline', title: 'Sales Pipeline', fields: ['name', 'company', 'amount', 'stage', 'nextAction', 'status', 'notes', 'createdAt'] },
   'follow-ups': { type: 'followUps', title: 'Follow Ups', fields: ['name', 'company', 'dueDate', 'channel', 'status', 'notes', 'createdAt'] },
   'email-campaigns': { type: 'emailCampaigns', title: 'Email Campaigns', fields: ['name', 'subject', 'category', 'openRate', 'status', 'notes', 'createdAt'] },
@@ -3143,13 +3204,17 @@ function getModuleConfig(page, data, currentRole = 'admin') {
 function workforceModule(type, title, records, fields, currentRole = 'admin') {
   const role = String(currentRole || '').toLowerCase()
   const vendorAssignedTaskView = role === 'vendor' && ['assignedTasks', 'tasks'].includes(type)
+  const vendorWithdrawView = role === 'vendor' && type === 'withdrawRequests'
+  const visibleFields = type === 'withdrawRequests' && ['staff', 'vendor'].includes(role)
+    ? fields.filter((field) => field !== 'status')
+    : fields
   return {
     type,
     title,
     source: WORKFORCE_ENDPOINTS.settingsList(type),
     isLive: true,
-    canEdit: !vendorAssignedTaskView && !workforcePageModulesByType[type]?.readOnly,
-    canDelete: !vendorAssignedTaskView,
+    canEdit: !vendorAssignedTaskView && !vendorWithdrawView && !workforcePageModulesByType[type]?.readOnly,
+    canDelete: !vendorAssignedTaskView && !vendorWithdrawView,
     readOnly: Boolean(workforcePageModulesByType[type]?.readOnly),
     rows: (records || []).map((record) => ({
       id: record.id,
@@ -3162,6 +3227,11 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       phone: record.phone,
       project: record.project,
       amount: record.amount,
+      billAmount: record.billAmount,
+      withdrawableAmount: record.withdrawableAmount || record.amount,
+      platformFee: record.platformFee,
+      heldAmount: record.heldAmount,
+      releaseDate: record.releaseDate,
       dueDate: record.dueDate,
       priority: record.priority,
       category: record.category,
@@ -3173,6 +3243,10 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       invoiceNumber: record.invoiceNumber,
       cycle: record.cycle,
       method: record.method,
+      paypalEmail: record.paypalEmail,
+      accountNumber: record.accountNumber,
+      upiId: record.upiId,
+      qrScanner: record.qrScanner,
       balance: record.balance,
       requestDate: record.requestDate,
       stage: record.stage,
@@ -3203,7 +3277,7 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       notes: record.notes,
       createdAt: formatDate(record.createdAt),
     })),
-    columns: commonColumns(fields),
+    columns: commonColumns(visibleFields),
     emptyText: `${title} records are empty.`,
   }
 }
@@ -3534,8 +3608,8 @@ function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'withdraw-requests'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'withdraw-requests'].includes(page)
   return false
 }
 
@@ -3543,8 +3617,8 @@ function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
-  if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings'].includes(page)
-  if (role === 'vendor') return page === 'user-management'
+  if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings', 'withdraw-requests'].includes(page)
+  if (role === 'vendor') return ['user-management', 'withdraw-requests'].includes(page)
   return false
 }
 
@@ -3595,6 +3669,17 @@ function createProjectAssignOptions(projects = []) {
   return options.length ? Array.from(new Set(options)) : ['No projects available']
 }
 
+function createWithdrawProjectOptions(data = emptyData) {
+  const taskProjects = [...(data.assignedTasks || []), ...(data.tasks || [])]
+    .map((task) => task.project)
+    .filter(Boolean)
+  const projectNames = taskProjects.length
+    ? taskProjects
+    : (data.projects || []).map((project) => project.title || project.project || project.name).filter(Boolean)
+
+  return projectNames.length ? Array.from(new Set(projectNames)) : ['No assigned projects available']
+}
+
 function getFormFields(page, data = emptyData, currentRole = 'admin') {
   const commonRequired = { required: true }
   const jobRoleOptions = Array.from(new Set((data.jobs || []).map((job) => job.title).filter(Boolean)))
@@ -3603,6 +3688,8 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
   const userAssignOptions = createUserAssignOptions(data.users)
   const assigneeOptions = String(currentRole || '').toLowerCase() === 'vendor' ? userAssignOptions : vendorAssignOptions
   const projectAssignOptions = createProjectAssignOptions(data.projects)
+  const withdrawProjectOptions = createWithdrawProjectOptions(data)
+  const isStaffOrVendor = ['staff', 'vendor'].includes(String(currentRole || '').toLowerCase())
   const map = {
     'user-management': [
       { name: 'name', label: 'Name', ...commonRequired },
@@ -3852,12 +3939,16 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
     'withdraw-requests': [
-      { name: 'name', label: 'Requester Name', ...commonRequired },
-      { name: 'amount', label: 'Amount', type: 'number' },
-      { name: 'method', label: 'Method' },
+      { name: 'name', label: 'Requester Name', type: isStaffOrVendor ? 'select' : 'text', options: withdrawProjectOptions, ...commonRequired },
+      { name: 'amount', label: 'Bill Amount', type: 'number', numericOnly: true, ...commonRequired },
+      { name: 'method', label: 'Method', type: 'select', options: ['PayPal', 'Bank Account', 'UPI ID', 'QR Scanner'] },
+      { name: 'paypalEmail', label: 'PayPal Email', type: 'email', showWhen: (form) => (form.method || 'PayPal') === 'PayPal' },
+      { name: 'accountNumber', label: 'Account Number', showWhen: (form) => form.method === 'Bank Account' },
+      { name: 'upiId', label: 'UPI ID', showWhen: (form) => form.method === 'UPI ID' },
+      { name: 'qrScanner', label: 'QR Scanner', type: 'file', showWhen: (form) => form.method === 'QR Scanner' },
       { name: 'requestDate', label: 'Request Date', type: 'date' },
-      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Paid', 'Rejected'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
+      ...(!isStaffOrVendor ? [{ name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Paid', 'Rejected'] }] : []),
+      { name: 'notes', label: 'Message', type: 'textarea' },
     ],
     'sales-pipeline': [
       { name: 'name', label: 'Lead / Deal Name', ...commonRequired },
@@ -4047,6 +4138,11 @@ function commonColumns(keys) {
     phone: 'Phone',
     project: 'Project',
     amount: 'Amount',
+    billAmount: 'Bill Amount',
+    withdrawableAmount: 'Withdrawable',
+    platformFee: 'Platform 10%',
+    heldAmount: '3 Month Hold',
+    releaseDate: 'Release Date',
     dueDate: 'Due Date',
     priority: 'Priority',
     assignee: 'Assignee',
@@ -4060,6 +4156,10 @@ function commonColumns(keys) {
     experience: 'Experience',
     cycle: 'Cycle',
     method: 'Method',
+    paypalEmail: 'PayPal Email',
+    accountNumber: 'Account Number',
+    upiId: 'UPI ID',
+    qrScanner: 'QR Scanner',
     balance: 'Balance',
     requestDate: 'Request Date',
     stage: 'Stage',

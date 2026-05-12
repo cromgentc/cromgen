@@ -8,7 +8,6 @@ const restrictedGroupsForNonAdmin = new Set([
   'AI Management',
   'Client Management',
   'Legal Team',
-  'Finance',
   'CRM & Sales',
   'Recruitment',
   'Support Center',
@@ -187,7 +186,7 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
 function isPageVisibleForRole(page, role) {
   if (role === 'admin') return true
   if (page === 'dashboard' || page === 'logout') return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'withdraw-requests'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'withdraw-requests'].includes(page)
   return false
 }
