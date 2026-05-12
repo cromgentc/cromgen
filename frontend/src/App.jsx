@@ -18,6 +18,7 @@ import { SoftwareDevelopmentServicesPage } from './pages/SoftwareDevelopmentServ
 import { SupportPage } from './pages/SupportPages.jsx'
 import { TelecommunicationsPage } from './pages/TelecommunicationsPage.jsx'
 import { VendorOnboardingPage } from './pages/drop/VendorOnboardingPage.jsx'
+import { MachineLearningSolutionsPage } from './pages/drop/MachineLearningSolutionsPage.jsx'
 import { findOnboardingPage, findServiceDetail, services, slugify } from './data/services.js'
 import { SITE_ENDPOINTS, apiRequest } from './api/apiEndpoint.js'
 import {
@@ -45,6 +46,10 @@ const servicePages = {
 const onboardingDropPages = {
   'onboarding/vendor': VendorOnboardingPage,
   'onboarding/freelancer': FreelancerOnboardingPage,
+}
+
+const customServiceDetailPages = {
+  'artificial-intelligence/machine-learning-solutions': MachineLearningSolutionsPage,
 }
 
 const companyPages = {
@@ -197,6 +202,7 @@ function App() {
   }, [])
 
   const ActiveServicePage = servicePages[route]
+  const ActiveServiceDetailPage = customServiceDetailPages[route]
   const ActiveOnboardingDropPage = onboardingDropPages[route]
   const ActiveCompanyPage = companyPages[route]
   const careerApplySlug = route.startsWith('career/apply/') ? route.replace('career/apply/', '') : ''
@@ -220,6 +226,8 @@ function App() {
         <ActiveOnboardingDropPage />
       ) : activeOnboardingPage ? (
         <OnboardingPage option={activeOnboardingPage} />
+      ) : ActiveServiceDetailPage ? (
+        <ActiveServiceDetailPage />
       ) : activeServiceDetail ? (
         <ServiceDetailLandingPage detail={activeServiceDetail} />
       ) : ActiveCompanyPage ? (

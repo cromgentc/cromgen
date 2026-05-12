@@ -53,6 +53,8 @@ export const NEWS_ENDPOINTS = {
 
 export const LEAD_ENDPOINTS = {
   publicCreate: '/api/leads',
+  sendOtp: '/api/leads/otp/send',
+  verifyOtp: '/api/leads/otp/verify',
   settingsList: '/api/settings/leads',
   settingsDeleteAll: '/api/settings/leads',
   settingsDelete: (id) => `/api/settings/leads/${encodeURIComponent(id)}`,
