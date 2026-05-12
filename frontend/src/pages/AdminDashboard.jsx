@@ -642,7 +642,6 @@ function EnterpriseAdminApp() {
                   createOpen={legalBuilderOpen}
                   onCreateOpenChange={setLegalBuilderOpen}
                   onSaved={async () => loadMongoData('legal-team')}
-                  onOpenContract={(row) => window.location.assign(`/contract-sign/${row.id}`)}
                   onDelete={deleteRecord}
                 />
               ) : (
@@ -928,9 +927,10 @@ function ModuleSummary({ module }) {
   )
 }
 
-function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSaved, onOpenContract, onDelete }) {
+function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSaved, onDelete }) {
   const [step, setStep] = useState('list')
   const [mode, setMode] = useState('send')
+  const [builderMode, setBuilderMode] = useState('edit')
   const [saving, setSaving] = useState(false)
   const [editingContractId, setEditingContractId] = useState('')
   const [placedFields, setPlacedFields] = useState([])
@@ -945,6 +945,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
   const startCreateFlow = () => {
     setStep('choice')
     setMode('send')
+    setBuilderMode('edit')
     setDraft(createEmptyLegalContractDraft())
     setPlacedFields([])
     setActiveFieldId('')
@@ -974,6 +975,19 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
     setEditingContractId(row.id || '')
     setPlacedFields(row.signaturePlacements || [])
     setActiveFieldId('')
+    setBuilderMode('edit')
+    setMode('send')
+    setStep('editor')
+    onCreateOpenChange?.(true)
+    setMessage('')
+  }
+
+  const openContractForView = (row) => {
+    setDraft(createLegalContractDraftFromRow(row))
+    setEditingContractId(row.id || '')
+    setPlacedFields(row.signaturePlacements || [])
+    setActiveFieldId('')
+    setBuilderMode('view')
     setMode('send')
     setStep('editor')
     onCreateOpenChange?.(true)
@@ -1095,6 +1109,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
 
   const activePlacedField = placedFields.find((field) => field.id === activeFieldId) || null
   const signingFields = ['Signature', 'Initial', 'Stamp', 'Image', 'Company', 'Full name', 'Email', 'Sign date', 'Date', 'Text', 'Job title', 'Checkbox', 'Dropdown', 'Radio']
+  const isViewOnly = builderMode === 'view'
 
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
@@ -1179,9 +1194,13 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
                 <strong>{draft.documentName || 'Agreement'}</strong>
               </div>
               <div>
-                <button type="button" className="is-muted" onClick={() => setStep('details')}>Back</button>
-                <button type="button" className="is-muted" onClick={() => saveContract('draft')}>{saving ? 'Saving...' : 'Save draft'}</button>
-                <button type="button" disabled={saving} onClick={() => saveContract('pending')}>{saving ? 'Saving...' : 'Send'}</button>
+                <button type="button" className="is-muted" onClick={() => (isViewOnly ? closeCreateFlow() : setStep('details'))}>{isViewOnly ? 'Close' : 'Back'}</button>
+                {!isViewOnly ? (
+                  <>
+                    <button type="button" className="is-muted" onClick={() => saveContract('draft')}>{saving ? 'Saving...' : 'Save draft'}</button>
+                    <button type="button" disabled={saving} onClick={() => saveContract('pending')}>{saving ? 'Saving...' : 'Send'}</button>
+                  </>
+                ) : null}
               </div>
             </div>
             <div className="legal-editor-grid">
@@ -1192,12 +1211,15 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
               <main className="legal-editor-canvas">
                 <div
                   className="legal-document-paper"
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={dropSigningField}
+                  onDragOver={(event) => !isViewOnly && event.preventDefault()}
+                  onDrop={(event) => {
+                    if (!isViewOnly) dropSigningField(event)
+                  }}
                 >
                   <h1>{draft.documentName || 'Agreement'}</h1>
                   {draft.fileName ? <p className="legal-document-source">Attached document: {draft.fileName}</p> : null}
                   <textarea
+                    readOnly={isViewOnly}
                     value={draft.contractBody}
                     onChange={(event) => updateDraft('contractBody', event.target.value)}
                     placeholder="Paste or write the full agreement content here. This text will be saved and shown on the signing page."
@@ -1209,7 +1231,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
                         type="button"
                         className={`legal-placed-field ${field.id === activeFieldId ? 'is-active' : ''}`}
                         style={{ left: `${field.x}%`, top: `${field.y}%` }}
-                        onClick={() => setActiveFieldId(field.id)}
+                        onClick={() => !isViewOnly && setActiveFieldId(field.id)}
                       >
                         <span>{field.label}</span>
                         <small>{field.value || field.type}</small>
@@ -1228,37 +1250,41 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
                   <span>C</span>
                   <p>{draft.recipientName || 'Recipient'}<br /><small>{draft.recipientEmail || 'email@example.com'}</small></p>
                 </div>
-                <h4>Standard fields</h4>
-                <div className="legal-field-list">
-                  {signingFields.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      draggable
-                      onDragStart={(event) => event.dataTransfer.setData('text/plain', item)}
-                    >
-                      <GripVertical size={13} /> {item}
-                    </button>
-                  ))}
-                </div>
-                <div className="legal-field-options">
-                  <h4>Field options</h4>
-                  {activePlacedField ? (
-                    <>
-                      <label>
-                        <span>Label</span>
-                        <input value={activePlacedField.label} onChange={(event) => updatePlacedField(activePlacedField.id, { label: event.target.value })} />
-                      </label>
-                      <label>
-                        <span>Text / value</span>
-                        <input value={activePlacedField.value} onChange={(event) => updatePlacedField(activePlacedField.id, { value: event.target.value })} />
-                      </label>
-                      <button type="button" onClick={() => removePlacedField(activePlacedField.id)}>Remove field</button>
-                    </>
-                  ) : (
-                    <p>Drag a field into the document, then click it to edit.</p>
-                  )}
-                </div>
+                {!isViewOnly ? (
+                  <>
+                    <h4>Standard fields</h4>
+                    <div className="legal-field-list">
+                      {signingFields.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          draggable
+                          onDragStart={(event) => event.dataTransfer.setData('text/plain', item)}
+                        >
+                          <GripVertical size={13} /> {item}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="legal-field-options">
+                      <h4>Field options</h4>
+                      {activePlacedField ? (
+                        <>
+                          <label>
+                            <span>Label</span>
+                            <input value={activePlacedField.label} onChange={(event) => updatePlacedField(activePlacedField.id, { label: event.target.value })} />
+                          </label>
+                          <label>
+                            <span>Text / value</span>
+                            <input value={activePlacedField.value} onChange={(event) => updatePlacedField(activePlacedField.id, { value: event.target.value })} />
+                          </label>
+                          <button type="button" onClick={() => removePlacedField(activePlacedField.id)}>Remove field</button>
+                        </>
+                      ) : (
+                        <p>Drag a field into the document, then click it to edit.</p>
+                      )}
+                    </div>
+                  </>
+                ) : null}
               </aside>
             </div>
             {message ? <p className="legal-flow-message">{message}</p> : null}
@@ -1268,11 +1294,17 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
         , document.body)}
       </section>
 
+      {message && step === 'list' ? (
+        <div className="legal-workspace-message">
+          {message}
+        </div>
+      ) : null}
+
       <EnterpriseTable
         title="Existing Contracts"
         rows={module.rows}
         columns={module.columns}
-        onView={onOpenContract}
+        onView={openContractForView}
         onEdit={openDraftForEdit}
         onDelete={onDelete}
         emptyText={module.emptyText}
