@@ -258,6 +258,7 @@ function EnterpriseAdminApp() {
   const [assignUserEmail, setAssignUserEmail] = useState('')
   const [assigningUser, setAssigningUser] = useState(false)
   const [remarkRequest, setRemarkRequest] = useState(null)
+  const [viewRemarkRecord, setViewRemarkRecord] = useState(null)
 
   useEffect(() => {
     confirmActionHandler = (message) => new Promise((resolve) => {
@@ -927,7 +928,7 @@ function EnterpriseAdminApp() {
                   onDeleteSelected={deleteSelectedRecords}
                 />
               ) : (
-                <EnterpriseModule activePage={activePage} currentRole={currentRole} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} onWithdrawDecision={updateWithdrawDecision} onViewInvoiceFile={viewInvoiceFile} />
+                <EnterpriseModule activePage={activePage} currentRole={currentRole} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} onWithdrawDecision={updateWithdrawDecision} onViewInvoiceFile={viewInvoiceFile} onViewRemark={setViewRemarkRecord} />
               )}
             </div>
 
@@ -1021,6 +1022,7 @@ function EnterpriseAdminApp() {
             setRemarkRequest(null)
           }}
         />
+        <ViewRemarkDialog record={viewRemarkRecord} onClose={() => setViewRemarkRecord(null)} />
       </main>
     </div>
   )
@@ -1187,7 +1189,7 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser, onWithdrawDecision, onViewInvoiceFile }) {
+function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser, onWithdrawDecision, onViewInvoiceFile, onViewRemark }) {
   const ModuleIcon = pageMeta.icon
   const isLeadManagement = activePage === 'leads-management'
   const canApproveWithdraw = ['admin', 'staff'].includes(String(currentRole || '').toLowerCase())
@@ -1225,6 +1227,12 @@ function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, o
           icon: FileText,
           hidden: (row) => !row.invoiceFile?.data,
           onClick: (row) => onViewInvoiceFile?.(row),
+        },
+        {
+          label: 'View Remark',
+          icon: Eye,
+          hidden: (row) => !row.approvalRemark,
+          onClick: (row) => onViewRemark?.(row),
         },
         {
           label: 'Approve',
@@ -3061,6 +3069,28 @@ function RemarkDialog({ request, onChange, onSubmit, onClose }) {
           </button>
         </div>
       </form>
+    </Modal>
+  )
+}
+
+function ViewRemarkDialog({ record, onClose }) {
+  return (
+    <Modal open={Boolean(record)} title="Remark" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Request</p>
+          <p className="mt-2 text-sm font-black text-white">{record?.name || 'Withdraw request'}</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Remark</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-200">{record?.approvalRemark || 'No remark available.'}</p>
+        </div>
+        <div className="flex justify-end">
+          <button type="button" onClick={onClose} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20">
+            OK
+          </button>
+        </div>
+      </div>
     </Modal>
   )
 }
