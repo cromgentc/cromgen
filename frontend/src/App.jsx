@@ -186,7 +186,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    document.title = getPageTitle(route)
+    setBrowserTitle(getPageTitle(route))
   }, [route])
 
   useEffect(() => {
@@ -253,6 +253,12 @@ function App() {
       <Footer />
     </div>
   )
+}
+
+export function setBrowserTitle(title) {
+  const nextTitle = title || 'Cromgen Technology'
+  document.title = nextTitle
+  document.querySelector('meta[property="og:title"]')?.setAttribute('content', nextTitle)
 }
 
 export default App

@@ -395,6 +395,12 @@ function EnterpriseAdminApp() {
     }
   }, [activePage])
 
+  useEffect(() => {
+    const title = `${pageMeta.title || titleize(activePage)} | Cromgen Technology`
+    document.title = title
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
+  }, [activePage, pageMeta.title])
+
   const module = useMemo(() => getModuleConfig(activePage, data), [activePage, data])
   const liveNotifications = useMemo(() => (clearedNotifications ? [] : createNotifications(data)), [clearedNotifications, data])
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
