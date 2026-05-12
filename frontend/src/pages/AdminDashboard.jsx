@@ -324,6 +324,7 @@ function EnterpriseAdminApp() {
   const liveNotifications = useMemo(() => (clearedNotifications ? [] : createNotifications(data)), [clearedNotifications, data])
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
+  const isLeadManagementPage = activePage === 'leads-management'
   const canCreateActivePage = supportedCreatePages.includes(activePage)
   const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
@@ -581,12 +582,18 @@ function EnterpriseAdminApp() {
               >
                 <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                   <div className="max-w-3xl">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-black uppercase tracking-[0.24em] text-cyan-100">
-                      <PageIcon size={14} /> {pageMeta.tag}
-                    </span>
-                    <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{pageMeta.title}</h1>
+                    {isLeadManagementPage ? null : (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-black uppercase tracking-[0.24em] text-cyan-100">
+                        <PageIcon size={14} /> {pageMeta.tag}
+                      </span>
+                    )}
+                    <h1 className={`${isLeadManagementPage ? 'mt-0' : 'mt-5'} text-4xl font-black tracking-tight text-white md:text-6xl`}>
+                      {isLeadManagementPage ? 'Lead Management' : pageMeta.title}
+                    </h1>
                     <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                      Dashboard renders live data from the backend REST APIs.
+                      {isLeadManagementPage
+                        ? 'CRM & Sales. Dashboard renders live data from the backend REST APIs.'
+                        : 'Dashboard renders live data from the backend REST APIs.'}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
