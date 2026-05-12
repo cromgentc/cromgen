@@ -1,7 +1,7 @@
 import { ChevronDown, Download, Eye, FileDown, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
-export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, emptyText = 'No records found.' }) {
+export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, onDeleteSelected, emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState(columns[0]?.key || 'id')
   const [page, setPage] = useState(1)
@@ -9,7 +9,9 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
   const [filterKey, setFilterKey] = useState('')
   const [filterValue, setFilterValue] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
   const pageSize = 8
+  const getRowKey = (row) => String(row.id || row.slug || row.email || row.name || row.title)
   const filterableColumns = useMemo(() => {
     const preferredKeys = ['status', 'category', 'service', 'role', 'department', 'type', 'priority', 'projectStatus', 'location']
     return columns.filter((column) => preferredKeys.includes(column.key))
@@ -35,10 +37,18 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
 
   const pagedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize)
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+  const pagedRowIds = pagedRows.map(getRowKey)
+  const selectedRows = filteredRows.filter((row) => selectedIds.includes(getRowKey(row)))
+  const allPagedRowsSelected = pagedRowIds.length > 0 && pagedRowIds.every((id) => selectedIds.includes(id))
 
   useEffect(() => {
     setPage(1)
   }, [query, filterKey, filterValue])
+
+  useEffect(() => {
+    const availableIds = new Set(rows.map(getRowKey))
+    setSelectedIds((current) => current.filter((id) => availableIds.has(id)))
+  }, [rows])
 
   useEffect(() => {
     if (!filterKey && filterableColumns.length) {
@@ -63,6 +73,31 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
     link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'records'}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  const toggleRowSelection = (row) => {
+    const rowKey = getRowKey(row)
+    setSelectedIds((current) => (
+      current.includes(rowKey)
+        ? current.filter((id) => id !== rowKey)
+        : [...current, rowKey]
+    ))
+  }
+
+  const togglePageSelection = () => {
+    setSelectedIds((current) => {
+      if (allPagedRowsSelected) {
+        return current.filter((id) => !pagedRowIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...pagedRowIds]))
+    })
+  }
+
+  const deleteSelectedRows = async () => {
+    if (!selectedRows.length) return
+    await onDeleteSelected?.(selectedRows)
+    setSelectedIds([])
   }
 
   return (
@@ -140,6 +175,16 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
           <button type="button" onClick={() => window.print()} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
             <FileDown size={15} /> PDF
           </button>
+          {onDeleteSelected ? (
+            <button
+              type="button"
+              onClick={deleteSelectedRows}
+              disabled={!selectedRows.length}
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-rose-400/10 px-3 text-sm font-bold text-rose-100 hover:bg-rose-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Trash2 size={15} /> Delete Selected {selectedRows.length ? `(${selectedRows.length})` : ''}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -147,6 +192,17 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
         <table className="w-full min-w-[860px] border-separate border-spacing-y-2">
           <thead>
             <tr>
+              {onDeleteSelected ? (
+                <th className="px-3 py-2 text-left">
+                  <input
+                    type="checkbox"
+                    checked={allPagedRowsSelected}
+                    onChange={togglePageSelection}
+                    className="h-4 w-4 rounded border-white/20 bg-slate-950/40 accent-cyan-300"
+                    aria-label="Select visible rows"
+                  />
+                </th>
+              ) : null}
               {columns.map((column) => (
                 <th key={column.key} className="px-3 py-2 text-left text-xs font-black uppercase tracking-[0.2em] text-slate-500">
                   <button type="button" onClick={() => setSortKey(column.key)} className="hover:text-cyan-200">{column.label}</button>
@@ -157,9 +213,20 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
           </thead>
           <tbody>
             {pagedRows.length ? pagedRows.map((row) => (
-              <tr key={row.id || row.slug || row.email || row.name} className="group">
+              <tr key={getRowKey(row)} className="group">
+                {onDeleteSelected ? (
+                  <td className="rounded-l-2xl bg-slate-950/35 px-3 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(getRowKey(row))}
+                      onChange={() => toggleRowSelection(row)}
+                      className="h-4 w-4 rounded border-white/20 bg-slate-950/40 accent-cyan-300"
+                      aria-label={`Select ${row.name || row.title || row.email || 'row'}`}
+                    />
+                  </td>
+                ) : null}
                 {columns.map((column, index) => (
-                  <td key={column.key} className={`${index === 0 ? 'rounded-l-2xl' : ''} bg-slate-950/35 px-3 py-4 text-sm ${index === 0 ? 'font-black text-cyan-100' : 'font-semibold text-slate-200'}`}>
+                  <td key={column.key} className={`${index === 0 && !onDeleteSelected ? 'rounded-l-2xl' : ''} bg-slate-950/35 px-3 py-4 text-sm ${index === 0 ? 'font-black text-cyan-100' : 'font-semibold text-slate-200'}`}>
                     {column.type === 'status' ? (
                       <span className="rounded-full bg-cyan-400/15 px-3 py-1 text-xs font-black text-cyan-100">{row[column.key] || '-'}</span>
                     ) : column.type === 'progress' ? (
@@ -206,7 +273,7 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
               </tr>
             )) : (
               <tr>
-                <td colSpan={columns.length + 1} className="rounded-2xl bg-slate-950/35 px-4 py-10 text-center text-sm font-semibold text-slate-400">
+                <td colSpan={columns.length + 1 + (onDeleteSelected ? 1 : 0)} className="rounded-2xl bg-slate-950/35 px-4 py-10 text-center text-sm font-semibold text-slate-400">
                   {emptyText}
                 </td>
               </tr>

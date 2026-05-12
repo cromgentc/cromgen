@@ -475,35 +475,51 @@ function EnterpriseAdminApp() {
     })
   }
 
+  const deleteRowsForType = async (type, rows) => {
+    for (const row of rows) {
+      if (type === 'users') {
+        await apiRequest(AUTH_ENDPOINTS.settingsUserDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'vendors') {
+        await apiRequest(VENDOR_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'contracts') {
+        await apiRequest(CONTRACT_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'leads') {
+        await apiRequest(LEAD_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'applications') {
+        await apiRequest(APPLICATION_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'jobs') {
+        await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'newsPosts') {
+        await apiRequest(NEWS_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'serviceSamples') {
+        await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (workforceRecordTypes.includes(type)) {
+        await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, row.id), { method: 'DELETE' })
+      } else {
+        throw new Error('Delete API is not configured for this module yet.')
+      }
+    }
+  }
+
   const deleteRecord = async (row) => {
     try {
-      if (module.type === 'users') {
-        await apiRequest(AUTH_ENDPOINTS.settingsUserDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'vendors') {
-        await apiRequest(VENDOR_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'contracts') {
-        await apiRequest(CONTRACT_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'leads') {
-        await apiRequest(LEAD_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'applications') {
-        await apiRequest(APPLICATION_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'jobs') {
-        await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'newsPosts') {
-        await apiRequest(NEWS_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (module.type === 'serviceSamples') {
-        await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
-      } else if (workforceRecordTypes.includes(module.type)) {
-        await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(module.type, row.id), { method: 'DELETE' })
-      } else {
-        setToast('Delete API is not configured for this module yet.')
-        return
-      }
-
+      await deleteRowsForType(module.type, [row])
       setToast('Record deleted successfully.')
       await loadMongoData()
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Record could not be deleted.')
+    }
+  }
+
+  const deleteSelectedRecords = async (rows) => {
+    if (!rows.length) return
+
+    try {
+      await deleteRowsForType(module.type, rows)
+      setToast(`${rows.length} selected record${rows.length === 1 ? '' : 's'} deleted successfully.`)
+      await loadMongoData()
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Selected records could not be deleted.')
     }
   }
 
@@ -661,9 +677,10 @@ function EnterpriseAdminApp() {
                   onCreateOpenChange={setLegalBuilderOpen}
                   onSaved={async () => loadMongoData('legal-team')}
                   onDelete={deleteRecord}
+                  onDeleteSelected={deleteSelectedRecords}
                 />
               ) : (
-                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} />
+                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} />
               )}
             </div>
 
@@ -881,7 +898,7 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete }) {
+function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected }) {
   const ModuleIcon = pageMeta.icon
   const isLeadManagement = activePage === 'leads-management'
   const badgeItems = isLeadManagement ? ['Create Record', 'Refresh Data'] : ['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only']
@@ -920,6 +937,7 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
         onView={onView}
         onEdit={module.canEdit ? onEdit : null}
         onDelete={module.isLive ? onDelete : null}
+        onDeleteSelected={module.isLive ? onDeleteSelected : null}
         emptyText={module.emptyText}
       />
     </motion.div>
@@ -945,7 +963,7 @@ function ModuleSummary({ module }) {
   )
 }
 
-function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSaved, onDelete }) {
+function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSaved, onDelete, onDeleteSelected }) {
   const [step, setStep] = useState('list')
   const [mode, setMode] = useState('send')
   const [builderMode, setBuilderMode] = useState('edit')
@@ -1346,6 +1364,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
         onView={openContractForView}
         onEdit={openDraftForEdit}
         onDelete={onDelete}
+        onDeleteSelected={onDeleteSelected}
         emptyText={module.emptyText}
       />
     </motion.div>
