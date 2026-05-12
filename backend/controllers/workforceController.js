@@ -11,6 +11,7 @@ import { json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
 const assignedTaskReadAuth = requireRole(['admin', 'staff', 'vendor'])
+const assignedTaskWriteAuth = requireRole(['admin', 'staff', 'vendor'])
 const publicReadableTypes = new Set(['helpCenter', 'faqs'])
 const publicCreateTypes = new Set(['supportTickets', 'contactRequests'])
 
@@ -53,7 +54,7 @@ export async function listWorkforceRecords(request, { type }) {
     const publicVendor = vendor ? toPublicVendor(vendor) : null
     return json(200, {
       ok: true,
-      records: publicVendor ? records.filter((record) => isTaskAssignedToVendor(record, publicVendor)) : [],
+      records: publicVendor ? records.filter((record) => isTaskAssignedToVendor(record, publicVendor) || record.createdBy === auth.payload.sub) : [],
     })
   }
 
@@ -64,14 +65,17 @@ export async function listWorkforceRecords(request, { type }) {
 }
 
 export async function createSettingWorkforceRecord(request, { type }) {
-  const auth = settingsAuth(request)
+  const auth = type === 'assignedTasks' ? assignedTaskWriteAuth(request) : settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 
   const body = await readJson(request)
   if (!body.name) return validationError('Name is required')
 
-  const record = await createWorkforceRecord(type, body)
+  const record = await createWorkforceRecord(type, {
+    ...body,
+    createdBy: body.createdBy || auth.payload?.sub || '',
+  })
   return json(201, {
     ok: true,
     message: 'Record created successfully',

@@ -324,6 +324,8 @@ function EnterpriseAdminApp() {
       if (['admin', 'staff'].includes(currentRole)) {
         requestedCoreKeys.add('vendors')
         requestedCoreKeys.add('projects')
+      } else if (currentRole === 'vendor') {
+        requestedCoreKeys.add('users')
       }
     } else if (['legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('contracts')
@@ -3256,7 +3258,9 @@ function scopeDataForRole(data, currentUser) {
   }
 
   if (role === 'vendor' && Array.isArray(scoped.assignedTasks)) {
-    scoped.assignedTasks = scoped.assignedTasks.filter((task) => isTaskAssignedToCurrentVendor(task, currentUser))
+    scoped.assignedTasks = scoped.assignedTasks.filter((task) => (
+      isTaskAssignedToCurrentVendor(task, currentUser) || String(task.createdBy || '') === ownId
+    ))
   }
 
   for (const key of ['contracts', 'leads', 'newsPosts', 'serviceSamples']) {
@@ -3434,7 +3438,7 @@ function canCreateForRole(page, currentRole) {
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
   if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings'].includes(page)
-  if (role === 'vendor') return page === 'user-management'
+  if (role === 'vendor') return ['user-management', 'assign-tasks'].includes(page)
   return false
 }
 
@@ -3455,6 +3459,15 @@ function createVendorAssignOptions(vendors = []) {
     .filter(Boolean)
 
   return options.length ? options : ['No vendors available']
+}
+
+function createUserAssignOptions(users = []) {
+  const options = (users || [])
+    .filter((user) => String(user.role || '').toLowerCase() === 'user')
+    .map((user) => [user.name || user.email || 'User', user.email].filter(Boolean).join(' - '))
+    .filter(Boolean)
+
+  return options.length ? options : ['No users available']
 }
 
 function isTaskAssignedToCurrentVendor(task = {}, vendor = {}) {
@@ -3484,6 +3497,8 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
   const jobRoleOptions = Array.from(new Set((data.jobs || []).map((job) => job.title).filter(Boolean)))
   const hiringRoleOptions = jobRoleOptions.length ? jobRoleOptions : ['AI Solutions Associate', 'Digital Marketing Executive', 'Customer Support Specialist', 'Frontend Developer', 'HR Recruitment Coordinator']
   const vendorAssignOptions = createVendorAssignOptions(data.vendors)
+  const userAssignOptions = createUserAssignOptions(data.users)
+  const assigneeOptions = String(currentRole || '').toLowerCase() === 'vendor' ? userAssignOptions : vendorAssignOptions
   const projectAssignOptions = createProjectAssignOptions(data.projects)
   const map = {
     'user-management': [
@@ -3688,7 +3703,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     'assign-tasks': [
       { name: 'name', label: 'Task Name', ...commonRequired },
       { name: 'project', label: 'Project', type: 'select', options: projectAssignOptions, ...commonRequired },
-      { name: 'assignee', label: 'Assign To', type: 'select', options: vendorAssignOptions, ...commonRequired },
+      { name: 'assignee', label: 'Assign To', type: 'select', options: assigneeOptions, ...commonRequired },
       { name: 'deadline', label: 'Deadline', type: 'date' },
       { name: 'status', label: 'Status', type: 'select', options: ['Assigned', 'Accepted', 'In Progress', 'Completed'] },
       { name: 'notes', label: 'Instructions', type: 'textarea' },
