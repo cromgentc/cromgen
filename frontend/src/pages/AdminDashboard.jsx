@@ -3489,15 +3489,33 @@ function scopeDataForRole(data, currentUser) {
 
 function createStats(data, currentRole = 'admin') {
   const role = String(currentRole || '').toLowerCase()
+  const walletBalance = calculateWalletBalance(data.wallets)
   return [
     { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
     { label: 'Contracts', value: data.contracts.length, change: 'Open', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500', page: 'legal-team' },
     { label: 'Projects', value: data.projects.length, change: 'Live', icon: Layers3, tone: 'from-emerald-300 to-cyan-500', page: 'project-management' },
     { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
-    { label: 'Wallet', value: data.wallets.length, change: 'Live', icon: Wallet, tone: 'from-lime-300 to-emerald-500', page: 'wallet' },
+    { label: 'Wallet', value: role === 'vendor' ? formatMoney(walletBalance) : data.wallets.length, change: role === 'vendor' ? 'Balance' : 'Live', icon: Wallet, tone: 'from-lime-300 to-emerald-500', page: 'wallet' },
     { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
     { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
   ].filter((card) => role !== 'vendor' || !['Total Leads', 'Applications'].includes(card.label))
+}
+
+function calculateWalletBalance(wallets = []) {
+  if (!wallets.length) return 0
+  const latestBalance = wallets
+    .map((wallet) => Number(normalizeCurrencyAmount(wallet.balance) || 0))
+    .filter((value) => value > 0)
+    .at(0)
+  if (latestBalance) return latestBalance
+
+  return wallets.reduce((total, wallet) => total + Number(normalizeCurrencyAmount(wallet.amount) || 0), 0)
+}
+
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString('en-US', {
+    maximumFractionDigits: 2,
+  })
 }
 
 function createNotifications(data) {
