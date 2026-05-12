@@ -257,6 +257,7 @@ function EnterpriseAdminApp() {
   const [assignUserRequest, setAssignUserRequest] = useState(null)
   const [assignUserEmail, setAssignUserEmail] = useState('')
   const [assigningUser, setAssigningUser] = useState(false)
+  const [remarkRequest, setRemarkRequest] = useState(null)
 
   useEffect(() => {
     confirmActionHandler = (message) => new Promise((resolve) => {
@@ -689,22 +690,31 @@ function EnterpriseAdminApp() {
   }
 
   const updateWithdrawDecision = async (row, status) => {
-    const remark = window.prompt(`Enter remark for ${status}:`)
-    if (remark === null) return
+    setRemarkRequest({ row, status, remark: '', saving: false })
+  }
+
+  const submitWithdrawRemark = async (event) => {
+    event.preventDefault()
+    if (!remarkRequest) return
+    const { row, status } = remarkRequest
+    const remark = String(remarkRequest.remark || '').trim()
+    setRemarkRequest((current) => current ? { ...current, saving: true } : current)
     try {
       await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail('withdrawRequests', row.id), {
         method: 'POST',
         body: JSON.stringify({
           ...row,
           status,
-          approvalRemark: remark.trim(),
+          approvalRemark: remark,
           reviewedAt: new Date().toISOString(),
         }),
       })
       setToast(`Withdraw request marked ${status}.`)
+      setRemarkRequest(null)
       await loadMongoData(activePage)
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Withdraw request could not be updated.')
+      setRemarkRequest((current) => current ? { ...current, saving: false } : current)
     }
   }
 
@@ -1001,6 +1011,15 @@ function EnterpriseAdminApp() {
           message={confirmRequest?.message || ''}
           onYes={() => resolveConfirmRequest(true)}
           onNo={() => resolveConfirmRequest(false)}
+        />
+        <RemarkDialog
+          request={remarkRequest}
+          onChange={(remark) => setRemarkRequest((current) => current ? { ...current, remark } : current)}
+          onSubmit={submitWithdrawRemark}
+          onClose={() => {
+            if (remarkRequest?.saving) return
+            setRemarkRequest(null)
+          }}
         />
       </main>
     </div>
@@ -3011,6 +3030,37 @@ function ConfirmDialog({ open, message, onYes, onNo }) {
           </button>
         </div>
       </div>
+    </Modal>
+  )
+}
+
+function RemarkDialog({ request, onChange, onSubmit, onClose }) {
+  return (
+    <Modal open={Boolean(request)} title={`${request?.status || 'Update'} Remark`} onClose={onClose}>
+      <form onSubmit={onSubmit} className="space-y-5">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Request</p>
+          <p className="mt-2 text-sm font-black text-white">{request?.row?.name || 'Withdraw request'}</p>
+        </div>
+        <label className="block">
+          <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Remark</span>
+          <textarea
+            rows={4}
+            value={request?.remark || ''}
+            onChange={(event) => onChange(event.target.value)}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
+            placeholder="Type remark..."
+          />
+        </label>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={request?.saving} className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white hover:bg-white/15 disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="submit" disabled={request?.saving} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-60">
+            {request?.saving ? 'Saving...' : 'Save Remark'}
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }
