@@ -1,24 +1,56 @@
 import { ChevronDown, Download, Eye, FileDown, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState(columns[0]?.key || 'id')
   const [page, setPage] = useState(1)
   const [openActionId, setOpenActionId] = useState('')
+  const [filterKey, setFilterKey] = useState('')
+  const [filterValue, setFilterValue] = useState('')
+  const [filterOpen, setFilterOpen] = useState(false)
   const pageSize = 8
+  const filterableColumns = useMemo(() => {
+    const preferredKeys = ['status', 'category', 'service', 'role', 'department', 'type', 'priority', 'projectStatus', 'location']
+    return columns.filter((column) => preferredKeys.includes(column.key))
+  }, [columns])
+  const filterOptions = useMemo(() => {
+    if (!filterKey) return []
+
+    return Array.from(new Set(rows.map((row) => String(row[filterKey] ?? '').trim()).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b))
+  }, [filterKey, rows])
 
   const filteredRows = useMemo(() => {
     const value = query.trim().toLowerCase()
-    const visible = value
+    const searched = value
       ? rows.filter((row) => Object.values(row).some((item) => String(item ?? '').toLowerCase().includes(value)))
       : rows
+    const visible = filterKey && filterValue
+      ? searched.filter((row) => String(row[filterKey] ?? '') === filterValue)
+      : searched
 
     return [...visible].sort((a, b) => String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? '')))
-  }, [query, rows, sortKey])
+  }, [filterKey, filterValue, query, rows, sortKey])
 
   const pagedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize)
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+
+  useEffect(() => {
+    setPage(1)
+  }, [query, filterKey, filterValue])
+
+  useEffect(() => {
+    if (!filterKey && filterableColumns.length) {
+      setFilterKey(filterableColumns[0].key)
+    }
+  }, [filterKey, filterableColumns])
+
+  useEffect(() => {
+    if (filterValue && !filterOptions.includes(filterValue)) {
+      setFilterValue('')
+    }
+  }, [filterOptions, filterValue])
 
   const exportCsv = () => {
     const csvRows = [
@@ -45,9 +77,63 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
             <Search size={16} />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search table" className="w-44 bg-transparent text-white outline-none placeholder:text-slate-500" />
           </label>
-          <button type="button" className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
-            Filter <ChevronDown size={15} />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setFilterOpen((open) => !open)}
+              disabled={!filterableColumns.length}
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {filterValue ? `Filter: ${filterValue}` : 'Filter'} <ChevronDown size={15} />
+            </button>
+            {filterOpen ? (
+              <div className="absolute right-0 top-12 z-30 w-72 rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-2xl shadow-black/30">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Field</span>
+                  <select
+                    value={filterKey}
+                    onChange={(event) => {
+                      setFilterKey(event.target.value)
+                      setFilterValue('')
+                    }}
+                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-900 px-3 text-sm font-bold text-white outline-none"
+                  >
+                    {filterableColumns.map((column) => (
+                      <option key={column.key} value={column.key}>{column.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="mt-3 block">
+                  <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Value</span>
+                  <select
+                    value={filterValue}
+                    onChange={(event) => {
+                      setFilterValue(event.target.value)
+                      setFilterOpen(false)
+                    }}
+                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-900 px-3 text-sm font-bold text-white outline-none"
+                  >
+                    <option value="">All records</option>
+                    {filterOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                {filterValue ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterValue('')
+                      setFilterOpen(false)
+                    }}
+                    className="mt-3 w-full rounded-xl bg-white/10 px-3 py-2 text-sm font-black text-white hover:bg-white/15"
+                  >
+                    Clear Filter
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15">
             <Download size={15} /> CSV
           </button>
