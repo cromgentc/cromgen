@@ -49,7 +49,7 @@ const authConfig = {
     fields: ['email', 'password'],
     switchLabel: 'Register as vendor',
     switchHref: '/vendor-register',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/vendor-dashboard',
   },
   'user-register': {
     eyebrow: 'User Portal',
@@ -73,7 +73,7 @@ const authConfig = {
     fields: ['accountType', 'name', 'company', 'email', 'phone', 'serviceCategory', 'portfolio', 'experience', 'password'],
     switchLabel: 'Already registered?',
     switchHref: '/vendor-login',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/vendor-dashboard',
   },
   'candidate-login': {
     eyebrow: 'Candidate Portal',
@@ -110,7 +110,7 @@ const unifiedLoginRoles = {
   },
   vendor: {
     label: 'Vendor',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/vendor-dashboard',
   },
   staff: {
     label: 'Staff',
