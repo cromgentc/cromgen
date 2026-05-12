@@ -67,6 +67,15 @@ export async function findUsers() {
   return users.map(toPublicUser)
 }
 
+export async function findUsersCreatedBy(userId) {
+  const users = await collection()
+    .find({ createdBy: String(userId || '') }, { projection: { passwordHash: 0 } })
+    .sort({ createdAt: -1 })
+    .toArray()
+
+  return users.map(toPublicUser)
+}
+
 export function countUsersByRole(role) {
   return collection().countDocuments({
     role,
@@ -74,7 +83,7 @@ export function countUsersByRole(role) {
   })
 }
 
-export async function createUser({ name, email, password, role, phone = '', title = '', location = '' }) {
+export async function createUser({ name, email, password, role, phone = '', title = '', location = '', createdBy = '' }) {
   const now = new Date()
   const normalizedEmail = String(email).trim().toLowerCase()
   const existing = await collection().findOne({ email: normalizedEmail, role })
@@ -91,6 +100,7 @@ export async function createUser({ name, email, password, role, phone = '', titl
     phone: String(phone || '').trim(),
     title: String(title || '').trim(),
     location: String(location || '').trim(),
+    createdBy: String(createdBy || '').trim(),
     passwordHash: hashPassword(password),
     isActive: true,
     createdAt: now,
@@ -155,6 +165,7 @@ export function toPublicUser(user) {
     location: user.location || '',
     bio: user.bio || '',
     socialLinks: normalizeProfileSocialLinks(user.socialLinks),
+    createdBy: user.createdBy || '',
     isActive: user.isActive !== false,
     createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : '',
     updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : '',

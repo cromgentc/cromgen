@@ -4,6 +4,7 @@ import {
   findActiveUserByEmailAndRole,
   findActiveUserById,
   findUsers,
+  findUsersCreatedBy,
   toPublicUser,
   updateUserProfile,
   updateUserStatus,
@@ -14,6 +15,7 @@ import {
   findVendorByEmail,
   findVendorById,
   findVendors,
+  findVendorsCreatedBy,
   toPublicVendor,
   updateVendorStatus,
 } from '../models/Vendor.js'
@@ -188,9 +190,15 @@ export async function listSettingUsers(request) {
 
   if (auth.payload?.role !== 'admin') {
     const user = await findActiveUserById(auth.payload?.sub)
+    const createdUsers = await findUsersCreatedBy(auth.payload?.sub)
+    const users = [
+      ...(user && ['staff', 'user'].includes(user.role) ? [toPublicUser(user)] : []),
+      ...createdUsers,
+    ]
+
     return json(200, {
       ok: true,
-      users: user && ['staff', 'user'].includes(user.role) ? [toPublicUser(user)] : [],
+      users: dedupeById(users),
     })
   }
 
@@ -225,7 +233,7 @@ export async function createSettingUser(request) {
   }
 
   try {
-    const user = await createUser({ name, email, password, role })
+    const user = await createUser({ name, email, password, role, createdBy: auth.payload?.sub })
     return json(201, {
       ok: true,
       message: 'User added successfully',
@@ -291,7 +299,7 @@ export async function listSettingVendors(request) {
   if (auth.payload?.role === 'staff') {
     return json(200, {
       ok: true,
-      vendors: [],
+      vendors: await findVendorsCreatedBy(auth.payload?.sub),
     })
   }
 
@@ -315,6 +323,7 @@ export async function createSettingVendor(request) {
   try {
     const vendor = await createVendor({
       ...body,
+      createdBy: auth.payload?.sub,
       status: body.status || 'active',
     })
 
@@ -330,6 +339,15 @@ export async function createSettingVendor(request) {
 
     throw error
   }
+}
+
+function dedupeById(records = []) {
+  const seen = new Set()
+  return records.filter((record) => {
+    if (!record?.id || seen.has(record.id)) return false
+    seen.add(record.id)
+    return true
+  })
 }
 
 export async function updateSettingVendorStatus(request, { id }) {

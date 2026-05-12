@@ -26,6 +26,7 @@ export async function createVendor(payload) {
     message: payload.message ? String(payload.message).trim() : '',
     passwordHash: hashPassword(payload.password),
     status: payload.status ? String(payload.status).trim() : 'pending',
+    createdBy: payload.createdBy ? String(payload.createdBy).trim() : '',
     createdAt: now,
     updatedAt: now,
   }
@@ -37,6 +38,15 @@ export async function createVendor(payload) {
 export async function findVendors() {
   const vendors = await collection()
     .find({}, { projection: { passwordHash: 0 } })
+    .sort({ createdAt: -1 })
+    .toArray()
+
+  return vendors.map(toPublicVendor)
+}
+
+export async function findVendorsCreatedBy(userId) {
+  const vendors = await collection()
+    .find({ createdBy: String(userId || '') }, { projection: { passwordHash: 0 } })
     .sort({ createdAt: -1 })
     .toArray()
 
@@ -98,6 +108,7 @@ export function toPublicVendor(vendor) {
     experience: vendor.experience,
     message: vendor.message,
     status: vendor.status,
+    createdBy: vendor.createdBy || '',
     createdAt: vendor.createdAt ? new Date(vendor.createdAt).toISOString() : '',
     updatedAt: vendor.updatedAt ? new Date(vendor.updatedAt).toISOString() : '',
   }

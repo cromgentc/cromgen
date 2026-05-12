@@ -443,6 +443,7 @@ function EnterpriseAdminApp() {
 
     try {
       const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || 'admin'
+      let nextPage = activePage
       const normalizedForm = activePage === 'user-management'
         ? {
             ...form,
@@ -457,6 +458,7 @@ function EnterpriseAdminApp() {
       } else if (activePage === 'user-management') {
         if (normalizedForm.role === 'vendor') {
           await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify({ ...normalizedForm, status: 'active' }) })
+          nextPage = 'vendor-management'
         } else {
           await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(normalizedForm) })
         }
@@ -483,7 +485,8 @@ function EnterpriseAdminApp() {
       setModalOpen(false)
       setToast(editingRecord ? 'Record updated successfully.' : 'Record saved successfully.')
       setEditingRecord(null)
-      await loadMongoData()
+      setActivePage(nextPage)
+      await loadMongoData(nextPage)
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Record could not be saved.')
     } finally {
@@ -3109,7 +3112,7 @@ function countMonth(items, monthNumber) {
 function getRoleCreationOptions(currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'vendor') return ['user']
-  if (role === 'staff') return ['vendor', 'user']
+  if (role === 'staff') return ['user', 'vendor']
   return ['staff', 'admin', 'vendor', 'user']
 }
 
