@@ -1,5 +1,6 @@
 import { ChevronDown, Download, Eye, FileDown, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Modal } from './Modal.jsx'
 
 export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, onDeleteSelected, emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
@@ -10,6 +11,7 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
   const [filterValue, setFilterValue] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
+  const [confirmRequest, setConfirmRequest] = useState(null)
   const pageSize = 8
   const getRowKey = (row) => String(row.id || row.slug || row.email || row.name || row.title)
   const filterableColumns = useMemo(() => {
@@ -96,9 +98,18 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
 
   const deleteSelectedRows = async () => {
     if (!selectedRows.length) return
-    if (!window.confirm(`Are you sure you want to delete ${selectedRows.length} selected record${selectedRows.length === 1 ? '' : 's'}?`)) return
-    await onDeleteSelected?.(selectedRows)
-    setSelectedIds([])
+    setConfirmRequest({
+      message: `Are you sure you want to delete ${selectedRows.length} selected record${selectedRows.length === 1 ? '' : 's'}?`,
+      action: async () => {
+        await onDeleteSelected?.(selectedRows)
+        setSelectedIds([])
+      },
+    })
+  }
+
+  const confirmDelete = async () => {
+    await confirmRequest?.action?.()
+    setConfirmRequest(null)
   }
 
   return (
@@ -263,7 +274,7 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
                           </button>
                         ) : null}
                         {onDelete ? (
-                          <button type="button" onClick={() => { setOpenActionId(''); if (window.confirm('Are you sure you want to delete this record?')) onDelete(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-rose-200 hover:bg-rose-400/10">
+                          <button type="button" onClick={() => { setOpenActionId(''); setConfirmRequest({ message: 'Are you sure you want to delete this record?', action: () => onDelete(row) }) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-rose-200 hover:bg-rose-400/10">
                             <Trash2 size={15} /> Delete
                           </button>
                         ) : null}
@@ -291,6 +302,19 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
           <button type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded-xl bg-white/10 px-3 py-2 font-bold text-white disabled:opacity-40" disabled={page === totalPages}>Next</button>
         </div>
       </div>
+      <Modal open={Boolean(confirmRequest)} title="Are you sure?" onClose={() => setConfirmRequest(null)}>
+        <div className="space-y-5">
+          <p className="text-sm font-semibold leading-6 text-slate-300">{confirmRequest?.message}</p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setConfirmRequest(null)} className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white hover:bg-white/15">
+              No
+            </button>
+            <button type="button" onClick={confirmDelete} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20">
+              Yes
+            </button>
+          </div>
+        </div>
+      </Modal>
     </section>
   )
 }

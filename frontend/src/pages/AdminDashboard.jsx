@@ -177,7 +177,12 @@ const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team 
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
 const dashboardPages = ['dashboard']
-const confirmAction = (message) => window.confirm(message)
+let confirmActionHandler = null
+const confirmAction = (message) => (
+  confirmActionHandler
+    ? confirmActionHandler(message)
+    : Promise.resolve(true)
+)
 const workforceRecordTypes = [
   'candidates',
   'teams',
@@ -247,6 +252,22 @@ function EnterpriseAdminApp() {
   const [clearedNotifications, setClearedNotifications] = useState(false)
   const [messages, setMessages] = useState(() => readStoredMessages())
   const [legalBuilderOpen, setLegalBuilderOpen] = useState(false)
+  const [confirmRequest, setConfirmRequest] = useState(null)
+
+  useEffect(() => {
+    confirmActionHandler = (message) => new Promise((resolve) => {
+      setConfirmRequest({ message, resolve })
+    })
+
+    return () => {
+      confirmActionHandler = null
+    }
+  }, [])
+
+  const resolveConfirmRequest = (value) => {
+    confirmRequest?.resolve(value)
+    setConfirmRequest(null)
+  }
 
   const loadMongoData = async (page = activePage) => {
     const coreRequestMap = {
@@ -389,7 +410,7 @@ function EnterpriseAdminApp() {
 
   const createRecord = async (event) => {
     event.preventDefault()
-    if (!confirmAction(editingRecord ? 'Are you sure you want to save changes?' : 'Are you sure you want to save this record?')) return
+    if (!await confirmAction(editingRecord ? 'Are you sure you want to save changes?' : 'Are you sure you want to save this record?')) return
     setSaving(true)
 
     try {
@@ -526,7 +547,7 @@ function EnterpriseAdminApp() {
   }
 
   const saveSiteSettings = async (settings) => {
-    if (!confirmAction('Are you sure you want to save settings?')) return
+    if (!await confirmAction('Are you sure you want to save settings?')) return
     try {
       const response = await apiRequest(SITE_ENDPOINTS.settingsDetail, {
         method: 'POST',
@@ -540,7 +561,7 @@ function EnterpriseAdminApp() {
   }
 
   const savePolicySettings = async (slug, policy) => {
-    if (!confirmAction('Are you sure you want to save this page?')) return
+    if (!await confirmAction('Are you sure you want to save this page?')) return
     try {
       const response = await apiRequest(POLICY_ENDPOINTS.settingsDetail(slug), {
         method: 'POST',
@@ -557,7 +578,7 @@ function EnterpriseAdminApp() {
   }
 
   const saveProfileSettings = async (profile) => {
-    if (!confirmAction('Are you sure you want to save profile changes?')) return
+    if (!await confirmAction('Are you sure you want to save profile changes?')) return
     try {
       const response = await apiRequest(AUTH_ENDPOINTS.updateCurrentUser, {
         method: 'POST',
@@ -750,6 +771,12 @@ function EnterpriseAdminApp() {
           onClose={() => setModalOpen(false)}
         />
         <DetailsModal record={detailsRecord} onClose={() => setDetailsRecord(null)} />
+        <ConfirmDialog
+          open={Boolean(confirmRequest)}
+          message={confirmRequest?.message || ''}
+          onYes={() => resolveConfirmRequest(true)}
+          onNo={() => resolveConfirmRequest(false)}
+        />
       </main>
     </div>
   )
@@ -1134,7 +1161,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       return
     }
 
-    if (!confirmAction(status === 'draft' ? 'Are you sure you want to save this contract?' : 'Are you sure you want to save and send this contract?')) return
+    if (!await confirmAction(status === 'draft' ? 'Are you sure you want to save this contract?' : 'Are you sure you want to save and send this contract?')) return
     setSaving(true)
     setMessage('')
 
@@ -1536,7 +1563,7 @@ function PolicySettingsPage({ policies, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!confirmAction('Are you sure you want to save changes?')) return
+    if (!await confirmAction('Are you sure you want to save changes?')) return
     setSaving(true)
     await onSave(draft.slug, draft)
     setSaving(false)
@@ -1672,7 +1699,7 @@ function SeoSettingsPage({ settings, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!confirmAction('Are you sure you want to save changes?')) return
+    if (!await confirmAction('Are you sure you want to save changes?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -1755,7 +1782,7 @@ function ThemeCustomizationPage({ settings, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!confirmAction('Are you sure you want to save changes?')) return
+    if (!await confirmAction('Are you sure you want to save changes?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -1951,7 +1978,7 @@ function SettingsModule({ activePage, settings, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!confirmAction('Are you sure you want to save settings?')) return
+    if (!await confirmAction('Are you sure you want to save settings?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -2125,7 +2152,7 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!confirmAction('Are you sure you want to save profile changes?')) return
+    if (!await confirmAction('Are you sure you want to save profile changes?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -2365,6 +2392,24 @@ function DetailsModal({ record, onClose }) {
               <p className="mt-2 break-words text-sm font-semibold text-white">{String(value)}</p>
             </div>
           ))}
+      </div>
+    </Modal>
+  )
+}
+
+function ConfirmDialog({ open, message, onYes, onNo }) {
+  return (
+    <Modal open={open} title="Are you sure?" onClose={onNo}>
+      <div className="space-y-5">
+        <p className="text-sm font-semibold leading-6 text-slate-300">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onNo} className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white hover:bg-white/15">
+            No
+          </button>
+          <button type="button" onClick={onYes} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20">
+            Yes
+          </button>
+        </div>
       </div>
     </Modal>
   )
