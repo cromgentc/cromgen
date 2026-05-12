@@ -617,7 +617,7 @@ function EnterpriseAdminApp() {
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : (
-                <EnterpriseModule pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} />
+                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} />
               )}
             </div>
 
@@ -835,8 +835,10 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ pageMeta, module, onView, onEdit, onDelete }) {
+function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete }) {
   const ModuleIcon = pageMeta.icon
+  const isLeadManagement = activePage === 'leads-management'
+  const badgeItems = isLeadManagement ? ['Create Record', 'Refresh Data'] : ['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only']
 
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
@@ -845,14 +847,16 @@ function EnterpriseModule({ pageMeta, module, onView, onEdit, onDelete }) {
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-500 text-white shadow-lg shadow-cyan-500/20">
             <ModuleIcon size={24} />
           </span>
-          <h2 className="mt-6 text-2xl font-black text-white">{pageMeta.title} Workspace</h2>
+          <h2 className="mt-6 text-2xl font-black text-white">{isLeadManagement ? 'Lead Management' : `${pageMeta.title} Workspace`}</h2>
           <p className="mt-3 text-sm leading-7 text-slate-400">
-            {module.isLive
+            {isLeadManagement
+              ? 'CRM & Sales. Dashboard renders live data from the backend REST APIs.'
+              : module.isLive
               ? 'This module reads live data from the backend. Search, sorting, pagination, CSV/PDF export, and delete actions are connected.'
               : 'The backend collection/API is not configured for this sidebar module yet.'}
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only'].map((item) => (
+            {badgeItems.map((item) => (
               <div key={item} className="rounded-2xl bg-slate-950/35 p-4 text-sm font-bold text-slate-200">
                 <CheckCircle2 className="mb-3 text-cyan-200" size={18} /> {item}
               </div>
