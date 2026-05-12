@@ -124,7 +124,7 @@ const emptyData = {
 const formDefaults = {
   'user-management': { name: '', email: '', password: '', role: 'staff' },
   'vendor-management': { name: '', company: '', email: '', phone: '', serviceCategory: '', password: '', status: 'active' },
-  'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', projectPriority: 'Medium', startDate: '', dueDate: '', budget: '', googleDocUrl: '', contractBody: '' },
+  'project-management': { title: '', senderName: 'Cromgen Technology', projectStatus: 'active', projectPriority: 'Medium', startDate: '', dueDate: '', budget: '', googleDocUrl: '', contractBody: '' },
   'legal-team': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
@@ -2409,6 +2409,18 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
     const value = form[fieldName] || ''
     onChange(fieldName, `${value}${value ? '\n' : ''}${text}`)
   }
+  const updateInputValue = (field, value) => {
+    if (!field.numericOnly) {
+      onChange(field.name, value)
+      return
+    }
+
+    const numericValue = value
+      .replace(/[^\d.]/g, '')
+      .replace(/(\..*)\./g, '$1')
+
+    onChange(field.name, numericValue)
+  }
 
   const updateFileField = async (fieldName, file) => {
     if (!file) return
@@ -2508,9 +2520,12 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
                 <input
                   type={field.type || 'text'}
                   value={form[field.name] || ''}
-                  onChange={(event) => onChange(field.name, event.target.value)}
+                  onChange={(event) => updateInputValue(field, event.target.value)}
                   className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
                   required={field.required}
+                  min={field.min}
+                  step={field.step}
+                  inputMode={field.numericOnly ? 'decimal' : undefined}
                 />
               )}
             </label>
@@ -2544,17 +2559,21 @@ function createVendorPayload(form = {}) {
 }
 
 function createProjectPayload(form = {}) {
+  const normalizedBudget = String(form.budget || '')
+    .replace(/[^\d.]/g, '')
+    .replace(/(\..*)\./g, '$1')
+
   return {
     ...form,
     title: String(form.title || '').trim(),
-    recipientName: String(form.recipientName || '').trim(),
-    recipientEmail: String(form.recipientEmail || '').trim().toLowerCase(),
+    recipientName: '',
+    recipientEmail: '',
     senderName: String(form.senderName || 'Cromgen Technology').trim(),
     projectStatus: form.projectStatus || 'active',
     projectPriority: form.projectPriority || 'Medium',
     startDate: String(form.startDate || '').trim(),
     dueDate: String(form.dueDate || '').trim(),
-    budget: String(form.budget || '').trim(),
+    budget: normalizedBudget,
     googleDocUrl: String(form.googleDocUrl || '').trim(),
     contractBody: String(form.contractBody || '').trim(),
     status: form.status || 'draft',
@@ -2747,10 +2766,10 @@ function getModuleConfig(page, data) {
       rows: data.contracts.map((contract) => ({
         id: contract.signingToken || contract.slug,
         title: contract.title,
-        recipientName: contract.recipientName,
-        recipientEmail: contract.recipientEmail,
-        client: contract.recipientName,
-        email: contract.recipientEmail,
+        recipientName: isLegalTeam ? contract.recipientName : '',
+        recipientEmail: isLegalTeam ? contract.recipientEmail : '',
+        client: isLegalTeam ? contract.recipientName : '',
+        email: isLegalTeam ? contract.recipientEmail : '',
         senderName: contract.senderName,
         projectPriority: contract.projectPriority || 'Medium',
         startDate: contract.startDate,
@@ -2767,7 +2786,7 @@ function getModuleConfig(page, data) {
       })),
       columns: commonColumns(isLegalTeam
         ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'createdAt']
-        : ['title', 'client', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'googleDocUrl', 'createdAt']),
+        : ['title', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'googleDocUrl', 'createdAt']),
       emptyText: isLegalTeam ? 'The legal contracts collection is empty.' : 'No projects added yet.',
     }
   }
@@ -3293,14 +3312,12 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     ],
     'project-management': [
       { name: 'title', label: 'Project Name', ...commonRequired },
-      { name: 'recipientName', label: 'Client Name' },
-      { name: 'recipientEmail', label: 'Client Email', type: 'email' },
       { name: 'senderName', label: 'Project Owner' },
       { name: 'projectStatus', label: 'Project Status', type: 'select', options: ['live', 'active', 'inactive', 'closed'] },
       { name: 'projectPriority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
       { name: 'startDate', label: 'Start Date', type: 'date' },
       { name: 'dueDate', label: 'Due Date', type: 'date' },
-      { name: 'budget', label: 'Budget' },
+      { name: 'budget', label: 'Budget', type: 'number', min: 0, step: '0.01', numericOnly: true },
       { name: 'googleDocUrl', label: 'Project Notes / Google Link', type: 'url' },
       { name: 'contractBody', label: 'Project Details', type: 'textarea' },
     ],
