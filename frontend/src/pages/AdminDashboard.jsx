@@ -977,7 +977,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
     setActiveFieldId('')
     setBuilderMode('edit')
     setMode('send')
-    setStep('editor')
+    setStep('details')
     onCreateOpenChange?.(true)
     setMessage('')
   }
