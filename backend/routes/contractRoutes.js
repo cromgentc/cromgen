@@ -6,6 +6,7 @@ import {
   getPublicSignedContractFile,
   getPublicContractForSigning,
   listSettingContracts,
+  previewSettingContractFile,
   signCompanyPublicContract,
   signPublicContract,
   updateSettingContract,
@@ -14,6 +15,7 @@ import {
 export const contractRoutes = [
   { method: 'GET', path: '/api/settings/contracts', handler: listSettingContracts },
   { method: 'POST', path: '/api/settings/contracts', handler: createSettingContract },
+  { method: 'POST', path: '/api/settings/contracts/preview', handler: previewSettingContractFile },
   { method: 'POST', path: /^\/api\/settings\/contracts\/([^/]+)$/, params: ['token'], handler: updateSettingContract },
   { method: 'DELETE', path: /^\/api\/settings\/contracts\/([^/]+)$/, params: ['token'], handler: deleteSettingContract },
   { method: 'GET', path: /^\/api\/contracts\/([^/]+)\/file$/, params: ['token'], handler: getPublicContractFile },

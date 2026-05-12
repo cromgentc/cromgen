@@ -87,6 +87,7 @@ export const JOB_ENDPOINTS = {
 
 export const CONTRACT_ENDPOINTS = {
   settingsList: '/api/settings/contracts',
+  settingsPreview: '/api/settings/contracts/preview',
   settingsDetail: (token) => `/api/settings/contracts/${encodeURIComponent(token)}`,
   settingsDelete: (token) => `/api/settings/contracts/${encodeURIComponent(token)}`,
   publicSignDetail: (token) => `/api/contracts/${encodeURIComponent(token)}`,

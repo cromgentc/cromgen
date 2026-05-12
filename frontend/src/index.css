@@ -7857,9 +7857,16 @@ header #mobile-navigation summary:hover {
   font-weight: 600;
 }
 
+.legal-document-source {
+  margin: -10px 0 20px;
+  color: #475467;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
 .legal-document-paper textarea {
   width: 100%;
-  min-height: 620px;
+  min-height: 680px;
   border: 0;
   background: transparent;
   color: #111827;
@@ -7868,6 +7875,7 @@ header #mobile-navigation summary:hover {
   line-height: 1.75;
   outline: none;
   resize: vertical;
+  white-space: pre-wrap;
 }
 
 .legal-field-overlay {
@@ -7883,11 +7891,12 @@ header #mobile-navigation summary:hover {
   max-width: 210px;
   transform: translate(-50%, -50%);
   gap: 2px;
-  border: 1px solid #23865f;
+  border: 1px solid rgba(16, 24, 40, 0.35);
   border-radius: 3px;
-  background: rgba(216, 248, 239, 0.96);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(2px);
   padding: 5px 8px;
-  color: #063f2a;
+  color: #101828;
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -7896,6 +7905,7 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-placed-field.is-active {
+  background: rgba(255, 255, 255, 0.9);
   outline: 2px solid #101828;
   outline-offset: 2px;
 }

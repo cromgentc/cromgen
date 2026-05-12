@@ -87,6 +87,29 @@ export async function updateSettingContract(request, { token }) {
   })
 }
 
+export async function previewSettingContractFile(request) {
+  const auth = settingsAuth(request)
+  if (auth.error) return auth.error
+
+  const body = await readJson(request)
+  const file = body.contractFile
+  if (!file?.data) return validationError('Contract file is required')
+
+  if (!isDocxFile(file)) {
+    return validationError('Only DOCX contract files can be previewed')
+  }
+
+  const fileBody = decodeDataUrl(file.data)
+  if (!fileBody) return validationError('Contract file could not be read')
+
+  const result = await mammoth.extractRawText({ buffer: fileBody })
+
+  return json(200, {
+    ok: true,
+    text: result.value || '',
+  })
+}
+
 export async function getPublicContractForSigning(_request, { token }) {
   const contract = await findContractByToken(token)
   if (!contract) return notFound('Contract not found')

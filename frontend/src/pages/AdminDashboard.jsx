@@ -1004,18 +1004,37 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
     if (!file) return
     const dataUrl = await fileToDataUrl(file)
     const isDocx = /\.(docx)$/i.test(file.name) || /wordprocessingml/i.test(file.type)
+    const contractFile = isDocx ? {
+      name: file.name,
+      type: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      data: dataUrl,
+    } : null
+    let extractedBody = ''
+    if (isDocx && contractFile) {
+      try {
+        const preview = await apiRequest(CONTRACT_ENDPOINTS.settingsPreview, {
+          method: 'POST',
+          body: JSON.stringify({ contractFile }),
+        })
+        extractedBody = String(preview.text || '').trim()
+      } catch {
+        extractedBody = ''
+      }
+    } else if (/^text\//i.test(file.type) || /\.txt$/i.test(file.name)) {
+      extractedBody = (await file.text()).trim()
+    }
+
     setDraft((current) => ({
       ...current,
       documentName: current.documentName || file.name.replace(/\.[^.]+$/, ''),
       fileName: file.name,
       filePreview: dataUrl,
-      contractFile: isDocx ? {
-        name: file.name,
-        type: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        data: dataUrl,
-      } : null,
-      contractBody: current.contractBody || `Contract document: ${file.name}\n\nAdd agreement terms, scope, payment terms, responsibilities, and signature instructions here.`,
+      contractFile,
+      contractBody: current.contractBody || extractedBody,
     }))
+    if (isDocx && !extractedBody) {
+      setMessage('DOCX attached. If text does not appear, paste the agreement content into the editor before sending.')
+    }
   }
 
   const submitContract = async () => {
@@ -1035,7 +1054,7 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
         senderName: draft.senderName.trim() || 'Cromgen Technology',
         projectStatus: 'active',
         contractBody: [
-          draft.contractBody.trim() || `${draft.documentName.trim()}\n\nContract terms and signing details.`,
+          draft.contractBody,
           placedFields.length ? '\n\nSigning fields:\n' : '',
           ...placedFields.map((field) => `- ${field.label}: ${field.value || field.type}`),
         ].join('\n'),
@@ -1165,10 +1184,11 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
                   onDrop={dropSigningField}
                 >
                   <h1>{draft.documentName || 'Agreement'}</h1>
+                  {draft.fileName ? <p className="legal-document-source">Attached document: {draft.fileName}</p> : null}
                   <textarea
                     value={draft.contractBody}
                     onChange={(event) => updateDraft('contractBody', event.target.value)}
-                    placeholder="Add agreement description, clauses, payment terms, scope, responsibilities, and signing instructions..."
+                    placeholder="Paste or write the full agreement content here. This text will be saved and shown on the signing page."
                   />
                   <div className="legal-field-overlay" aria-label="Placed signing fields">
                     {placedFields.map((field) => (
