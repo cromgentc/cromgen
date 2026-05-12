@@ -40,12 +40,18 @@ export async function createSettingContract(request) {
   }
 
   const contract = await createContract(body)
+  const origin = process.env.APP_ORIGIN || request.headers.origin || `http://${request.headers.host}`
+  const signingUrl = `${origin.replace(/\/$/, '')}/contract-sign/${contract.signingToken}`
+  const emailResult = await sendContractRequestEmail(contract, signingUrl).catch((error) => ({
+    sent: false,
+    reason: error instanceof Error ? error.message : 'Email failed',
+  }))
 
   return json(201, {
     ok: true,
-    message: 'Project saved successfully.',
+    message: emailResult.sent ? 'Contract sent to recipient successfully.' : 'Contract saved, but email could not be sent.',
     contract,
-    email: { sent: false, reason: 'First party signature required before email is sent' },
+    email: emailResult,
   })
 }
 
@@ -255,10 +261,6 @@ export async function signPublicContract(request, { token }) {
     companySignatureName: body.companySignatureName || existingContract.senderName || 'Cromgen Technology',
     signatureName: body.signatureName || existingContract.recipientName,
     signerEmail: body.signerEmail || existingContract.recipientEmail,
-  }
-
-  if (!existingContract.companySignatureData) {
-    return validationError('First party signature is required before second party can sign')
   }
 
   if (!signedBody.signatureName || !signedBody.signerEmail || !signedBody.signatureData) {

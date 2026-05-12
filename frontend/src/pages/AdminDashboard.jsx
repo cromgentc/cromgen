@@ -1065,12 +1065,8 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
         body: JSON.stringify(payload),
       })
       await onSaved?.()
-      const signingToken = response.contract?.signingToken
-      if (signingToken) {
-        window.location.assign(`/contract-sign/${signingToken}`)
-        return
-      }
-      setMessage('Contract saved. Open it from the records table to sign.')
+      setStep('list')
+      setMessage(response.message || 'Contract sent to recipient successfully.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Contract could not be saved.')
     } finally {

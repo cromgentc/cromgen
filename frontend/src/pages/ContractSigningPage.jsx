@@ -32,7 +32,7 @@ export function ContractSigningPage({ token }) {
   const signatureType = isFirstParty ? 'company' : 'client'
   const datePlacementType = `${signatureType}-date`
   const savedSignature = isFirstParty ? formData.companySignatureData : formData.signatureData
-  const canSecondPartySign = isFirstParty || Boolean(contract?.companySignatureData)
+  const canSecondPartySign = true
 
   useEffect(() => {
     const authToken = localStorage.getItem('cromgen_auth_token')
@@ -267,11 +267,6 @@ export function ContractSigningPage({ token }) {
     const hasSignature = (formData.signaturePlacements || []).some((placement) => placement.type === signatureType)
     if (!savedSignature || !hasSignature) {
       setStatus({ type: 'error', message: 'Please add and place your signature before submitting.' })
-      return
-    }
-
-    if (!isFirstParty && !contract.companySignatureData) {
-      setStatus({ type: 'error', message: 'First party must sign before you can submit.' })
       return
     }
 
