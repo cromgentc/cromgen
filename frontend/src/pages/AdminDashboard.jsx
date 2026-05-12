@@ -329,10 +329,11 @@ function EnterpriseAdminApp() {
       ]),
     )
     const currentUser = currentUserRequest[0]?.status === 'fulfilled' ? currentUserRequest[0].value : {}
+    const scopedCoreData = scopeDataForRole(coreData, currentUser.user)
 
     setData((current) => ({
       ...current,
-      ...coreData,
+      ...scopedCoreData,
       ...workforceData,
     }))
     setCurrentAdmin(currentUser.user || null)
@@ -2890,6 +2891,34 @@ function fileToDataUrl(file) {
     reader.onerror = () => reject(reader.error)
     reader.readAsDataURL(file)
   })
+}
+
+function scopeDataForRole(data, currentUser) {
+  const role = String(currentUser?.role || localStorage.getItem('cromgen_auth_role') || '').toLowerCase()
+  if (role === 'admin') return data
+
+  const ownEmail = String(currentUser?.email || '').toLowerCase()
+  const ownId = String(currentUser?.id || '')
+  const isOwnRow = (row) => (
+    String(row?.id || '') === ownId ||
+    String(row?.email || row?.recipientEmail || '').toLowerCase() === ownEmail ||
+    String(row?.candidate?.email || '').toLowerCase() === ownEmail
+  )
+  const scoped = { ...data }
+
+  if (Array.isArray(scoped.users)) {
+    scoped.users = ['staff', 'user'].includes(role) ? scoped.users.filter(isOwnRow) : []
+  }
+
+  if (Array.isArray(scoped.vendors)) {
+    scoped.vendors = role === 'vendor' ? scoped.vendors.filter(isOwnRow) : []
+  }
+
+  for (const key of ['contracts', 'leads', 'applications', 'jobs', 'newsPosts', 'serviceSamples']) {
+    if (Array.isArray(scoped[key])) scoped[key] = scoped[key].filter(isOwnRow)
+  }
+
+  return scoped
 }
 
 function createStats(data) {

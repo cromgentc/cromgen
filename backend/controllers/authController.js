@@ -186,6 +186,14 @@ export async function listSettingUsers(request) {
   const auth = userCreateAccess(request)
   if (auth.error) return auth.error
 
+  if (auth.payload?.role !== 'admin') {
+    const user = await findActiveUserById(auth.payload?.sub)
+    return json(200, {
+      ok: true,
+      users: user && ['staff', 'user'].includes(user.role) ? [toPublicUser(user)] : [],
+    })
+  }
+
   return json(200, {
     ok: true,
     users: await findUsers(),
@@ -269,8 +277,23 @@ export async function deleteSettingUser(request, { id }) {
 }
 
 export async function listSettingVendors(request) {
-  const auth = vendorCreateAccess(request)
+  const auth = requireRole(['admin', 'staff', 'vendor'])(request)
   if (auth.error) return auth.error
+
+  if (auth.payload?.role === 'vendor') {
+    const vendor = await findVendorById(auth.payload?.sub)
+    return json(200, {
+      ok: true,
+      vendors: vendor && vendor.status !== 'suspended' ? [toPublicVendor(vendor)] : [],
+    })
+  }
+
+  if (auth.payload?.role === 'staff') {
+    return json(200, {
+      ok: true,
+      vendors: [],
+    })
+  }
 
   return json(200, {
     ok: true,
