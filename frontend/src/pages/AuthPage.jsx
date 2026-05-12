@@ -135,6 +135,7 @@ export function AuthPage({ type }) {
   const [formData, setFormData] = useState({})
   const [status, setStatus] = useState({ type: '', message: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const params = new URLSearchParams(window.location.search)
   const redirectTo = params.get('redirect') || config.redirectTo
   const switchHref = params.get('redirect')
@@ -307,10 +308,30 @@ export function AuthPage({ type }) {
                     <option value="company">Company</option>
                     <option value="freelancer">Freelancer</option>
                   </select>
+                ) : field === 'password' ? (
+                  <span className="relative block">
+                    <input
+                      name={field}
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData[field] || ''}
+                      onChange={handleChange}
+                      required
+                      placeholder={fieldLabels[field]}
+                      className="pr-14"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-[#ff4b2d]"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      <PasswordIcon visible={showPassword} />
+                    </button>
+                  </span>
                 ) : (
                   <input
                     name={field}
-                    type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
+                    type={field === 'email' ? 'email' : 'text'}
                     value={formData[field] || ''}
                     onChange={handleChange}
                     required={['name', 'email', 'password'].includes(field)}
@@ -712,6 +733,7 @@ function AdminShieldIcon() {
 }
 
 function UserRegisterPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
+  const [showPassword, setShowPassword] = useState(false)
   const fields = [
     ['name', 'Full Name', 'text'],
     ['email', 'Email Address', 'email'],
@@ -757,16 +779,39 @@ function UserRegisterPage({ formData, handleChange, handleSubmit, isSubmitting, 
               {fields.map(([field, label, type]) => (
                 <label key={field} className={field === 'password' ? 'md:col-span-2' : ''}>
                   <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">{label}</span>
-                  <input
-                    name={field}
-                    type={type}
-                    value={formData[field] || ''}
-                    onChange={handleChange}
-                    required={['name', 'email', 'password'].includes(field)}
-                    autoComplete={field === 'password' ? 'new-password' : field}
-                    placeholder={label}
-                    className="min-h-[52px] w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]"
-                  />
+                  {field === 'password' ? (
+                    <div className="relative">
+                      <input
+                        name={field}
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData[field] || ''}
+                        onChange={handleChange}
+                        required
+                        autoComplete="new-password"
+                        placeholder={label}
+                        className="min-h-[52px] w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 pr-14 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-xl text-[#475569] transition duration-300 hover:bg-[#fff1ed] hover:text-[#ff4b2d]"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <PasswordIcon visible={showPassword} />
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      name={field}
+                      type={type}
+                      value={formData[field] || ''}
+                      onChange={handleChange}
+                      required={['name', 'email'].includes(field)}
+                      autoComplete={field}
+                      placeholder={label}
+                      className="min-h-[52px] w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]"
+                    />
+                  )}
                 </label>
               ))}
             </div>
@@ -794,6 +839,7 @@ function UserRegisterPage({ formData, handleChange, handleSubmit, isSubmitting, 
 }
 
 function VendorRegisterPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
+  const [showPassword, setShowPassword] = useState(false)
   const benefits = [
     ['Recruitment Partnership', 'Partner with Cromgen for hiring, staffing, candidate sourcing, and workforce support opportunities.'],
     ['Outsourcing Opportunities', 'Collaborate across BPO, IT, digital services, operations, and business process delivery.'],
@@ -920,6 +966,27 @@ function VendorRegisterPage({ formData, handleChange, handleSubmit, isSubmitting
                       <option value="Digital Services">Digital Services</option>
                       <option value="Business Operations">Business Operations</option>
                     </select>
+                  ) : inputType === 'password' ? (
+                    <div className="relative">
+                      <input
+                        name={field}
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData[field] || ''}
+                        onChange={handleChange}
+                        required
+                        autoComplete="new-password"
+                        placeholder={label}
+                        className="h-13 w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 pr-14 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-xl text-[#475569] transition duration-300 hover:bg-[#fff1ed] hover:text-[#ff4b2d]"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <PasswordIcon visible={showPassword} />
+                      </button>
+                    </div>
                   ) : (
                     <input
                       name={field}

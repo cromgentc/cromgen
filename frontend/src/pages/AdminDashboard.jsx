@@ -2291,6 +2291,14 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
 
 function RecordModal({ open, page, form, data, currentRole, editingRecord, saving, onChange, onSubmit, onClose }) {
   const fields = getFormFields(page, data, currentRole)
+  const [visiblePasswordFields, setVisiblePasswordFields] = useState({})
+  const isPasswordVisible = (fieldName) => Boolean(visiblePasswordFields[fieldName])
+  const togglePasswordField = (fieldName) => {
+    setVisiblePasswordFields((current) => ({
+      ...current,
+      [fieldName]: !current[fieldName],
+    }))
+  }
   const applyTextStyle = (fieldName, wrapper) => {
     const value = form[fieldName] || ''
     onChange(fieldName, `${value}${value ? ' ' : ''}${wrapper}selected text${wrapper}`)
@@ -2376,6 +2384,24 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
                     required={field.required && !form[field.name]}
                   />
                 </div>
+              ) : field.type === 'password' ? (
+                <span className="relative block">
+                  <input
+                    type={isPasswordVisible(field.name) ? 'text' : 'password'}
+                    value={form[field.name] || ''}
+                    onChange={(event) => onChange(field.name, event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 pr-14 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
+                    required={field.required}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordField(field.name)}
+                    className="absolute right-2 top-1/2 inline-flex h-8 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-slate-300 transition hover:bg-white/15 hover:text-white"
+                    aria-label={isPasswordVisible(field.name) ? `Hide ${field.label}` : `Show ${field.label}`}
+                  >
+                    {isPasswordVisible(field.name) ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </span>
               ) : (
                 <input
                   type={field.type || 'text'}
