@@ -127,6 +127,10 @@ export function MachineLearningSolutionsPage() {
     setIsModalOpen(true)
   }
 
+  const scrollToServices = () => {
+    document.getElementById('ml-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const selectService = (service) => {
     setActiveService(service)
     window.setTimeout(() => {
@@ -261,9 +265,9 @@ export function MachineLearningSolutionsPage() {
               <button type="button" onClick={() => openSampleModal(activeService)} className="inline-flex items-center gap-3 rounded-2xl bg-[#ff4b2d] px-7 py-4 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl shadow-[#ff4b2d]/25 transition duration-300 hover:-translate-y-1 hover:bg-[#ff6348]">
                 <Download size={18} /> Download Sample
               </button>
-              <a href="#ml-services" className="inline-flex items-center gap-3 rounded-2xl border border-[rgba(15,23,42,0.1)] bg-white px-7 py-4 text-sm font-black uppercase tracking-[0.12em] text-[#0f172a] shadow-xl shadow-slate-900/5 transition duration-300 hover:-translate-y-1 hover:border-[#ff4b2d]/40 hover:text-[#ff4b2d]">
+              <button type="button" onClick={scrollToServices} className="inline-flex items-center gap-3 rounded-2xl border border-[rgba(15,23,42,0.1)] bg-white px-7 py-4 text-sm font-black uppercase tracking-[0.12em] text-[#0f172a] shadow-xl shadow-slate-900/5 transition duration-300 hover:-translate-y-1 hover:border-[#ff4b2d]/40 hover:text-[#ff4b2d]">
                 View Services
-              </a>
+              </button>
             </div>
           </div>
 
