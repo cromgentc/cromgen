@@ -1,4 +1,5 @@
 import { requireRole } from '../middleware/auth.js'
+import { findVendorById, toPublicVendor } from '../models/Vendor.js'
 import {
   createWorkforceRecord,
   deleteWorkforceRecord,
@@ -9,6 +10,7 @@ import {
 import { json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
+const assignedTaskReadAuth = requireRole(['admin', 'staff', 'vendor'])
 const publicReadableTypes = new Set(['helpCenter', 'faqs'])
 const publicCreateTypes = new Set(['supportTickets', 'contactRequests'])
 
@@ -40,13 +42,24 @@ export async function createPublicWorkforceRecord(request, { type }) {
 }
 
 export async function listWorkforceRecords(request, { type }) {
-  const auth = settingsAuth(request)
+  const auth = type === 'assignedTasks' ? assignedTaskReadAuth(request) : settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 
+  const records = await findWorkforceRecords(type)
+
+  if (type === 'assignedTasks' && auth.payload?.role === 'vendor') {
+    const vendor = await findVendorById(auth.payload.sub)
+    const publicVendor = vendor ? toPublicVendor(vendor) : null
+    return json(200, {
+      ok: true,
+      records: publicVendor ? records.filter((record) => isTaskAssignedToVendor(record, publicVendor)) : [],
+    })
+  }
+
   return json(200, {
     ok: true,
-    records: await findWorkforceRecords(type),
+    records,
   })
 }
 
@@ -96,4 +109,18 @@ export async function deleteSettingWorkforceRecord(request, { type, id }) {
     ok: true,
     message: 'Record deleted successfully',
   })
+}
+
+function isTaskAssignedToVendor(record = {}, vendor = {}) {
+  const assignee = String(record.assignee || '').toLowerCase()
+  const tokens = [
+    vendor.vendorCode,
+    vendor.code,
+    vendor.email,
+    vendor.name,
+    vendor.company,
+    vendor.id,
+  ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+
+  return tokens.some((token) => assignee.includes(token))
 }

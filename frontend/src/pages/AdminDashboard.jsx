@@ -353,7 +353,7 @@ function EnterpriseAdminApp() {
     const coreRequests = await Promise.allSettled(coreEntries.map(([key, endpoint]) => (
       key === 'projects' ? requestProjectList() : apiRequest(endpoint)
     )))
-    const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) ? workforceTypesForPage(page) : []
+    const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'assign-tasks') ? workforceTypesForPage(page) : []
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
@@ -420,12 +420,12 @@ function EnterpriseAdminApp() {
     document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
   }, [activePage, pageMeta.title])
 
-  const module = useMemo(() => getModuleConfig(activePage, data), [activePage, data])
+  const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || ''
+  const module = useMemo(() => getModuleConfig(activePage, data, currentRole), [activePage, data, currentRole])
   const liveNotifications = useMemo(() => (clearedNotifications ? [] : createNotifications(data)), [clearedNotifications, data])
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
   const isLeadManagementPage = activePage === 'leads-management'
-  const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || ''
   const canCreateActivePage = supportedCreatePages.includes(activePage) && canCreateForRole(activePage, currentRole)
   const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
@@ -1105,8 +1105,8 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
         columns={module.columns}
         onView={onView}
         onEdit={module.canEdit ? onEdit : null}
-        onDelete={module.isLive ? onDelete : null}
-        onDeleteSelected={module.isLive ? onDeleteSelected : null}
+        onDelete={module.isLive && module.canDelete !== false ? onDelete : null}
+        onDeleteSelected={module.isLive && module.canDelete !== false ? onDeleteSelected : null}
         rowActions={rowActions}
         emptyText={module.emptyText}
       />
@@ -2749,7 +2749,7 @@ const workforcePageModules = {
   'two-factor-authentication': { type: 'twoFactorAuthentication', title: 'Two-Factor Authentication', fields: ['name', 'email', 'method', 'enabled', 'status', 'notes', 'createdAt'] },
 }
 
-function getModuleConfig(page, data) {
+function getModuleConfig(page, data, currentRole = 'admin') {
   if (['user-management'].includes(page)) {
     return {
       type: 'users',
@@ -2831,7 +2831,7 @@ function getModuleConfig(page, data) {
 
   if (workforcePageModules[page]) {
     const config = workforcePageModules[page]
-    return workforceModule(config.type, config.title, data[config.type], config.fields)
+    return workforceModule(config.type, config.title, data[config.type], config.fields, currentRole)
   }
 
   if (['vendor-management'].includes(page)) {
@@ -3032,13 +3032,16 @@ function getModuleConfig(page, data) {
   }
 }
 
-function workforceModule(type, title, records, fields) {
+function workforceModule(type, title, records, fields, currentRole = 'admin') {
+  const role = String(currentRole || '').toLowerCase()
+  const vendorAssignedTaskView = role === 'vendor' && type === 'assignedTasks'
   return {
     type,
     title,
     source: WORKFORCE_ENDPOINTS.settingsList(type),
     isLive: true,
-    canEdit: !workforcePageModulesByType[type]?.readOnly,
+    canEdit: !vendorAssignedTaskView && !workforcePageModulesByType[type]?.readOnly,
+    canDelete: !vendorAssignedTaskView,
     readOnly: Boolean(workforcePageModulesByType[type]?.readOnly),
     rows: (records || []).map((record) => ({
       id: record.id,
@@ -3246,6 +3249,10 @@ function scopeDataForRole(data, currentUser) {
     }
   }
 
+  if (role === 'vendor' && Array.isArray(scoped.assignedTasks)) {
+    scoped.assignedTasks = scoped.assignedTasks.filter((task) => isTaskAssignedToCurrentVendor(task, currentUser))
+  }
+
   for (const key of ['contracts', 'leads', 'newsPosts', 'serviceSamples']) {
     if (Array.isArray(scoped[key])) scoped[key] = role === 'staff' ? [] : scoped[key].filter(isOwnRow)
   }
@@ -3397,8 +3404,8 @@ function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'job-postings', 'applications'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'assign-tasks'].includes(page)
   return false
 }
 
@@ -3406,7 +3413,7 @@ function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
-  if (role === 'staff') return ['user-management', 'project-management', 'job-postings'].includes(page)
+  if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings'].includes(page)
   if (role === 'vendor') return page === 'user-management'
   return false
 }
@@ -3428,6 +3435,20 @@ function createVendorAssignOptions(vendors = []) {
     .filter(Boolean)
 
   return options.length ? options : ['No vendors available']
+}
+
+function isTaskAssignedToCurrentVendor(task = {}, vendor = {}) {
+  const assignee = String(task.assignee || '').toLowerCase()
+  const tokens = [
+    vendor.vendorCode,
+    vendor.code,
+    vendor.email,
+    vendor.name,
+    vendor.company,
+    vendor.id,
+  ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+
+  return tokens.some((token) => assignee.includes(token))
 }
 
 function createProjectAssignOptions(projects = []) {
