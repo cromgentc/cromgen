@@ -90,22 +90,18 @@ const authConfig = {
 const unifiedLoginRoles = {
   admin: {
     label: 'Admin',
-    endpoint: AUTH_ENDPOINTS.adminLogin,
     redirectTo: '/admin-dashboard',
   },
   staff: {
     label: 'Staff',
-    endpoint: AUTH_ENDPOINTS.staffLogin,
     redirectTo: '/admin-dashboard',
   },
   user: {
     label: 'User',
-    endpoint: AUTH_ENDPOINTS.staffLogin,
     redirectTo: '/admin-dashboard',
   },
   vendor: {
     label: 'Vendor',
-    endpoint: AUTH_ENDPOINTS.vendorLogin,
     redirectTo: '/admin-dashboard',
   },
 }
@@ -171,14 +167,14 @@ export function AuthPage({ type }) {
 
       const selectedLoginRole = type === 'login' ? formData.loginRole || 'admin' : config.role
       const loginConfig = type === 'login' ? unifiedLoginRoles[selectedLoginRole] || unifiedLoginRoles.admin : config
-      const data = await apiRequest(loginConfig.endpoint, {
+      const data = await apiRequest(type === 'login' ? AUTH_ENDPOINTS.unifiedLogin : loginConfig.endpoint, {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(type === 'login' ? { ...formData, role: selectedLoginRole } : formData),
       })
 
       if (data.token) {
         localStorage.setItem('cromgen_auth_token', data.token)
-        localStorage.setItem('cromgen_auth_role', data.user?.role || data.vendor ? 'vendor' : selectedLoginRole)
+        localStorage.setItem('cromgen_auth_role', data.user?.role || (data.vendor ? 'vendor' : selectedLoginRole))
       }
       if (data.user) {
         localStorage.setItem('cromgen_auth_user', JSON.stringify(data.user))

@@ -29,14 +29,33 @@ export function authRouteInfo(_request, params = {}) {
     method: 'POST',
     endpoint: params.endpoint || '',
     exampleBody: {
-      email: 'admin@example.com',
-      password: 'admin123',
+      email: 'enter your email id',
+      password: 'enter your password',
     },
   })
 }
 
 export function adminLogin(request) {
   return loginUser(request, 'admin')
+}
+
+export async function unifiedLogin(request) {
+  const { email, password, role = 'admin' } = await readJson(request)
+  const normalizedRole = String(role || 'admin').toLowerCase()
+
+  if (!email || !password) {
+    return validationError('Email and password are required')
+  }
+
+  if (normalizedRole === 'vendor') {
+    return loginVendorWithCredentials(email, password)
+  }
+
+  if (!['admin', 'staff', 'user'].includes(normalizedRole)) {
+    return validationError('Login type must be admin, staff, user, or vendor')
+  }
+
+  return loginUserWithCredentials(email, password, normalizedRole)
 }
 
 export async function adminRegister(request) {
@@ -298,6 +317,10 @@ export async function vendorLogin(request) {
     return validationError('Email and password are required')
   }
 
+  return loginVendorWithCredentials(email, password)
+}
+
+async function loginVendorWithCredentials(email, password) {
   const vendor = await findVendorByEmail(email)
 
   if (!vendor || !verifyPassword(password, vendor.passwordHash)) {
@@ -322,6 +345,10 @@ async function loginUser(request, role) {
     return validationError('Email and password are required')
   }
 
+  return loginUserWithCredentials(email, password, role)
+}
+
+async function loginUserWithCredentials(email, password, role) {
   const roles = Array.isArray(role) ? role : [role]
   let user = null
   for (const candidateRole of roles) {

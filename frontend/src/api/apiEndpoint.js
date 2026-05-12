@@ -20,6 +20,7 @@ apiClient.interceptors.request.use((config) => {
 })
 
 export const AUTH_ENDPOINTS = {
+  unifiedLogin: '/api/auth/login',
   adminRegister: '/api/auth/admin/register',
   adminLogin: '/api/auth/admin/login',
   staffLogin: '/api/auth/staff/login',
