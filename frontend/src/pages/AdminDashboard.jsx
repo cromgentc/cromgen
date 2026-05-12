@@ -20,8 +20,13 @@ import {
   Building2,
   CheckCircle2,
   ChevronRight,
+  FileText,
+  GripVertical,
   Layers3,
+  MoreHorizontal,
+  PenLine,
   Plus,
+  Send,
   ShieldCheck,
   Sparkles,
   Users,
@@ -597,7 +602,7 @@ function EnterpriseAdminApp() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {canCreateActivePage && !isReadOnlyAuditPage && !isLeadManagementPage ? (
+                    {canCreateActivePage && !isReadOnlyAuditPage && !isLeadManagementPage && activePage !== 'legal-team' ? (
                       <button type="button" onClick={openCreateModal} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
                         <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
                       </button>
@@ -623,6 +628,14 @@ function EnterpriseAdminApp() {
                 <PolicySettingsPage policies={data.policies} onSave={savePolicySettings} />
               ) : isSettingsPage(activePage) ? (
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
+              ) : activePage === 'legal-team' ? (
+                <LegalContractsWorkspace
+                  module={module}
+                  onSaved={async () => loadMongoData('legal-team')}
+                  onOpenContract={(row) => window.location.assign(`/contract-sign/${row.id}`)}
+                  onEdit={openEditModal}
+                  onDelete={deleteRecord}
+                />
               ) : (
                 <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} />
               )}
@@ -903,6 +916,247 @@ function ModuleSummary({ module }) {
         </article>
       </div>
     </section>
+  )
+}
+
+function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDelete }) {
+  const [step, setStep] = useState('choice')
+  const [mode, setMode] = useState('send')
+  const [saving, setSaving] = useState(false)
+  const [draft, setDraft] = useState({
+    documentName: 'Agreement',
+    recipientEmail: '',
+    recipientName: '',
+    senderName: 'Cromgen Technology',
+    note: '',
+    contractBody: '',
+    fileName: '',
+    filePreview: '',
+    contractFile: null,
+  })
+  const [message, setMessage] = useState('')
+
+  const updateDraft = (field, value) => {
+    setDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  const selectMode = (nextMode) => {
+    setMode(nextMode)
+    setStep('documents')
+    setMessage('')
+  }
+
+  const addDocument = async (file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    const isDocx = /\.(docx)$/i.test(file.name) || /wordprocessingml/i.test(file.type)
+    setDraft((current) => ({
+      ...current,
+      documentName: current.documentName || file.name.replace(/\.[^.]+$/, ''),
+      fileName: file.name,
+      filePreview: dataUrl,
+      contractFile: isDocx ? {
+        name: file.name,
+        type: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        data: dataUrl,
+      } : null,
+      contractBody: current.contractBody || `Contract document: ${file.name}\n\nAdd agreement terms, scope, payment terms, responsibilities, and signature instructions here.`,
+    }))
+  }
+
+  const submitContract = async () => {
+    if (!draft.documentName.trim() || !draft.recipientEmail.trim() || !draft.recipientName.trim()) {
+      setMessage('Document name, recipient email, and recipient name are required.')
+      return
+    }
+
+    setSaving(true)
+    setMessage('')
+
+    try {
+      const payload = {
+        title: draft.documentName.trim(),
+        recipientName: draft.recipientName.trim(),
+        recipientEmail: draft.recipientEmail.trim(),
+        senderName: draft.senderName.trim() || 'Cromgen Technology',
+        projectStatus: 'active',
+        contractBody: draft.contractBody.trim() || `${draft.documentName.trim()}\n\nContract terms and signing details.`,
+        contractFile: draft.contractFile,
+      }
+      const response = await apiRequest(CONTRACT_ENDPOINTS.settingsList, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      await onSaved?.()
+      const signingToken = response.contract?.signingToken
+      if (signingToken) {
+        window.location.assign(`/contract-sign/${signingToken}`)
+        return
+      }
+      setMessage('Contract saved. Open it from the records table to sign.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Contract could not be saved.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
+      <section className="legal-sign-workspace">
+        {step === 'choice' ? (
+          <div className="legal-sign-choice">
+            <button type="button" className="legal-sign-choice-card is-active" onClick={() => selectMode('send')}>
+              <Send size={54} strokeWidth={1.8} />
+              <strong>Send for signatures</strong>
+            </button>
+            <button type="button" className="legal-sign-choice-card" onClick={() => selectMode('self')}>
+              <PenLine size={54} strokeWidth={1.8} />
+              <strong>Sign yourself</strong>
+            </button>
+          </div>
+        ) : step === 'documents' ? (
+          <div className="legal-documents-step">
+            <h2>{mode === 'self' ? 'Sign yourself' : 'Send for signatures'}</h2>
+            <h3>Add documents</h3>
+            <DocumentDropZone draft={draft} onFile={addDocument} />
+            <div className="legal-flow-actions">
+              <button type="button" className="is-muted" onClick={() => setStep('choice')}>Back</button>
+              <button type="button" onClick={() => setStep('details')}>Continue</button>
+            </div>
+          </div>
+        ) : step === 'details' ? (
+          <div className="legal-details-step">
+            <h2>Edit document details</h2>
+            <div className="legal-detail-documents">
+              {draft.fileName ? <DocumentThumb draft={draft} /> : null}
+              <DocumentDropZone draft={draft} onFile={addDocument} compact />
+            </div>
+            <label className="legal-document-name">
+              <span>Document name</span>
+              <input value={draft.documentName} onChange={(event) => updateDraft('documentName', event.target.value)} />
+            </label>
+            <div className="legal-recipient-section">
+              <h3>Add recipients</h3>
+              <div className="legal-recipient-tools">
+                <span><CheckCircle2 size={14} /> Send in order</span>
+                <button type="button">Add me</button>
+              </div>
+              <div className="legal-recipient-row">
+                <GripVertical size={18} />
+                <span className="legal-recipient-number">1</span>
+                <input value={draft.recipientEmail} onChange={(event) => updateDraft('recipientEmail', event.target.value)} placeholder="Email" type="email" />
+                <input value={draft.recipientName} onChange={(event) => updateDraft('recipientName', event.target.value)} placeholder="Full name" />
+                <select defaultValue="Needs to sign">
+                  <option>Needs to sign</option>
+                  <option>Receives a copy</option>
+                </select>
+                <button type="button">Customize</button>
+              </div>
+              <button type="button" className="legal-add-recipient">+ Add recipient</button>
+            </div>
+            <label className="legal-note-field">
+              <span>Note to all recipients</span>
+              <textarea value={draft.note} onChange={(event) => updateDraft('note', event.target.value)} placeholder="Write a short signing note..." />
+            </label>
+            <div className="legal-flow-actions">
+              <button type="button" className="is-muted" onClick={() => setStep('documents')}>Save & close</button>
+              <button type="button" onClick={() => setStep('editor')}>Continue</button>
+            </div>
+          </div>
+        ) : (
+          <div className="legal-editor-step">
+            <div className="legal-editor-topbar">
+              <div>
+                <FileText size={22} />
+                <strong>{draft.documentName || 'Agreement'}</strong>
+              </div>
+              <div>
+                <button type="button" className="is-muted" onClick={() => setStep('details')}>Back</button>
+                <button type="button" disabled={saving} onClick={submitContract}>{saving ? 'Saving...' : 'Send'}</button>
+              </div>
+            </div>
+            <div className="legal-editor-grid">
+              <aside className="legal-editor-docs">
+                <h3>Documents</h3>
+                <DocumentThumb draft={draft} />
+              </aside>
+              <main className="legal-editor-canvas">
+                <div className="legal-document-paper">
+                  <h1>{draft.documentName || 'Agreement'}</h1>
+                  <textarea
+                    value={draft.contractBody}
+                    onChange={(event) => updateDraft('contractBody', event.target.value)}
+                    placeholder="Add agreement description, clauses, payment terms, scope, responsibilities, and signing instructions..."
+                  />
+                </div>
+              </main>
+              <aside className="legal-editor-recipients">
+                <h3>Recipients</h3>
+                <div className="legal-recipient-pill">
+                  <span>P</span>
+                  <p>Prefill by you</p>
+                </div>
+                <div className="legal-recipient-pill is-active">
+                  <span>C</span>
+                  <p>{draft.recipientName || 'Recipient'}<br /><small>{draft.recipientEmail || 'email@example.com'}</small></p>
+                </div>
+                <h4>Standard fields</h4>
+                <div className="legal-field-list">
+                  {['Signature', 'Initial', 'Stamp', 'Image', 'Company', 'Full name', 'Email', 'Sign date', 'Date', 'Text', 'Job title', 'Checkbox', 'Dropdown', 'Radio'].map((item) => (
+                    <button key={item} type="button">{item}</button>
+                  ))}
+                </div>
+              </aside>
+            </div>
+            {message ? <p className="legal-flow-message">{message}</p> : null}
+          </div>
+        )}
+      </section>
+
+      <EnterpriseTable
+        title="Existing Contracts"
+        rows={module.rows}
+        columns={module.columns}
+        onView={onOpenContract}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        emptyText={module.emptyText}
+      />
+    </motion.div>
+  )
+}
+
+function DocumentDropZone({ draft, onFile, compact = false }) {
+  return (
+    <label
+      className={`legal-document-drop ${compact ? 'is-compact' : ''}`}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault()
+        onFile(event.dataTransfer.files?.[0])
+      }}
+    >
+      <input type="file" accept=".doc,.docx,.pdf,.txt" onChange={(event) => onFile(event.target.files?.[0])} />
+      <FileText size={compact ? 42 : 54} strokeWidth={1.4} />
+      <strong>{draft.fileName && !compact ? draft.fileName : 'Drag files here'}</strong>
+      <span>or</span>
+      <button type="button">Add document <ChevronRight size={14} /></button>
+    </label>
+  )
+}
+
+function DocumentThumb({ draft }) {
+  return (
+    <div className="legal-document-thumb">
+      <MoreHorizontal size={16} />
+      {draft.filePreview && /^data:image\//.test(draft.filePreview) ? (
+        <img src={draft.filePreview} alt={draft.fileName || 'Document preview'} />
+      ) : (
+        <FileText size={62} strokeWidth={1.2} />
+      )}
+      <strong>{draft.fileName || draft.documentName || 'Agreement'}</strong>
+    </div>
   )
 }
 
