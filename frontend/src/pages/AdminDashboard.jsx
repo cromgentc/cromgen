@@ -4036,7 +4036,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
     'withdraw-requests': [
-      { name: 'name', label: 'Requester Name', type: isStaffOrVendor ? 'select' : 'text', options: withdrawProjectOptions, ...commonRequired },
+      { name: 'name', label: 'Project Name', type: isStaffOrVendor ? 'select' : 'text', options: withdrawProjectOptions, ...commonRequired },
       { name: 'amount', label: 'Bill Amount', type: 'number', numericOnly: true, ...commonRequired },
       { name: 'method', label: 'Method', type: 'select', options: ['PayPal', 'Bank Account', 'UPI ID', 'QR Scanner'] },
       { name: 'paypalEmail', label: 'PayPal Email', type: 'email', showWhen: (form) => (form.method || 'PayPal') === 'PayPal' },
