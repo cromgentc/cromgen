@@ -1110,8 +1110,12 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       setEditingContractId('')
       const nextMessage = status === 'draft'
         ? 'Contract saved as draft.'
+        : isSelfSigning && response.email?.sent
+          ? `Contract signed and signing email sent to ${draft.recipientEmail.trim()}.`
+        : isSelfSigning && !draft.recipientEmail.trim()
+          ? 'Contract signed and saved. Add recipient email to send it.'
         : isSelfSigning
-          ? 'Contract signed and saved.'
+          ? 'Contract signed and saved, but signing email could not be sent. Check SMTP/email settings.'
         : response.email?.sent
           ? `Contract saved and signing email sent to ${draft.recipientEmail.trim()}.`
           : 'Contract saved, but signing email could not be sent. Check SMTP/email settings.'
