@@ -20,6 +20,8 @@ import {
   Building2,
   CheckCircle2,
   ChevronRight,
+  Eye,
+  EyeOff,
   FileText,
   GripVertical,
   Layers3,
@@ -1835,6 +1837,7 @@ function QuickActionsModal({ open, activePage, onClose, onCreate, onNavigate, on
 function SettingsModule({ activePage, settings, onSave }) {
   const [draft, setDraft] = useState(settings || createEmptySiteSettings())
   const [saving, setSaving] = useState(false)
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false)
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1966,13 +1969,25 @@ function SettingsModule({ activePage, settings, onSave }) {
             ].map(([field, label, placeholder]) => (
               <label key={field}>
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{label}</span>
-                <input
-                  type={field === 'smtpPass' ? 'password' : field === 'smtpPort' ? 'number' : 'text'}
-                  value={draft.emailConfig?.[field] || ''}
-                  placeholder={placeholder}
-                  onChange={(event) => updateEmailField(field, event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
-                />
+                <span className="relative block">
+                  <input
+                    type={field === 'smtpPass' ? showSmtpPassword ? 'text' : 'password' : field === 'smtpPort' ? 'number' : 'text'}
+                    value={draft.emailConfig?.[field] || ''}
+                    placeholder={placeholder}
+                    onChange={(event) => updateEmailField(field, event.target.value)}
+                    className={`h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60 ${field === 'smtpPass' ? 'pr-12' : ''}`}
+                  />
+                  {field === 'smtpPass' ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowSmtpPassword((current) => !current)}
+                      className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white"
+                      aria-label={showSmtpPassword ? 'Hide SMTP password' : 'Show SMTP password'}
+                    >
+                      {showSmtpPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  ) : null}
+                </span>
               </label>
             ))}
           </div>
