@@ -192,10 +192,9 @@ export async function listSettingUsers(request) {
   if (auth.payload?.role !== 'admin') {
     const user = await findActiveUserById(auth.payload?.sub)
     const createdUsers = await findUsersCreatedBy(auth.payload?.sub)
-    const users = [
-      ...(user && ['staff', 'user'].includes(user.role) ? [toPublicUser(user)] : []),
-      ...createdUsers,
-    ]
+    const users = auth.payload?.role === 'user'
+      ? (user ? [toPublicUser(user)] : [])
+      : createdUsers
 
     return json(200, {
       ok: true,

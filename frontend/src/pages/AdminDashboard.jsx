@@ -309,6 +309,10 @@ function EnterpriseAdminApp() {
     if (dashboardPages.includes(page)) {
       if (currentRole === 'admin') {
         ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+      } else if (currentRole === 'staff') {
+        ['users', 'vendors'].forEach((key) => requestedCoreKeys.add(key))
+      } else if (currentRole === 'vendor') {
+        ['users', 'vendors'].forEach((key) => requestedCoreKeys.add(key))
       }
     } else if (page === 'user-management') {
       if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('users')
@@ -352,7 +356,7 @@ function EnterpriseAdminApp() {
       ]),
     )
     const scopedCoreData = scopeDataForRole({
-      ...(['staff', 'user'].includes(currentRole) && !coreData.users ? { users: [currentUser.user] } : {}),
+      ...(currentRole === 'user' && !coreData.users ? { users: [currentUser.user] } : {}),
       ...(currentRole === 'vendor' && !coreData.vendors ? { vendors: [currentUser.user] } : {}),
       ...coreData,
     }, currentUser.user)
@@ -2987,14 +2991,23 @@ function scopeDataForRole(data, currentUser) {
     String(row?.email || row?.recipientEmail || '').toLowerCase() === ownEmail ||
     String(row?.candidate?.email || '').toLowerCase() === ownEmail
   )
+  const isCreatedByMe = (row) => String(row?.createdBy || '') === ownId
   const scoped = { ...data }
 
   if (Array.isArray(scoped.users)) {
-    scoped.users = ['staff', 'user'].includes(role) ? scoped.users.filter(isOwnRow) : []
+    scoped.users = ['staff', 'vendor'].includes(role)
+      ? scoped.users.filter(isCreatedByMe)
+      : role === 'user'
+        ? scoped.users.filter(isOwnRow)
+        : []
   }
 
   if (Array.isArray(scoped.vendors)) {
-    scoped.vendors = role === 'vendor' ? scoped.vendors.filter(isOwnRow) : []
+    scoped.vendors = role === 'staff'
+      ? scoped.vendors.filter(isCreatedByMe)
+      : role === 'vendor'
+        ? scoped.vendors.filter(isOwnRow)
+        : []
   }
 
   for (const key of ['contracts', 'leads', 'applications', 'jobs', 'newsPosts', 'serviceSamples']) {
