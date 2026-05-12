@@ -3443,7 +3443,7 @@ function canCreateForRole(page, currentRole) {
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
   if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings'].includes(page)
-  if (role === 'vendor') return ['user-management', 'assign-tasks'].includes(page)
+  if (role === 'vendor') return page === 'user-management'
   return false
 }
 

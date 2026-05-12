@@ -65,7 +65,7 @@ export async function listWorkforceRecords(request, { type }) {
 }
 
 export async function createSettingWorkforceRecord(request, { type }) {
-  const auth = type === 'assignedTasks' ? settingsOrVendorTaskAuth(request) : settingsAuth(request)
+  const auth = settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 
