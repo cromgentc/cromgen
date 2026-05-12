@@ -7481,9 +7481,14 @@ header #mobile-navigation summary:hover {
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
 }
 
-.legal-builder-modal-panel.legal-sign-choice {
-  inset: 110px max(24px, calc((100vw - 760px) / 2)) auto;
-  min-height: 300px;
+.legal-builder-modal-panel.legal-choice-panel {
+  inset: auto;
+  top: 50vh;
+  left: 50vw;
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 56px);
+  transform: translate(-50%, -50%);
+  padding: 24px;
 }
 
 .legal-builder-modal-panel.legal-documents-step {
@@ -7499,12 +7504,44 @@ header #mobile-navigation summary:hover {
 
 .legal-sign-choice {
   display: grid;
-  min-height: 360px;
+  min-height: 210px;
   place-content: center;
   grid-template-columns: repeat(2, minmax(180px, 215px));
-  gap: 30px;
-  background: rgba(15, 23, 42, 0.18);
-  padding: 44px 22px;
+  gap: 24px;
+  background: transparent;
+  padding: 18px 0 0;
+}
+
+.legal-choice-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.legal-choice-head h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.45rem, 3vw, 1.75rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.legal-choice-head button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.legal-choice-head button:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 
 .legal-sign-choice-card {

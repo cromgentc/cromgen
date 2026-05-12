@@ -31,8 +31,10 @@ import {
   Sparkles,
   Users,
   WandSparkles,
+  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Navbar } from '../components/enterprise-admin/Navbar.jsx'
 import { Sidebar } from '../components/enterprise-admin/Sidebar.jsx'
 import { DashboardCard } from '../components/enterprise-admin/DashboardCard.jsx'
@@ -1109,19 +1111,27 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
             <strong>Create a contract to send for signature or sign yourself.</strong>
           </div>
         ) : null}
-        {step === 'list' ? null : (
+        {step === 'list' ? null : createPortal(
           <>
           <div className="legal-builder-modal-backdrop" aria-hidden="true" onClick={closeCreateFlow}></div>
         {step === 'choice' ? (
-          <div className="legal-builder-modal-panel legal-sign-choice">
-            <button type="button" className="legal-sign-choice-card is-active" onClick={() => selectMode('send')}>
-              <Send size={54} strokeWidth={1.8} />
-              <strong>Send for signatures</strong>
-            </button>
-            <button type="button" className="legal-sign-choice-card" onClick={() => selectMode('self')}>
-              <PenLine size={54} strokeWidth={1.8} />
-              <strong>Sign yourself</strong>
-            </button>
+          <div className="legal-builder-modal-panel legal-choice-panel">
+            <div className="legal-choice-head">
+              <h2>Create Contract</h2>
+              <button type="button" onClick={closeCreateFlow} aria-label="Close create contract modal">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="legal-sign-choice">
+              <button type="button" className="legal-sign-choice-card is-active" onClick={() => selectMode('send')}>
+                <Send size={54} strokeWidth={1.8} />
+                <strong>Send for signatures</strong>
+              </button>
+              <button type="button" className="legal-sign-choice-card" onClick={() => selectMode('self')}>
+                <PenLine size={54} strokeWidth={1.8} />
+                <strong>Sign yourself</strong>
+              </button>
+            </div>
           </div>
         ) : step === 'documents' ? (
           <div className="legal-builder-modal-panel legal-documents-step">
@@ -1267,7 +1277,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
           </div>
         )}
           </>
-        )}
+        , document.body)}
       </section>
 
       <EnterpriseTable
