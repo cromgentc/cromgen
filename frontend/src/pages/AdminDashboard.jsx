@@ -270,6 +270,14 @@ function EnterpriseAdminApp() {
   }
 
   const loadMongoData = async (page = activePage) => {
+    const token = localStorage.getItem('cromgen_auth_token')
+
+    if (!token) {
+      setLoading(false)
+      window.location.assign('/login')
+      return
+    }
+
     const coreRequestMap = {
       users: [AUTH_ENDPOINTS.settingsUsers, (response) => response.users || []],
       vendors: [VENDOR_ENDPOINTS.settingsList, (response) => response.vendors || []],
@@ -283,35 +291,50 @@ function EnterpriseAdminApp() {
       serviceSamples: [SERVICE_SAMPLE_ENDPOINTS.settingsList, (response) => response.samples || []],
     }
     const requestedCoreKeys = new Set()
+    const currentUserRequest = await Promise.allSettled([apiRequest(AUTH_ENDPOINTS.currentUser)])
+    const currentUser = currentUserRequest[0]?.status === 'fulfilled' ? currentUserRequest[0].value : {}
+
+    if (!currentUser.user) {
+      localStorage.removeItem('cromgen_auth_token')
+      localStorage.removeItem('cromgen_auth_role')
+      localStorage.removeItem('cromgen_auth_user')
+      setToast('Session expired. Please login again.')
+      setLoading(false)
+      window.location.assign('/login')
+      return
+    }
+
+    const currentRole = String(currentUser.user.role || localStorage.getItem('cromgen_auth_role') || '').toLowerCase()
 
     if (dashboardPages.includes(page)) {
-      ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+      if (currentRole === 'admin') {
+        ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+      }
     } else if (page === 'user-management') {
-      requestedCoreKeys.add('users')
+      if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('users')
     } else if (page === 'vendor-management') {
-      requestedCoreKeys.add('vendors')
+      if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('vendors')
     } else if (['project-management', 'legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
-      requestedCoreKeys.add('contracts')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('contracts')
     } else if (page === 'leads-management') {
-      requestedCoreKeys.add('leads')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('leads')
     } else if (['recruitment', 'job-postings'].includes(page)) {
-      requestedCoreKeys.add('jobs')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('jobs')
     } else if (page === 'applications') {
-      requestedCoreKeys.add('applications')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('applications')
     } else if (page === 'blog-management') {
-      requestedCoreKeys.add('newsPosts')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('newsPosts')
     } else if (page === 'service-samples') {
-      requestedCoreKeys.add('serviceSamples')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('serviceSamples')
     } else if (['system-settings', 'legal-pages'].includes(page)) {
-      requestedCoreKeys.add('policies')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('policies')
     } else if (['seo-settings', 'theme-customization', 'email-settings', 'website-settings', 'notification-settings'].includes(page)) {
-      requestedCoreKeys.add('siteSettings')
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('siteSettings')
     }
 
     const coreEntries = Array.from(requestedCoreKeys).map((key) => [key, ...coreRequestMap[key]])
     const coreRequests = await Promise.allSettled(coreEntries.map(([, endpoint]) => apiRequest(endpoint)))
-    const currentUserRequest = await Promise.allSettled([apiRequest(AUTH_ENDPOINTS.currentUser)])
-    const requiredWorkforceTypes = workforceTypesForPage(page)
+    const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) ? workforceTypesForPage(page) : []
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
@@ -328,8 +351,11 @@ function EnterpriseAdminApp() {
         workforceRequests[index]?.status === 'fulfilled' ? workforceRequests[index].value.records || [] : [],
       ]),
     )
-    const currentUser = currentUserRequest[0]?.status === 'fulfilled' ? currentUserRequest[0].value : {}
-    const scopedCoreData = scopeDataForRole(coreData, currentUser.user)
+    const scopedCoreData = scopeDataForRole({
+      ...(['staff', 'user'].includes(currentRole) && !coreData.users ? { users: [currentUser.user] } : {}),
+      ...(currentRole === 'vendor' && !coreData.vendors ? { vendors: [currentUser.user] } : {}),
+      ...coreData,
+    }, currentUser.user)
 
     setData((current) => ({
       ...current,
@@ -338,7 +364,7 @@ function EnterpriseAdminApp() {
     }))
     setCurrentAdmin(currentUser.user || null)
 
-    const failedCount = [...coreRequests, ...currentUserRequest, ...workforceRequests].filter((result) => result.status === 'rejected').length
+    const failedCount = [...coreRequests, ...workforceRequests].filter((result) => result.status === 'rejected').length
     setToast(failedCount ? `${failedCount} data collections could not load. Check backend login/API.` : 'Live data synced.')
     setLoading(false)
   }

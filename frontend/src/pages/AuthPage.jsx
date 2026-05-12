@@ -37,7 +37,7 @@ const authConfig = {
     fields: ['email', 'password'],
     switchLabel: 'Admin login',
     switchHref: '/admin-login',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/staff-dashboard',
   },
   'vendor-login': {
     eyebrow: 'Vendor Portal',
