@@ -130,6 +130,8 @@ function toPublicWorkforceRecord(record) {
     platformFee: record.platformFee || '',
     heldAmount: record.heldAmount || '',
     releaseDate: record.releaseDate || '',
+    approvalRemark: record.approvalRemark || '',
+    reviewedAt: record.reviewedAt ? new Date(record.reviewedAt).toISOString() : '',
     budget: record.budget || '',
     dueDate: record.dueDate || '',
     startDate: record.startDate || '',

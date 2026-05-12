@@ -358,7 +358,9 @@ function EnterpriseAdminApp() {
     const coreRequests = await Promise.allSettled(coreEntries.map(([key, endpoint]) => (
       key === 'projects' ? requestProjectList() : apiRequest(endpoint)
     )))
-    const requiredWorkforceTypes = dashboardPages.includes(page) && ['admin', 'staff', 'vendor'].includes(currentRole)
+    const requiredWorkforceTypes = page === 'invoice-management'
+      ? ['withdrawRequests']
+      : dashboardPages.includes(page) && ['admin', 'staff', 'vendor'].includes(currentRole)
       ? ['wallets']
       : currentRole === 'vendor' && page === 'assign-tasks'
       ? ['assignedTasks', 'tasks']
@@ -686,6 +688,41 @@ function EnterpriseAdminApp() {
     }
   }
 
+  const updateWithdrawDecision = async (row, status) => {
+    const remark = window.prompt(`Enter remark for ${status}:`)
+    if (remark === null) return
+    try {
+      await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail('withdrawRequests', row.id), {
+        method: 'POST',
+        body: JSON.stringify({
+          ...row,
+          status,
+          approvalRemark: remark.trim(),
+          reviewedAt: new Date().toISOString(),
+        }),
+      })
+      setToast(`Withdraw request marked ${status}.`)
+      await loadMongoData(activePage)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Withdraw request could not be updated.')
+    }
+  }
+
+  const viewInvoiceFile = (row) => {
+    const file = row.invoiceFile
+    if (!file?.data) {
+      setToast('Invoice file is not uploaded.')
+      return
+    }
+    const popup = window.open('', '_blank', 'noopener,noreferrer')
+    if (!popup) {
+      setToast('Popup blocked. Please allow popups to view invoice.')
+      return
+    }
+    popup.document.write(`<title>${file.name || 'Invoice'}</title><iframe src="${file.data}" style="border:0;width:100%;height:100vh"></iframe>`)
+    popup.document.close()
+  }
+
   const openAssignProjectToUser = (row) => {
     setAssignUserRequest(row)
     setAssignUserEmail(row.assignedUserEmail || row.email || '')
@@ -880,7 +917,7 @@ function EnterpriseAdminApp() {
                   onDeleteSelected={deleteSelectedRecords}
                 />
               ) : (
-                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} />
+                <EnterpriseModule activePage={activePage} currentRole={currentRole} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} onWithdrawDecision={updateWithdrawDecision} onViewInvoiceFile={viewInvoiceFile} />
               )}
             </div>
 
@@ -1131,9 +1168,10 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser }) {
+function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser, onWithdrawDecision, onViewInvoiceFile }) {
   const ModuleIcon = pageMeta.icon
   const isLeadManagement = activePage === 'leads-management'
+  const canApproveWithdraw = ['admin', 'staff'].includes(String(currentRole || '').toLowerCase())
   const badgeItems = isLeadManagement ? ['Create Record', 'Refresh Data'] : ['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only']
   const rowActions = activePage === 'project-management'
     ? [
@@ -1159,6 +1197,36 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
           icon: PlayCircle,
           hidden: (row) => row.projectStatus === 'active',
           onClick: (row) => onProjectStatusChange?.(row, 'active'),
+        },
+      ]
+    : ['withdraw-requests', 'invoice-management'].includes(activePage) && canApproveWithdraw
+    ? [
+        {
+          label: 'View Invoice',
+          icon: FileText,
+          hidden: (row) => !row.invoiceFile?.data,
+          onClick: (row) => onViewInvoiceFile?.(row),
+        },
+        {
+          label: 'Approve',
+          icon: CheckCircle2,
+          onClick: (row) => onWithdrawDecision?.(row, 'Approved'),
+        },
+        {
+          label: 'Hold',
+          icon: PauseCircle,
+          onClick: (row) => onWithdrawDecision?.(row, 'Hold'),
+        },
+        {
+          label: 'Release',
+          icon: PlayCircle,
+          onClick: (row) => onWithdrawDecision?.(row, 'Released'),
+        },
+        {
+          label: 'Rejected',
+          icon: X,
+          tone: 'danger',
+          onClick: (row) => onWithdrawDecision?.(row, 'Rejected'),
         },
       ]
     : []
@@ -2955,7 +3023,7 @@ const workforcePageModules = {
   'invoice-management': { type: 'invoices', title: 'Invoice Management', fields: ['name', 'invoiceNumber', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
   'revenue-analytics': { type: 'revenueAnalytics', title: 'Revenue Analytics', fields: ['name', 'category', 'amount', 'metric', 'status', 'notes', 'createdAt'] },
   wallet: { type: 'wallets', title: 'Wallet', fields: ['name', 'invoiceBill', 'balance', 'amount', 'method', 'status', 'notes', 'createdAt'] },
-  'withdraw-requests': { type: 'withdrawRequests', title: 'Withdraw Requests', fields: ['name', 'billAmount', 'withdrawableAmount', 'method', 'requestDate', 'status', 'releaseDate', 'notes', 'createdAt'] },
+  'withdraw-requests': { type: 'withdrawRequests', title: 'Withdraw Requests', fields: ['name', 'billAmount', 'withdrawableAmount', 'method', 'requestDate', 'status', 'releaseDate', 'approvalRemark', 'notes', 'createdAt'] },
   'sales-pipeline': { type: 'salesPipeline', title: 'Sales Pipeline', fields: ['name', 'company', 'amount', 'stage', 'nextAction', 'status', 'notes', 'createdAt'] },
   'follow-ups': { type: 'followUps', title: 'Follow Ups', fields: ['name', 'company', 'dueDate', 'channel', 'status', 'notes', 'createdAt'] },
   'email-campaigns': { type: 'emailCampaigns', title: 'Email Campaigns', fields: ['name', 'subject', 'category', 'openRate', 'status', 'notes', 'createdAt'] },
@@ -3047,6 +3115,10 @@ function getModuleConfig(page, data, currentRole = 'admin') {
 
   if (page === 'client-reports') {
     return workforceModule('clientReports', 'Client Reports', data.clientReports, ['name', 'company', 'category', 'status', 'notes', 'createdAt'])
+  }
+
+  if (page === 'invoice-management') {
+    return workforceModule('withdrawRequests', 'Invoice Management', data.withdrawRequests, ['name', 'billAmount', 'withdrawableAmount', 'method', 'requestDate', 'status', 'releaseDate', 'approvalRemark', 'invoiceFileName', 'notes', 'createdAt'], currentRole)
   }
 
   if (page === 'support-requests') {
@@ -3293,6 +3365,8 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       platformFee: record.platformFee,
       heldAmount: record.heldAmount,
       releaseDate: record.releaseDate,
+      approvalRemark: record.approvalRemark,
+      reviewedAt: record.reviewedAt ? formatDate(record.reviewedAt) : '',
       dueDate: record.dueDate,
       priority: record.priority,
       category: record.category,
@@ -3303,6 +3377,7 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       subject: record.subject,
       invoiceNumber: record.invoiceNumber,
       invoiceFile: record.invoiceFile,
+      invoiceFileName: record.invoiceFile?.name || '',
       cycle: record.cycle,
       method: record.method,
       paypalEmail: record.paypalEmail,
@@ -4045,7 +4120,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'upiId', label: 'UPI ID', showWhen: (form) => form.method === 'UPI ID' },
       { name: 'qrScanner', label: 'QR Scanner', type: 'file', showWhen: (form) => form.method === 'QR Scanner' },
       { name: 'requestDate', label: 'Request Date', type: 'date' },
-      ...(!isStaffOrVendor ? [{ name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Paid', 'Rejected'] }] : []),
+      ...(!isStaffOrVendor ? [{ name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Hold', 'Released', 'Rejected'] }] : []),
       { name: 'notes', label: 'Message', type: 'textarea' },
       { name: 'invoiceFile', label: 'Invoice Upload', type: 'document', accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png' },
     ],
@@ -4243,6 +4318,8 @@ function commonColumns(keys) {
     platformFee: 'Platform 10%',
     heldAmount: '3 Month Hold',
     releaseDate: 'Release Date',
+    approvalRemark: 'Remark',
+    reviewedAt: 'Reviewed',
     dueDate: 'Due Date',
     priority: 'Priority',
     assignee: 'Assignee',
@@ -4252,6 +4329,7 @@ function commonColumns(keys) {
     subject: 'Subject',
     invoiceNumber: 'Invoice',
     invoiceFile: 'Invoice File',
+    invoiceFileName: 'Invoice File',
     image: 'Image',
     summary: 'Summary',
     experience: 'Experience',
