@@ -1099,12 +1099,6 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
       <section className={`legal-sign-workspace ${step === 'list' ? 'is-list' : ''}`}>
-        <div className="legal-create-bar">
-          <div>
-            <p>Contracts</p>
-            <h2>Legal document signing</h2>
-          </div>
-        </div>
         {step === 'list' ? (
           <div className="legal-empty-flow">
             <FileText size={44} />
