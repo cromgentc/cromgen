@@ -1,4 +1,5 @@
-export function ComputerVisionPage() {
-  return <main className="min-h-[55vh] bg-white" />
-}
+import { AIServiceSamplePage } from './AIServiceSamplePage.jsx'
 
+export function ComputerVisionPage() {
+  return <AIServiceSamplePage type="computerVision" />
+}

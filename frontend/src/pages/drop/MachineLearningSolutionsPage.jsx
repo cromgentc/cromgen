@@ -93,6 +93,8 @@ const sampleRows = [
   ['Fraud signal', 'Low', 'No unusual transaction pattern detected'],
 ]
 
+const googleDriveSampleLink = 'https://drive.google.com/drive/folders/service-samples'
+
 export function MachineLearningSolutionsPage() {
   const [activeService, setActiveService] = useState(serviceItems[0])
   const [backendSamples, setBackendSamples] = useState([])
@@ -453,6 +455,7 @@ function downloadSample(service, backendSample) {
     `Cromgen Technology - ${backendSample?.title || service.sample}`,
     '',
     `Selected service: ${service.title}`,
+    `Google Drive sample link: ${googleDriveSampleLink}`,
     `Overview: ${service.copy}`,
     backendSample?.summary ? `Backend sample summary: ${backendSample.summary}` : '',
     '',

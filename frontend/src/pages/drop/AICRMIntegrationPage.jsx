@@ -1,4 +1,5 @@
-export function AICRMIntegrationPage() {
-  return <main className="min-h-[55vh] bg-white" />
-}
+import { AIServiceSamplePage } from './AIServiceSamplePage.jsx'
 
+export function AICRMIntegrationPage() {
+  return <AIServiceSamplePage type="aiCrm" />
+}

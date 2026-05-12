@@ -1,4 +1,5 @@
-export function BusinessProcessAutomationPage() {
-  return <main className="min-h-[55vh] bg-white" />
-}
+import { AIServiceSamplePage } from './AIServiceSamplePage.jsx'
 
+export function BusinessProcessAutomationPage() {
+  return <AIServiceSamplePage type="automation" />
+}

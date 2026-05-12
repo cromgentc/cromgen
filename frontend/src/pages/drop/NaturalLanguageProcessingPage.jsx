@@ -1,4 +1,5 @@
-export function NaturalLanguageProcessingPage() {
-  return <main className="min-h-[55vh] bg-white" />
-}
+import { AIServiceSamplePage } from './AIServiceSamplePage.jsx'
 
+export function NaturalLanguageProcessingPage() {
+  return <AIServiceSamplePage type="nlp" />
+}

@@ -1,4 +1,5 @@
-export function RecommendationSystemsPage() {
-  return <main className="min-h-[55vh] bg-white" />
-}
+import { AIServiceSamplePage } from './AIServiceSamplePage.jsx'
 
+export function RecommendationSystemsPage() {
+  return <AIServiceSamplePage type="recommendations" />
+}

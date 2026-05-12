@@ -597,7 +597,7 @@ function EnterpriseAdminApp() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {canCreateActivePage && !isReadOnlyAuditPage ? (
+                    {canCreateActivePage && !isReadOnlyAuditPage && !isLeadManagementPage ? (
                       <button type="button" onClick={openCreateModal} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
                         <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
                       </button>
