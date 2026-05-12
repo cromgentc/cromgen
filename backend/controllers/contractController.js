@@ -321,7 +321,7 @@ export async function signPublicContract(request, { token }) {
 }
 
 function sendContractRequestEmail(contract, signingUrl) {
-  const recipientName = escapeEmailHtml(contract.recipientName || 'Client')
+  const recipientName = escapeEmailHtml(contract.recipientName || contract.recipientEmail || 'Client')
   const contractTitle = escapeEmailHtml(contract.title || 'Contract')
 
   return sendEmail({
