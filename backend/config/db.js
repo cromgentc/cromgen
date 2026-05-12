@@ -39,6 +39,8 @@ async function ensureIndexes(db) {
     db.collection('siteSettings').createIndex({ key: 1 }, { unique: true }),
     db.collection('contracts').createIndex({ signingToken: 1 }, { unique: true }),
     db.collection('contracts').createIndex({ createdAt: -1 }),
+    db.collection('projects').createIndex({ createdAt: -1 }),
+    db.collection('projects').createIndex({ createdBy: 1 }),
     db.collection('jobPosts').createIndex({ slug: 1 }, { unique: true }),
     db.collection('jobPosts').createIndex({ createdAt: -1 }),
     db.collection('newsPosts').createIndex({ slug: 1 }, { unique: true }),

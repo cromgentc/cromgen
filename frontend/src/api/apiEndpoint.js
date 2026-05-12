@@ -99,6 +99,12 @@ export const CONTRACT_ENDPOINTS = {
   publicSignedFile: (token) => `/api/contracts/${encodeURIComponent(token)}/signed-file`,
 }
 
+export const PROJECT_ENDPOINTS = {
+  settingsList: '/api/settings/projects',
+  settingsDetail: (id) => `/api/settings/projects/${encodeURIComponent(id)}`,
+  settingsDelete: (id) => `/api/settings/projects/${encodeURIComponent(id)}`,
+}
+
 export const SITE_ENDPOINTS = {
   publicDetail: '/api/site-settings',
   settingsDetail: '/api/settings/site',

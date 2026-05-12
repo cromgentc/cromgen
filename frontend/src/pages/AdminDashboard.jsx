@@ -57,6 +57,7 @@ import {
   LEAD_ENDPOINTS,
   NEWS_ENDPOINTS,
   POLICY_ENDPOINTS,
+  PROJECT_ENDPOINTS,
   SERVICE_SAMPLE_ENDPOINTS,
   SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
@@ -68,6 +69,7 @@ const emptyData = {
   users: [],
   vendors: [],
   contracts: [],
+  projects: [],
   leads: [],
   applications: [],
   jobs: [],
@@ -285,6 +287,7 @@ function EnterpriseAdminApp() {
       users: [AUTH_ENDPOINTS.settingsUsers, (response) => response.users || []],
       vendors: [VENDOR_ENDPOINTS.settingsList, (response) => response.vendors || []],
       contracts: [CONTRACT_ENDPOINTS.settingsList, (response) => response.contracts || []],
+      projects: [PROJECT_ENDPOINTS.settingsList, (response) => response.projects || []],
       leads: [LEAD_ENDPOINTS.settingsList, (response) => response.leads || []],
       applications: [APPLICATION_ENDPOINTS.settingsList, (response) => response.applications || []],
       jobs: [JOB_ENDPOINTS.settingsList, (response) => response.jobs || []],
@@ -311,9 +314,9 @@ function EnterpriseAdminApp() {
 
     if (dashboardPages.includes(page)) {
       if (currentRole === 'admin') {
-        ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+        ['users', 'vendors', 'contracts', 'projects', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
       } else if (currentRole === 'staff') {
-        ['users', 'vendors', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+        ['users', 'vendors', 'projects', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
       } else if (currentRole === 'vendor') {
         ['users', 'vendors'].forEach((key) => requestedCoreKeys.add(key))
       }
@@ -321,7 +324,9 @@ function EnterpriseAdminApp() {
       if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('users')
     } else if (page === 'vendor-management') {
       if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('vendors')
-    } else if (['project-management', 'legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
+    } else if (page === 'project-management') {
+      if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('projects')
+    } else if (['legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('contracts')
     } else if (page === 'leads-management') {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('leads')
@@ -497,10 +502,15 @@ function EnterpriseAdminApp() {
           throw new Error('Only admin or staff can create vendor accounts.')
         }
         await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(createVendorPayload(normalizedForm)) })
-      } else if (activePage === 'project-management' || activePage === 'legal-team') {
+      } else if (activePage === 'project-management') {
+        await apiRequest(PROJECT_ENDPOINTS.settingsList, {
+          method: 'POST',
+          body: JSON.stringify(createProjectPayload(normalizedForm)),
+        })
+      } else if (activePage === 'legal-team') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsList, {
           method: 'POST',
-          body: JSON.stringify(activePage === 'project-management' ? createProjectPayload(normalizedForm) : normalizedForm),
+          body: JSON.stringify(normalizedForm),
         })
       } else if (activePage === 'leads-management') {
         await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(normalizedForm) })
@@ -547,10 +557,18 @@ function EnterpriseAdminApp() {
       return
     }
 
-    if (page === 'project-management' || page === 'legal-team') {
+    if (page === 'project-management') {
+      await apiRequest(PROJECT_ENDPOINTS.settingsDetail(id), {
+        method: 'POST',
+        body: JSON.stringify(createProjectPayload(payload)),
+      })
+      return
+    }
+
+    if (page === 'legal-team') {
       await apiRequest(CONTRACT_ENDPOINTS.settingsDetail(id), {
         method: 'POST',
-        body: JSON.stringify(page === 'project-management' ? createProjectPayload(payload) : payload),
+        body: JSON.stringify(payload),
       })
       return
     }
@@ -587,6 +605,8 @@ function EnterpriseAdminApp() {
         await apiRequest(VENDOR_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (type === 'contracts') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (type === 'projects') {
+        await apiRequest(PROJECT_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (type === 'leads') {
         await apiRequest(LEAD_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (type === 'applications') {
@@ -629,7 +649,7 @@ function EnterpriseAdminApp() {
 
   const updateProjectStatus = async (row, projectStatus) => {
     try {
-      await apiRequest(CONTRACT_ENDPOINTS.settingsDetail(row.id), {
+      await apiRequest(PROJECT_ENDPOINTS.settingsDetail(row.id), {
         method: 'POST',
         body: JSON.stringify(createProjectPayload({ ...row, projectStatus })),
       })
@@ -882,7 +902,7 @@ function EnterpriseAdminApp() {
 function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
   const stats = createStats(data)
   const chartData = createChartData(data)
-  const pieData = createProjectPie(data.contracts)
+  const pieData = createProjectPie(data.projects)
   const vendorChart = data.vendors.map((vendor) => ({
     name: vendor.company || vendor.name || 'Vendor',
     score: vendor.status === 'active' ? 100 : vendor.status === 'pending' ? 55 : 25,
@@ -933,7 +953,7 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
           </AreaChart>
         </ChartCard>
 
-        <ChartCard title="Project Completion" eyebrow="Contracts Collection">
+        <ChartCard title="Project Completion" eyebrow="Projects Collection">
           <PieChart>
             <Pie data={pieData} dataKey="value" innerRadius={72} outerRadius={112} paddingAngle={5}>
               {pieData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
@@ -977,7 +997,7 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
 function OperationsPanel({ data }) {
   const activities = [
     ...data.leads.slice(0, 2).map((lead) => ({ title: 'Lead received', copy: `${lead.name || lead.email} - ${lead.service || 'Service enquiry'}`, time: formatDate(lead.createdAt) })),
-    ...data.contracts.slice(0, 2).map((contract) => ({ title: 'Project updated', copy: `${contract.title || 'Untitled'} - ${contract.status || 'pending'}`, time: formatDate(contract.createdAt) })),
+    ...data.projects.slice(0, 2).map((project) => ({ title: 'Project updated', copy: `${project.title || 'Untitled'} - ${project.projectStatus || 'active'}`, time: formatDate(project.createdAt) })),
     ...data.applications.slice(0, 2).map((application) => ({ title: 'Application submitted', copy: `${application.candidate?.name || application.candidate?.email || 'Candidate'} - ${application.title || 'Career'}`, time: formatDate(application.createdAt) })),
   ].slice(0, 5)
 
@@ -2755,21 +2775,46 @@ function getModuleConfig(page, data) {
     }
   }
 
-  if (['project-management', 'legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
-    const isLegalTeam = page === 'legal-team'
+  if (page === 'project-management') {
+    return {
+      type: 'projects',
+      title: 'Project Management',
+      source: PROJECT_ENDPOINTS.settingsList,
+      isLive: true,
+      canEdit: true,
+      rows: data.projects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        senderName: project.senderName,
+        projectPriority: project.projectPriority || 'Medium',
+        startDate: project.startDate,
+        dueDate: project.dueDate,
+        budget: project.budget,
+        googleDocUrl: project.googleDocUrl,
+        contractBody: project.contractBody,
+        projectStatus: project.projectStatus || 'active',
+        createdBy: project.createdBy,
+        createdAt: formatDate(project.createdAt),
+      })),
+      columns: commonColumns(['title', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'googleDocUrl', 'createdAt']),
+      emptyText: 'No projects added yet.',
+    }
+  }
+
+  if (['legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
     return {
       type: 'contracts',
-      title: isLegalTeam ? 'Legal Team Contracts' : 'Projects / Contracts',
+      title: 'Legal Team Contracts',
       source: CONTRACT_ENDPOINTS.settingsList,
       isLive: true,
-      canEdit: isLegalTeam || page === 'project-management',
+      canEdit: page === 'legal-team',
       rows: data.contracts.map((contract) => ({
         id: contract.signingToken || contract.slug,
         title: contract.title,
-        recipientName: isLegalTeam ? contract.recipientName : '',
-        recipientEmail: isLegalTeam ? contract.recipientEmail : '',
-        client: isLegalTeam ? contract.recipientName : '',
-        email: isLegalTeam ? contract.recipientEmail : '',
+        recipientName: contract.recipientName,
+        recipientEmail: contract.recipientEmail,
+        client: contract.recipientName,
+        email: contract.recipientEmail,
         senderName: contract.senderName,
         projectPriority: contract.projectPriority || 'Medium',
         startDate: contract.startDate,
@@ -2784,10 +2829,8 @@ function getModuleConfig(page, data) {
         projectStatus: contract.projectStatus || 'active',
         createdAt: formatDate(contract.createdAt),
       })),
-      columns: commonColumns(isLegalTeam
-        ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'createdAt']
-        : ['title', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'googleDocUrl', 'createdAt']),
-      emptyText: isLegalTeam ? 'The legal contracts collection is empty.' : 'No projects added yet.',
+      columns: commonColumns(['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'createdAt']),
+      emptyText: 'The legal contracts collection is empty.',
     }
   }
 
@@ -3114,7 +3157,7 @@ function scopeDataForRole(data, currentUser) {
   }
 
   if (role === 'staff') {
-    for (const key of ['applications', 'jobs']) {
+    for (const key of ['applications', 'jobs', 'projects']) {
       if (Array.isArray(scoped[key])) scoped[key] = scoped[key].filter(isCreatedByMe)
     }
   }
@@ -3130,6 +3173,7 @@ function createStats(data) {
   return [
     { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
     { label: 'Contracts', value: data.contracts.length, change: 'Open', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500', page: 'legal-team' },
+    { label: 'Projects', value: data.projects.length, change: 'Live', icon: Layers3, tone: 'from-emerald-300 to-cyan-500', page: 'project-management' },
     { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
     { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
     { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
@@ -3143,9 +3187,9 @@ function createNotifications(data) {
       meta: `${lead.name || lead.email || 'Lead'} - ${lead.service || 'Service enquiry'}`,
       tone: 'bg-cyan-400',
     })),
-    ...data.contracts.filter((contract) => contract.status !== 'signed').slice(0, 3).map((contract) => ({
-      title: 'Pending project / contract',
-      meta: `${contract.title || 'Untitled'} - ${contract.recipientEmail || 'No email'}`,
+    ...data.projects.filter((project) => project.projectStatus !== 'closed').slice(0, 3).map((project) => ({
+      title: 'Active project',
+      meta: `${project.title || 'Untitled'} - ${project.projectStatus || 'active'}`,
       tone: 'bg-amber-400',
     })),
     ...data.applications.slice(0, 3).map((application) => ({
@@ -3157,15 +3201,15 @@ function createNotifications(data) {
 }
 
 function createAiInsights(data) {
-  const unsigned = data.contracts.filter((contract) => contract.status !== 'signed').length
+  const openProjects = data.projects.filter((project) => !['closed', 'inactive'].includes(project.projectStatus)).length
   const openTickets = data.supportTickets.filter((ticket) => !['Resolved', 'Closed'].includes(ticket.status)).length
   const pendingWithdraws = data.withdrawRequests.filter((request) => request.status === 'Pending').length
 
   return [
     {
       tag: 'Projects',
-      title: `${unsigned} project records need signature or review`,
-      copy: 'Open project workspace to check contract status, project stage, and delivery progress.',
+      title: `${openProjects} project records are active`,
+      copy: 'Open project workspace to check project status, priority, notes, and delivery progress.',
       page: 'project-management',
     },
     {
@@ -3196,7 +3240,7 @@ function createSearchResults(data, query) {
   const groups = [
     ['user-management', 'Users', data.users],
     ['vendor-management', 'Vendors', data.vendors],
-    ['project-management', 'Projects', data.contracts],
+    ['project-management', 'Projects', data.projects],
     ['leads-management', 'Leads', data.leads],
     ['applications', 'Applications', data.applications.map((item) => ({ ...item, name: item.candidate?.name, email: item.candidate?.email }))],
     ['invoice-management', 'Invoices', data.invoices],
@@ -3229,23 +3273,23 @@ function createChartData(data) {
     const monthNumber = index
     return {
       month,
-      records: countMonth(data.users, monthNumber) + countMonth(data.vendors, monthNumber) + countMonth(data.contracts, monthNumber) + countMonth(data.leads, monthNumber),
+      records: countMonth(data.users, monthNumber) + countMonth(data.vendors, monthNumber) + countMonth(data.projects, monthNumber) + countMonth(data.contracts, monthNumber) + countMonth(data.leads, monthNumber),
       users: countMonth(data.users, monthNumber),
       leads: countMonth(data.leads, monthNumber),
     }
   })
 }
 
-function createProjectPie(contracts) {
-  const signed = contracts.filter((contract) => contract.status === 'signed').length
-  const pending = contracts.filter((contract) => contract.status !== 'signed').length
-  const active = contracts.filter((contract) => (contract.projectStatus || 'active') === 'active').length
-  const closed = contracts.filter((contract) => contract.projectStatus === 'closed').length
+function createProjectPie(projects) {
+  const live = projects.filter((project) => project.projectStatus === 'live').length
+  const active = projects.filter((project) => (project.projectStatus || 'active') === 'active').length
+  const paused = projects.filter((project) => project.projectStatus === 'inactive').length
+  const closed = projects.filter((project) => project.projectStatus === 'closed').length
 
   return [
-    { name: 'Signed', value: signed, color: '#22d3ee' },
-    { name: 'Pending', value: pending, color: '#8b5cf6' },
+    { name: 'Live', value: live, color: '#22d3ee' },
     { name: 'Active', value: active, color: '#10b981' },
+    { name: 'Paused', value: paused, color: '#8b5cf6' },
     { name: 'Closed', value: closed, color: '#f59e0b' },
   ].filter((item) => item.value > 0)
 }
@@ -3269,7 +3313,7 @@ function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'job-postings', 'applications'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'job-postings', 'applications'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
   return false
 }
@@ -3278,7 +3322,7 @@ function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
-  if (role === 'staff') return ['user-management', 'job-postings'].includes(page)
+  if (role === 'staff') return ['user-management', 'project-management', 'job-postings'].includes(page)
   if (role === 'vendor') return page === 'user-management'
   return false
 }

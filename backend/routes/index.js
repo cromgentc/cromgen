@@ -6,6 +6,7 @@ import { jobRoutes } from './jobRoutes.js'
 import { leadRoutes } from './leadRoutes.js'
 import { newsRoutes } from './newsRoutes.js'
 import { policyRoutes } from './policyRoutes.js'
+import { projectRoutes } from './projectRoutes.js'
 import { serviceRoutes } from './serviceRoutes.js'
 import { serviceSampleRoutes } from './serviceSampleRoutes.js'
 import { siteSettingsRoutes } from './siteSettingsRoutes.js'
@@ -18,6 +19,7 @@ export const routes = [
   ...authRoutes,
   ...contractRoutes,
   ...jobRoutes,
+  ...projectRoutes,
   ...policyRoutes,
   ...siteSettingsRoutes,
   ...newsRoutes,
