@@ -1440,7 +1440,7 @@ function formatContractEmailFailureReason(reason) {
     return ' Backend is still running the old contract email validation. Redeploy the backend, then send again.'
   }
 
-  return value ? ` ${value}` : ' Check SMTP/email settings.'
+  return value ? ` ${value}` : ' Backend did not return the SMTP error. Save Email Settings, restart/redeploy the backend, then try again.'
 }
 
 function clampPercent(value, min, max) {

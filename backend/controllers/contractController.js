@@ -60,7 +60,7 @@ export async function createSettingContract(request) {
         ? 'Contract signed and saved.'
       : emailResult.sent
         ? 'Contract saved and signing email sent to recipient.'
-        : 'Contract saved, but signing email could not be sent.',
+        : `Contract saved, but signing email could not be sent.${formatEmailFailureReason(emailResult.reason)}`,
     contract,
     email: emailResult,
   })
@@ -110,7 +110,7 @@ export async function updateSettingContract(request, { token }) {
   return json(200, {
     ok: true,
     message: shouldSend
-      ? emailResult.sent ? 'Contract saved and signing email sent to recipient.' : 'Contract saved, but signing email could not be sent.'
+      ? emailResult.sent ? 'Contract saved and signing email sent to recipient.' : `Contract saved, but signing email could not be sent.${formatEmailFailureReason(emailResult.reason)}`
       : isCompanySigned ? 'Contract signed and saved.'
       : 'Contract updated successfully.',
     contract,
@@ -270,7 +270,7 @@ export async function signCompanyPublicContract(request, { token }) {
     ok: emailResult.sent,
     message: emailResult.sent
       ? 'Contract email sent to second party.'
-      : 'Email is not configured or failed to send.',
+      : `Email is not configured or failed to send.${formatEmailFailureReason(emailResult.reason)}`,
     contract,
     email: emailResult,
   })
@@ -371,6 +371,11 @@ function sendContractRequestEmail(contract, signingUrl) {
       </div>
     `,
   })
+}
+
+function formatEmailFailureReason(reason) {
+  const value = String(reason || '').trim()
+  return value ? ` ${value}` : ' Check SMTP/email settings.'
 }
 
 function escapeEmailHtml(value) {
