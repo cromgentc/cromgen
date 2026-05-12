@@ -2,7 +2,7 @@ import { ChevronDown, Download, Eye, FileDown, MoreHorizontal, Pencil, Search, T
 import { useEffect, useMemo, useState } from 'react'
 import { Modal } from './Modal.jsx'
 
-export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, onDeleteSelected, emptyText = 'No records found.' }) {
+export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete, onDeleteSelected, rowActions = [], emptyText = 'No records found.' }) {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState(columns[0]?.key || 'id')
   const [page, setPage] = useState(1)
@@ -248,6 +248,10 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
                         </div>
                         <span className="text-xs font-black text-slate-300">{row[column.key] || 0}%</span>
                       </div>
+                    ) : column.type === 'link' && row[column.key] ? (
+                      <a href={row[column.key]} target="_blank" rel="noreferrer" className="font-black text-cyan-200 underline-offset-4 hover:underline">
+                        Open
+                      </a>
                     ) : (
                       row[column.key] || '-'
                     )}
@@ -266,13 +270,30 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
                     {openActionId === (row.id || row.slug || row.email || row.name) ? (
                       <div className="absolute right-0 top-10 z-20 w-44 rounded-2xl border border-white/10 bg-slate-950/95 p-2 text-left shadow-2xl shadow-black/30">
                         <button type="button" onClick={() => { setOpenActionId(''); onView?.(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
-                          <Eye size={15} /> Details
+                          <Eye size={15} /> View
                         </button>
                         {onEdit ? (
                           <button type="button" onClick={() => { setOpenActionId(''); onEdit(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
                             <Pencil size={15} /> Edit
                           </button>
                         ) : null}
+                        {rowActions.map((action) => {
+                          if (action.hidden?.(row)) return null
+                          const Icon = action.icon || MoreHorizontal
+                          return (
+                            <button
+                              key={action.label}
+                              type="button"
+                              onClick={() => {
+                                setOpenActionId('')
+                                action.onClick?.(row)
+                              }}
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold hover:bg-white/10 ${action.tone === 'danger' ? 'text-rose-200 hover:bg-rose-400/10' : 'text-slate-200'}`}
+                            >
+                              <Icon size={15} /> {action.label}
+                            </button>
+                          )
+                        })}
                         {onDelete ? (
                           <button type="button" onClick={() => { setOpenActionId(''); setConfirmRequest({ message: 'Are you sure you want to delete this record?', action: () => onDelete(row) }) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-rose-200 hover:bg-rose-400/10">
                             <Trash2 size={15} /> Delete

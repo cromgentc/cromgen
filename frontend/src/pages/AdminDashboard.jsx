@@ -22,11 +22,14 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  ExternalLink,
   FileText,
   GripVertical,
   Layers3,
   MoreHorizontal,
   PenLine,
+  PauseCircle,
+  PlayCircle,
   Plus,
   Send,
   Sparkles,
@@ -121,7 +124,7 @@ const emptyData = {
 const formDefaults = {
   'user-management': { name: '', email: '', password: '', role: 'staff' },
   'vendor-management': { name: '', company: '', email: '', phone: '', serviceCategory: '', password: '', status: 'active' },
-  'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', projectPriority: 'Medium', startDate: '', dueDate: '', budget: '', contractBody: '' },
+  'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', projectPriority: 'Medium', startDate: '', dueDate: '', budget: '', googleDocUrl: '', contractBody: '' },
   'legal-team': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
@@ -547,7 +550,7 @@ function EnterpriseAdminApp() {
     if (page === 'project-management' || page === 'legal-team') {
       await apiRequest(CONTRACT_ENDPOINTS.settingsDetail(id), {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(page === 'project-management' ? createProjectPayload(payload) : payload),
       })
       return
     }
@@ -621,6 +624,19 @@ function EnterpriseAdminApp() {
       await loadMongoData()
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Selected records could not be deleted.')
+    }
+  }
+
+  const updateProjectStatus = async (row, projectStatus) => {
+    try {
+      await apiRequest(CONTRACT_ENDPOINTS.settingsDetail(row.id), {
+        method: 'POST',
+        body: JSON.stringify(createProjectPayload({ ...row, projectStatus })),
+      })
+      setToast(`Project marked ${projectStatus === 'active' ? 'active' : 'paused'}.`)
+      await loadMongoData(activePage)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Project status could not be updated.')
     }
   }
 
@@ -786,7 +802,7 @@ function EnterpriseAdminApp() {
                   onDeleteSelected={deleteSelectedRecords}
                 />
               ) : (
-                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} />
+                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} />
               )}
             </div>
 
@@ -1011,10 +1027,32 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected }) {
+function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange }) {
   const ModuleIcon = pageMeta.icon
   const isLeadManagement = activePage === 'leads-management'
   const badgeItems = isLeadManagement ? ['Create Record', 'Refresh Data'] : ['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only']
+  const rowActions = activePage === 'project-management'
+    ? [
+        {
+          label: 'View Google',
+          icon: ExternalLink,
+          hidden: (row) => !row.googleDocUrl,
+          onClick: (row) => window.open(row.googleDocUrl, '_blank', 'noopener,noreferrer'),
+        },
+        {
+          label: 'Pause',
+          icon: PauseCircle,
+          hidden: (row) => row.projectStatus === 'inactive',
+          onClick: (row) => onProjectStatusChange?.(row, 'inactive'),
+        },
+        {
+          label: 'Active',
+          icon: PlayCircle,
+          hidden: (row) => row.projectStatus === 'active',
+          onClick: (row) => onProjectStatusChange?.(row, 'active'),
+        },
+      ]
+    : []
 
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
@@ -1051,6 +1089,7 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
         onEdit={module.canEdit ? onEdit : null}
         onDelete={module.isLive ? onDelete : null}
         onDeleteSelected={module.isLive ? onDeleteSelected : null}
+        rowActions={rowActions}
         emptyText={module.emptyText}
       />
     </motion.div>
@@ -2516,6 +2555,7 @@ function createProjectPayload(form = {}) {
     startDate: String(form.startDate || '').trim(),
     dueDate: String(form.dueDate || '').trim(),
     budget: String(form.budget || '').trim(),
+    googleDocUrl: String(form.googleDocUrl || '').trim(),
     contractBody: String(form.contractBody || '').trim(),
     status: form.status || 'draft',
   }
@@ -2716,6 +2756,7 @@ function getModuleConfig(page, data) {
         startDate: contract.startDate,
         dueDate: contract.dueDate,
         budget: contract.budget,
+        googleDocUrl: contract.googleDocUrl,
         contractFile: contract.contractFile || null,
         fileName: contract.contractFile?.name || '',
         contractBody: contract.contractBody,
@@ -2726,7 +2767,7 @@ function getModuleConfig(page, data) {
       })),
       columns: commonColumns(isLegalTeam
         ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'createdAt']
-        : ['title', 'client', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'createdAt']),
+        : ['title', 'client', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'googleDocUrl', 'createdAt']),
       emptyText: isLegalTeam ? 'The legal contracts collection is empty.' : 'No projects added yet.',
     }
   }
@@ -3260,7 +3301,8 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'startDate', label: 'Start Date', type: 'date' },
       { name: 'dueDate', label: 'Due Date', type: 'date' },
       { name: 'budget', label: 'Budget' },
-      { name: 'contractBody', label: 'Project Notes', type: 'textarea' },
+      { name: 'googleDocUrl', label: 'Project Notes / Google Link', type: 'url' },
+      { name: 'contractBody', label: 'Project Details', type: 'textarea' },
     ],
     'legal-team': [
       { name: 'title', label: 'Contract / Project Name', ...commonRequired },
@@ -3685,6 +3727,7 @@ function commonColumns(keys) {
     startDate: 'Start Date',
     dueDate: 'Due Date',
     budget: 'Budget',
+    googleDocUrl: 'Google Link',
     query: 'Query',
     department: 'Department',
     location: 'Location',
