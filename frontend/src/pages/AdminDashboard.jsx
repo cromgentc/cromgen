@@ -1099,12 +1099,6 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
       <section className={`legal-sign-workspace ${step === 'list' ? 'is-list' : ''}`}>
-        {step === 'list' ? (
-          <div className="legal-empty-flow">
-            <FileText size={44} />
-            <strong>Create a contract to send for signature or sign yourself.</strong>
-          </div>
-        ) : null}
         {step === 'list' ? null : createPortal(
           <>
           <div className="legal-builder-modal-backdrop" aria-hidden="true" onClick={closeCreateFlow}></div>
