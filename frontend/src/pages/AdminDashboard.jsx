@@ -326,6 +326,11 @@ function EnterpriseAdminApp() {
       if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('vendors')
     } else if (page === 'project-management') {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('projects')
+    } else if (page === 'assign-tasks') {
+      if (['admin', 'staff'].includes(currentRole)) {
+        requestedCoreKeys.add('vendors')
+        requestedCoreKeys.add('projects')
+      }
     } else if (['legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('contracts')
     } else if (page === 'leads-management') {
@@ -2714,7 +2719,7 @@ function ConfirmDialog({ open, message, onYes, onNo }) {
 
 const workforcePageModules = {
   'task-management': { type: 'tasks', title: 'Task Management', fields: ['name', 'project', 'assignee', 'priority', 'status', 'deadline', 'notes', 'createdAt'] },
-  'assign-tasks': { type: 'assignedTasks', title: 'Assign Tasks', fields: ['name', 'project', 'assignee', 'deadline', 'status', 'notes', 'createdAt'] },
+  'assign-tasks': { type: 'assignedTasks', title: 'Assign Tasks Live Tracker', fields: ['name', 'project', 'assignee', 'deadline', 'status', 'notes', 'createdAt'] },
   deadlines: { type: 'deadlines', title: 'Deadlines', fields: ['name', 'project', 'deadline', 'priority', 'status', 'notes', 'createdAt'] },
   'project-analytics': { type: 'projectAnalytics', title: 'Project Analytics', fields: ['name', 'project', 'metric', 'progress', 'status', 'notes', 'createdAt'] },
   payments: { type: 'finance', title: 'Payments', fields: ['name', 'category', 'amount', 'status', 'notes', 'createdAt'] },
@@ -3413,10 +3418,32 @@ function getTeamRoleOptions(currentRole) {
   return userRoleOptions
 }
 
+function createVendorAssignOptions(vendors = []) {
+  const options = (vendors || [])
+    .map((vendor) => {
+      const code = vendor.vendorCode || vendor.code || 'NO-CODE'
+      const label = vendor.company || vendor.name || vendor.email || 'Vendor'
+      return `${code} - ${label}`
+    })
+    .filter(Boolean)
+
+  return options.length ? options : ['No vendors available']
+}
+
+function createProjectAssignOptions(projects = []) {
+  const options = (projects || [])
+    .map((project) => project.title || project.project || project.name)
+    .filter(Boolean)
+
+  return options.length ? Array.from(new Set(options)) : ['No projects available']
+}
+
 function getFormFields(page, data = emptyData, currentRole = 'admin') {
   const commonRequired = { required: true }
   const jobRoleOptions = Array.from(new Set((data.jobs || []).map((job) => job.title).filter(Boolean)))
   const hiringRoleOptions = jobRoleOptions.length ? jobRoleOptions : ['AI Solutions Associate', 'Digital Marketing Executive', 'Customer Support Specialist', 'Frontend Developer', 'HR Recruitment Coordinator']
+  const vendorAssignOptions = createVendorAssignOptions(data.vendors)
+  const projectAssignOptions = createProjectAssignOptions(data.projects)
   const map = {
     'user-management': [
       { name: 'name', label: 'Name', ...commonRequired },
@@ -3619,8 +3646,8 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     ],
     'assign-tasks': [
       { name: 'name', label: 'Task Name', ...commonRequired },
-      { name: 'project', label: 'Project' },
-      { name: 'assignee', label: 'Assign To', ...commonRequired },
+      { name: 'project', label: 'Project', type: 'select', options: projectAssignOptions, ...commonRequired },
+      { name: 'assignee', label: 'Assign To', type: 'select', options: vendorAssignOptions, ...commonRequired },
       { name: 'deadline', label: 'Deadline', type: 'date' },
       { name: 'status', label: 'Status', type: 'select', options: ['Assigned', 'Accepted', 'In Progress', 'Completed'] },
       { name: 'notes', label: 'Instructions', type: 'textarea' },
