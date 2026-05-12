@@ -4,21 +4,42 @@ import { useMemo, useState } from 'react'
 import { adminNavigation } from '../../data/enterpriseAdmin.js'
 import { DropdownMenu } from './DropdownMenu.jsx'
 
-export function Sidebar({ activePage, collapsed, mobileOpen, onCloseMobile, onNavigate }) {
+const restrictedGroupsForNonAdmin = new Set([
+  'AI Management',
+  'Client Management',
+  'Legal Team',
+  'Finance',
+  'CRM & Sales',
+  'Recruitment',
+  'Support Center',
+  'File & Cloud',
+  'API & Integrations',
+  'Website Management',
+  'Security',
+  'Settings',
+])
+const restrictedRoles = new Set(['vendor', 'staff', 'user'])
+
+export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile, onNavigate }) {
   const [query, setQuery] = useState('')
   const [openGroup, setOpenGroup] = useState('Dashboard')
 
   const visibleNavigation = useMemo(() => {
     const value = query.trim().toLowerCase()
-    if (!value) return adminNavigation
+    const normalizedRole = String(role || '').toLowerCase()
+    const roleNavigation = restrictedRoles.has(normalizedRole)
+      ? adminNavigation.filter((group) => !restrictedGroupsForNonAdmin.has(group.label))
+      : adminNavigation
 
-    return adminNavigation
+    if (!value) return roleNavigation
+
+    return roleNavigation
       .map((group) => ({
         ...group,
         items: group.items.filter(([, label]) => label.toLowerCase().includes(value) || group.label.toLowerCase().includes(value)),
       }))
       .filter((group) => group.items.length)
-  }, [query])
+  }, [query, role])
 
   const content = (
     <aside className={`flex h-screen flex-col border-r border-white/10 bg-slate-950/70 text-white shadow-2xl shadow-black/30 backdrop-blur-2xl ${collapsed ? 'w-[92px]' : 'w-[304px]'}`}>

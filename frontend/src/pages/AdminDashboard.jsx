@@ -611,6 +611,7 @@ function EnterpriseAdminApp() {
             activePage={activePage}
             collapsed={collapsed}
             mobileOpen={mobileOpen}
+            role={currentAdmin?.role || localStorage.getItem('cromgen_auth_role')}
             onCloseMobile={() => setMobileOpen(false)}
             onNavigate={navigateAdmin}
           />
