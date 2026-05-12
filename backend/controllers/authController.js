@@ -24,6 +24,7 @@ import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
 
 const adminOnly = requireRole(['admin'])
+const userListAccess = requireRole(['admin', 'staff', 'vendor', 'user'])
 const userCreateAccess = requireRole(['admin', 'staff', 'vendor'])
 const vendorCreateAccess = requireRole(['admin', 'staff'])
 
@@ -185,7 +186,7 @@ export async function updateCurrentUser(request) {
 }
 
 export async function listSettingUsers(request) {
-  const auth = userCreateAccess(request)
+  const auth = userListAccess(request)
   if (auth.error) return auth.error
 
   if (auth.payload?.role !== 'admin') {
@@ -285,8 +286,15 @@ export async function deleteSettingUser(request, { id }) {
 }
 
 export async function listSettingVendors(request) {
-  const auth = requireRole(['admin', 'staff', 'vendor'])(request)
+  const auth = requireRole(['admin', 'staff', 'vendor', 'user'])(request)
   if (auth.error) return auth.error
+
+  if (auth.payload?.role === 'user') {
+    return json(200, {
+      ok: true,
+      vendors: [],
+    })
+  }
 
   if (auth.payload?.role === 'vendor') {
     const vendor = await findVendorById(auth.payload?.sub)

@@ -30,10 +30,16 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
     const roleNavigation = restrictedRoles.has(normalizedRole)
       ? adminNavigation.filter((group) => !restrictedGroupsForNonAdmin.has(group.label))
       : adminNavigation
+    const scopedNavigation = roleNavigation
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(([page]) => isPageVisibleForRole(page, normalizedRole)),
+      }))
+      .filter((group) => group.items.length)
 
-    if (!value) return roleNavigation
+    if (!value) return scopedNavigation
 
-    return roleNavigation
+    return scopedNavigation
       .map((group) => ({
         ...group,
         items: group.items.filter(([, label]) => label.toLowerCase().includes(value) || group.label.toLowerCase().includes(value)),
@@ -176,4 +182,12 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
       ) : null}
     </>
   )
+}
+
+function isPageVisibleForRole(page, role) {
+  if (!role || role === 'admin') return true
+  if (page === 'dashboard' || page === 'logout') return true
+  if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
+  return false
 }

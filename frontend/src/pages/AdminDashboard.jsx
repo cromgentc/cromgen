@@ -400,7 +400,8 @@ function EnterpriseAdminApp() {
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
   const isLeadManagementPage = activePage === 'leads-management'
-  const canCreateActivePage = supportedCreatePages.includes(activePage)
+  const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || 'admin'
+  const canCreateActivePage = supportedCreatePages.includes(activePage) && canCreateForRole(activePage, currentRole)
   const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
   const navigateAdmin = (page) => {
@@ -411,12 +412,22 @@ function EnterpriseAdminApp() {
       window.location.assign('/login')
       return
     }
+    if (!canAccessPageForRole(page, currentAdmin?.role || localStorage.getItem('cromgen_auth_role'))) {
+      setToast('This module is not available for your role.')
+      setActivePage('dashboard')
+      setMobileOpen(false)
+      return
+    }
     setSearchQuery('')
     setActivePage(page)
     setMobileOpen(false)
   }
 
   const openCreateModal = () => {
+    if (!canCreateForRole(activePage, currentAdmin?.role || localStorage.getItem('cromgen_auth_role'))) {
+      setToast('Create access is not available for your role.')
+      return
+    }
     if (!supportedCreatePages.includes(activePage)) {
       setToast('Create API is not configured for this module yet.')
       return
@@ -3114,6 +3125,23 @@ function getRoleCreationOptions(currentRole) {
   if (role === 'vendor') return ['user']
   if (role === 'staff') return ['user', 'vendor']
   return ['staff', 'admin', 'vendor', 'user']
+}
+
+function canAccessPageForRole(page, currentRole) {
+  const role = String(currentRole || '').toLowerCase()
+  if (!role || role === 'admin') return true
+  if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
+  if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
+  return false
+}
+
+function canCreateForRole(page, currentRole) {
+  const role = String(currentRole || '').toLowerCase()
+  if (!role || role === 'admin') return true
+  if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'vendor') return page === 'user-management'
+  return false
 }
 
 function getTeamRoleOptions(currentRole) {
