@@ -177,6 +177,7 @@ const serviceSampleCategoryOptions = ['Artificial Intelligence', 'Digital Market
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
+const dashboardPages = ['overview', 'analytics', 'ai-insights', 'live-statistics']
 const workforceRecordTypes = [
   'candidates',
   'teams',
@@ -248,51 +249,74 @@ function EnterpriseAdminApp() {
   const [legalBuilderOpen, setLegalBuilderOpen] = useState(false)
 
   const loadMongoData = async (page = activePage) => {
-    const coreRequests = await Promise.allSettled([
-      apiRequest(AUTH_ENDPOINTS.settingsUsers),
-      apiRequest(VENDOR_ENDPOINTS.settingsList),
-      apiRequest(CONTRACT_ENDPOINTS.settingsList),
-      apiRequest(LEAD_ENDPOINTS.settingsList),
-      apiRequest(APPLICATION_ENDPOINTS.settingsList),
-      apiRequest(JOB_ENDPOINTS.settingsList),
-      apiRequest(SITE_ENDPOINTS.settingsDetail),
-      apiRequest(AUTH_ENDPOINTS.currentUser),
-      apiRequest(POLICY_ENDPOINTS.settingsList),
-      apiRequest(NEWS_ENDPOINTS.settingsList),
-      apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsList),
-    ])
+    const coreRequestMap = {
+      users: [AUTH_ENDPOINTS.settingsUsers, (response) => response.users || []],
+      vendors: [VENDOR_ENDPOINTS.settingsList, (response) => response.vendors || []],
+      contracts: [CONTRACT_ENDPOINTS.settingsList, (response) => response.contracts || []],
+      leads: [LEAD_ENDPOINTS.settingsList, (response) => response.leads || []],
+      applications: [APPLICATION_ENDPOINTS.settingsList, (response) => response.applications || []],
+      jobs: [JOB_ENDPOINTS.settingsList, (response) => response.jobs || []],
+      siteSettings: [SITE_ENDPOINTS.settingsDetail, (response) => response.settings || null],
+      policies: [POLICY_ENDPOINTS.settingsList, (response) => response.policies || []],
+      newsPosts: [NEWS_ENDPOINTS.settingsList, (response) => response.posts || []],
+      serviceSamples: [SERVICE_SAMPLE_ENDPOINTS.settingsList, (response) => response.samples || []],
+    }
+    const requestedCoreKeys = new Set()
+
+    if (dashboardPages.includes(page)) {
+      ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+    } else if (page === 'user-management') {
+      requestedCoreKeys.add('users')
+    } else if (page === 'vendor-management') {
+      requestedCoreKeys.add('vendors')
+    } else if (['project-management', 'legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
+      requestedCoreKeys.add('contracts')
+    } else if (page === 'leads-management') {
+      requestedCoreKeys.add('leads')
+    } else if (['recruitment', 'job-postings'].includes(page)) {
+      requestedCoreKeys.add('jobs')
+    } else if (page === 'applications') {
+      requestedCoreKeys.add('applications')
+    } else if (page === 'blog-management') {
+      requestedCoreKeys.add('newsPosts')
+    } else if (page === 'service-samples') {
+      requestedCoreKeys.add('serviceSamples')
+    } else if (['system-settings', 'legal-pages'].includes(page)) {
+      requestedCoreKeys.add('policies')
+    } else if (['seo-settings', 'theme-customization', 'email-settings', 'website-settings', 'notification-settings'].includes(page)) {
+      requestedCoreKeys.add('siteSettings')
+    }
+
+    const coreEntries = Array.from(requestedCoreKeys).map((key) => [key, ...coreRequestMap[key]])
+    const coreRequests = await Promise.allSettled(coreEntries.map(([, endpoint]) => apiRequest(endpoint)))
+    const currentUserRequest = await Promise.allSettled([apiRequest(AUTH_ENDPOINTS.currentUser)])
     const requiredWorkforceTypes = workforceTypesForPage(page)
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, policies, newsPosts, serviceSamples] = coreRequests.map((result) => (
-      result.status === 'fulfilled' ? result.value : {}
-    ))
+    const coreData = Object.fromEntries(
+      coreEntries.map(([key,, select], index) => [
+        key,
+        coreRequests[index]?.status === 'fulfilled' ? select(coreRequests[index].value) : undefined,
+      ]).filter(([, value]) => value !== undefined),
+    )
     const workforceData = Object.fromEntries(
       requiredWorkforceTypes.map((type, index) => [
         type,
         workforceRequests[index]?.status === 'fulfilled' ? workforceRequests[index].value.records || [] : [],
       ]),
     )
+    const currentUser = currentUserRequest[0]?.status === 'fulfilled' ? currentUserRequest[0].value : {}
 
     setData((current) => ({
-      users: users.users || [],
-      vendors: vendors.vendors || [],
-      contracts: contracts.contracts || [],
-      leads: leads.leads || [],
-      applications: applications.applications || [],
-      jobs: jobs.jobs || [],
-      siteSettings: siteSettings.settings || null,
-      policies: policies.policies || [],
-      newsPosts: newsPosts.posts || [],
-      serviceSamples: serviceSamples.samples || [],
-      ...Object.fromEntries(workforceRecordTypes.map((type) => [type, current[type] || []])),
+      ...current,
+      ...coreData,
       ...workforceData,
     }))
     setCurrentAdmin(currentUser.user || null)
 
-    const failedCount = [...coreRequests, ...workforceRequests].filter((result) => result.status === 'rejected').length
+    const failedCount = [...coreRequests, ...currentUserRequest, ...workforceRequests].filter((result) => result.status === 'rejected').length
     setToast(failedCount ? `${failedCount} data collections could not load. Check backend login/API.` : 'Live data synced.')
     setLoading(false)
   }
@@ -308,9 +332,6 @@ function EnterpriseAdminApp() {
   useEffect(() => {
     if (loading) return
 
-    const type = workforceTypeForPage(activePage)
-    if (!type || data[type]?.length) return
-
     const timer = window.setTimeout(() => {
       loadMongoData(activePage)
     }, 0)
@@ -319,7 +340,7 @@ function EnterpriseAdminApp() {
   }, [activePage])
 
   const pageMeta = useMemo(() => {
-    if (['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage)) {
+    if (dashboardPages.includes(activePage)) {
       return { title: 'Enterprise Command Center', tag: 'Live Data', icon: Sparkles }
     }
 
@@ -624,7 +645,7 @@ function EnterpriseAdminApp() {
                 </div>
               </motion.header>
 
-              {['overview', 'analytics', 'ai-insights', 'live-statistics'].includes(activePage) ? (
+              {dashboardPages.includes(activePage) ? (
                 <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
               ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
@@ -1984,16 +2005,17 @@ function SettingsModule({ activePage, settings, onSave }) {
                     value={draft.emailConfig?.[field] || ''}
                     placeholder={placeholder}
                     onChange={(event) => updateEmailField(field, event.target.value)}
-                    className={`h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60 ${field === 'smtpPass' ? 'pr-12' : ''}`}
+                    className={`h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60 ${field === 'smtpPass' ? 'pr-24' : ''}`}
                   />
                   {field === 'smtpPass' ? (
                     <button
                       type="button"
                       onClick={() => setShowSmtpPassword((current) => !current)}
-                      className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white"
+                      className="absolute right-2 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.08] px-2.5 text-xs font-black text-slate-300 transition hover:bg-white/15 hover:text-white"
                       aria-label={showSmtpPassword ? 'Hide SMTP password' : 'Show SMTP password'}
                     >
                       {showSmtpPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      <span>{showSmtpPassword ? 'Hide' : 'View'}</span>
                     </button>
                   ) : null}
                 </span>

@@ -1,13 +1,16 @@
 import { motion } from 'framer-motion'
 import { ArrowUpRight } from 'lucide-react'
 
-export function DashboardCard({ label, value, change, icon: Icon, tone }) {
+export function DashboardCard({ label, value, change, icon: Icon, tone, onClick }) {
   const isNegative = String(change).startsWith('-')
+  const Component = onClick ? motion.button : motion.article
 
   return (
-    <motion.article
+    <Component
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
       whileHover={{ y: -6, scale: 1.01 }}
-      className="group overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl"
+      className={`group overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl ${onClick ? 'text-left outline-none transition focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20' : ''}`}
     >
       <div className="flex items-start justify-between gap-4">
         <span className={`grid h-13 w-13 place-items-center rounded-2xl bg-gradient-to-br ${tone} text-white shadow-lg shadow-black/20`}>
@@ -26,6 +29,6 @@ export function DashboardCard({ label, value, change, icon: Icon, tone }) {
       <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10">
         <div className={`h-full w-3/4 rounded-full bg-gradient-to-r ${tone}`}></div>
       </div>
-    </motion.article>
+    </Component>
   )
 }
