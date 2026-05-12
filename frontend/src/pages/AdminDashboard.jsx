@@ -93,8 +93,6 @@ const emptyData = {
   adminAccessControls: [],
   tasks: [],
   assignedTasks: [],
-  deadlines: [],
-  projectAnalytics: [],
   finance: [],
   billingCycles: [],
   invoices: [],
@@ -148,8 +146,6 @@ const formDefaults = {
   'two-factor-authentication': { name: '', email: '', method: 'Authenticator App', enabled: 'Enabled', status: 'Active', notes: '' },
   'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
   'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
-  deadlines: { name: '', project: '', deadline: '', priority: 'Medium', status: 'Upcoming', notes: '' },
-  'project-analytics': { name: '', project: '', metric: '', progress: '', status: 'On Track', notes: '' },
   payments: { name: '', category: '', amount: '', status: 'Pending', notes: '' },
   'billing-cycle': { name: '', cycle: '', amount: '', dueDate: '', status: 'Active', notes: '' },
   'invoice-management': { name: '', invoiceNumber: '', company: '', amount: '', dueDate: '', status: 'Unpaid', notes: '' },
@@ -205,8 +201,6 @@ const workforceRecordTypes = [
   'adminAccessControls',
   'tasks',
   'assignedTasks',
-  'deadlines',
-  'projectAnalytics',
   'finance',
   'billingCycles',
   'invoices',
@@ -901,6 +895,7 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
   const stats = createStats(data)
   const chartData = createChartData(data)
   const pieData = createProjectPie(data.projects)
+  const projectAnalytics = createDashboardProjectAnalytics(data.projects, data.assignedTasks)
   const vendorChart = data.vendors.map((vendor) => ({
     name: vendor.company || vendor.name || 'Vendor',
     score: vendor.status === 'active' ? 100 : vendor.status === 'pending' ? 55 : 25,
@@ -951,7 +946,7 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
           </AreaChart>
         </ChartCard>
 
-        <ChartCard title="Project Completion" eyebrow="Projects Collection">
+        <ChartCard title="Project Analytics" eyebrow="Projects Collection">
           <PieChart>
             <Pie data={pieData} dataKey="value" innerRadius={72} outerRadius={112} paddingAngle={5}>
               {pieData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
@@ -959,6 +954,18 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
             <Tooltip contentStyle={tooltipStyle} />
           </PieChart>
         </ChartCard>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {projectAnalytics.map((item) => (
+          <article key={item.label} className="rounded-[24px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">{item.label}</p>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <strong className="text-3xl font-black text-white">{item.value}</strong>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${item.tone}`}>{item.meta}</span>
+            </div>
+          </article>
+        ))}
       </section>
 
       <section className="grid gap-7 xl:grid-cols-2">
@@ -2720,8 +2727,6 @@ function ConfirmDialog({ open, message, onYes, onNo }) {
 const workforcePageModules = {
   'task-management': { type: 'tasks', title: 'Task Management', fields: ['name', 'project', 'assignee', 'priority', 'status', 'deadline', 'notes', 'createdAt'] },
   'assign-tasks': { type: 'assignedTasks', title: 'Assign Tasks Live Tracker', fields: ['name', 'project', 'assignee', 'deadline', 'status', 'notes', 'createdAt'] },
-  deadlines: { type: 'deadlines', title: 'Deadlines', fields: ['name', 'project', 'deadline', 'priority', 'status', 'notes', 'createdAt'] },
-  'project-analytics': { type: 'projectAnalytics', title: 'Project Analytics', fields: ['name', 'project', 'metric', 'progress', 'status', 'notes', 'createdAt'] },
   payments: { type: 'finance', title: 'Payments', fields: ['name', 'category', 'amount', 'status', 'notes', 'createdAt'] },
   'billing-cycle': { type: 'billingCycles', title: 'Billing Cycle', fields: ['name', 'cycle', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
   'invoice-management': { type: 'invoices', title: 'Invoice Management', fields: ['name', 'invoiceNumber', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
@@ -3145,6 +3150,7 @@ function workforceTypeForPage(page) {
 }
 
 function workforceTypesForPage(page) {
+  if (page === 'dashboard') return ['assignedTasks']
   const type = workforceTypeForPage(page)
   return type ? [type] : []
 }
@@ -3383,6 +3389,20 @@ function createProjectPie(projects) {
     { name: 'Paused', value: paused, color: '#8b5cf6' },
     { name: 'Closed', value: closed, color: '#f59e0b' },
   ].filter((item) => item.value > 0)
+}
+
+function createDashboardProjectAnalytics(projects = [], assignedTasks = []) {
+  const activeProjects = projects.filter((project) => ['live', 'active'].includes(project.projectStatus || 'active')).length
+  const pausedProjects = projects.filter((project) => project.projectStatus === 'inactive').length
+  const urgentProjects = projects.filter((project) => String(project.projectPriority || '').toLowerCase() === 'urgent').length
+  const openAssignedTasks = assignedTasks.filter((task) => !['completed', 'closed'].includes(String(task.status || '').toLowerCase())).length
+
+  return [
+    { label: 'Total Projects', value: projects.length, meta: 'Live', tone: 'bg-cyan-300/15 text-cyan-100' },
+    { label: 'Active Projects', value: activeProjects, meta: 'Running', tone: 'bg-emerald-300/15 text-emerald-100' },
+    { label: 'Urgent Priority', value: urgentProjects, meta: pausedProjects ? `${pausedProjects} paused` : 'Clear', tone: urgentProjects ? 'bg-rose-300/15 text-rose-100' : 'bg-slate-300/15 text-slate-100' },
+    { label: 'Assigned Tasks', value: openAssignedTasks, meta: 'Open', tone: 'bg-violet-300/15 text-violet-100' },
+  ]
 }
 
 function countMonth(items, monthNumber) {
@@ -3672,22 +3692,6 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'deadline', label: 'Deadline', type: 'date' },
       { name: 'status', label: 'Status', type: 'select', options: ['Assigned', 'Accepted', 'In Progress', 'Completed'] },
       { name: 'notes', label: 'Instructions', type: 'textarea' },
-    ],
-    deadlines: [
-      { name: 'name', label: 'Deadline Name', ...commonRequired },
-      { name: 'project', label: 'Project' },
-      { name: 'deadline', label: 'Deadline', type: 'date' },
-      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
-      { name: 'status', label: 'Status', type: 'select', options: ['Upcoming', 'Due Today', 'Overdue', 'Completed'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
-    ],
-    'project-analytics': [
-      { name: 'name', label: 'Analytics Name', ...commonRequired },
-      { name: 'project', label: 'Project' },
-      { name: 'metric', label: 'Metric' },
-      { name: 'progress', label: 'Progress', type: 'number' },
-      { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
     ],
     payments: [
       { name: 'name', label: 'Payment Name', ...commonRequired },

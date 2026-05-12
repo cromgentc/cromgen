@@ -95,8 +95,6 @@ export const adminNavigation = [
       ['project-management', 'Project Management'],
       ['task-management', 'Task Management'],
       ['assign-tasks', 'Assign Tasks'],
-      ['deadlines', 'Deadlines'],
-      ['project-analytics', 'Project Analytics'],
     ],
   },
   {
