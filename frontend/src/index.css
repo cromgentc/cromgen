@@ -7384,6 +7384,81 @@ header #mobile-navigation summary:hover {
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
 }
 
+.legal-sign-workspace.is-list {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.legal-create-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.legal-sign-workspace.is-list .legal-create-bar {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.legal-create-bar p {
+  margin: 0;
+  color: #23865f;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.legal-sign-workspace.is-list .legal-create-bar p {
+  color: #67e8c2;
+}
+
+.legal-create-bar h2 {
+  margin: 4px 0 0;
+  color: #000000;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.legal-sign-workspace.is-list .legal-create-bar h2 {
+  color: #ffffff;
+}
+
+.legal-create-bar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #23865f;
+  border-radius: 8px;
+  background: #23865f;
+  padding: 10px 14px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.legal-empty-flow {
+  display: grid;
+  min-height: 170px;
+  place-items: center;
+  gap: 10px;
+  padding: 26px;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+.legal-empty-flow strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
 .legal-sign-choice {
   display: grid;
   min-height: 360px;
@@ -7430,6 +7505,7 @@ header #mobile-navigation summary:hover {
 .legal-editor-step {
   background: #ffffff;
   min-height: 420px;
+  max-width: 100%;
 }
 
 .legal-documents-step {
@@ -7710,14 +7786,19 @@ header #mobile-navigation summary:hover {
 
 .legal-editor-grid {
   display: grid;
-  grid-template-columns: 156px minmax(420px, 1fr) 290px;
-  min-height: 650px;
+  grid-template-columns: minmax(112px, 156px) minmax(0, 1fr) minmax(244px, 290px);
+  height: min(72vh, 760px);
+  min-height: 560px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .legal-editor-docs,
 .legal-editor-recipients {
   background: #ffffff;
   color: #000000;
+  min-width: 0;
+  overflow: auto;
 }
 
 .legal-editor-docs {
@@ -7753,9 +7834,11 @@ header #mobile-navigation summary:hover {
   overflow: auto;
   background: #d9d9d9;
   padding: 32px 48px;
+  min-width: 0;
 }
 
 .legal-document-paper {
+  position: relative;
   width: min(920px, 100%);
   min-height: 760px;
   margin: 0 auto;
@@ -7782,6 +7865,54 @@ header #mobile-navigation summary:hover {
   line-height: 1.75;
   outline: none;
   resize: vertical;
+}
+
+.legal-field-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.legal-placed-field {
+  position: absolute;
+  display: grid;
+  min-width: 132px;
+  max-width: 210px;
+  transform: translate(-50%, -50%);
+  gap: 2px;
+  border: 1px solid #23865f;
+  border-radius: 3px;
+  background: rgba(216, 248, 239, 0.96);
+  padding: 5px 8px;
+  color: #063f2a;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+}
+
+.legal-placed-field.is-active {
+  outline: 2px solid #101828;
+  outline-offset: 2px;
+}
+
+.legal-placed-field span,
+.legal-placed-field small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legal-placed-field span {
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.legal-placed-field small {
+  color: #344054;
+  font-size: 0.65rem;
+  font-weight: 700;
 }
 
 .legal-editor-recipients {
@@ -7849,6 +7980,10 @@ header #mobile-navigation summary:hover {
 }
 
 .legal-field-list button {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
   border: 1px solid #23865f;
   background: #ffffff;
   padding: 6px 8px;
@@ -7856,6 +7991,74 @@ header #mobile-navigation summary:hover {
   font: inherit;
   font-size: 0.76rem;
   text-align: left;
+  cursor: grab;
+}
+
+.legal-field-list button:active {
+  cursor: grabbing;
+}
+
+.legal-field-list button svg {
+  flex: 0 0 auto;
+  color: #23865f;
+}
+
+.legal-field-options {
+  border-top: 1px solid #e1e4e8;
+  padding: 12px;
+}
+
+.legal-field-options h4 {
+  margin: 0 0 10px;
+  border: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.legal-field-options label {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.legal-field-options label span {
+  color: #667085;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.legal-field-options input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cfd4dc;
+  border-radius: 4px;
+  padding: 7px 8px;
+  color: #000000;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.legal-field-options p {
+  margin: 0;
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.legal-field-options button {
+  width: 100%;
+  border: 1px solid #b42318;
+  border-radius: 4px;
+  background: #fff1f0;
+  padding: 8px;
+  color: #b42318;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .legal-flow-message {

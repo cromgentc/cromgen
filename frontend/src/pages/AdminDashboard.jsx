@@ -920,9 +920,11 @@ function ModuleSummary({ module }) {
 }
 
 function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDelete }) {
-  const [step, setStep] = useState('choice')
+  const [step, setStep] = useState('list')
   const [mode, setMode] = useState('send')
   const [saving, setSaving] = useState(false)
+  const [placedFields, setPlacedFields] = useState([])
+  const [activeFieldId, setActiveFieldId] = useState('')
   const [draft, setDraft] = useState({
     documentName: 'Agreement',
     recipientEmail: '',
@@ -940,10 +942,50 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
     setDraft((current) => ({ ...current, [field]: value }))
   }
 
+  const startCreateFlow = () => {
+    setStep('choice')
+    setMode('send')
+    setPlacedFields([])
+    setActiveFieldId('')
+    setMessage('')
+  }
+
   const selectMode = (nextMode) => {
     setMode(nextMode)
     setStep('documents')
     setMessage('')
+  }
+
+  const closeCreateFlow = () => {
+    setStep('list')
+    setMessage('')
+  }
+
+  const dropSigningField = (event) => {
+    event.preventDefault()
+    const fieldType = event.dataTransfer.getData('text/plain')
+    if (!fieldType) return
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const nextField = {
+      id: `field-${Date.now()}`,
+      type: fieldType,
+      label: fieldType,
+      value: defaultSigningFieldValue(fieldType, draft),
+      x: clampPercent(((event.clientX - rect.left) / rect.width) * 100, 3, 82),
+      y: clampPercent(((event.clientY - rect.top) / rect.height) * 100, 3, 92),
+    }
+    setPlacedFields((current) => [...current, nextField])
+    setActiveFieldId(nextField.id)
+  }
+
+  const updatePlacedField = (id, patch) => {
+    setPlacedFields((current) => current.map((field) => (field.id === id ? { ...field, ...patch } : field)))
+  }
+
+  const removePlacedField = (id) => {
+    setPlacedFields((current) => current.filter((field) => field.id !== id))
+    setActiveFieldId('')
   }
 
   const addDocument = async (file) => {
@@ -980,7 +1022,11 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
         recipientEmail: draft.recipientEmail.trim(),
         senderName: draft.senderName.trim() || 'Cromgen Technology',
         projectStatus: 'active',
-        contractBody: draft.contractBody.trim() || `${draft.documentName.trim()}\n\nContract terms and signing details.`,
+        contractBody: [
+          draft.contractBody.trim() || `${draft.documentName.trim()}\n\nContract terms and signing details.`,
+          placedFields.length ? '\n\nSigning fields:\n' : '',
+          ...placedFields.map((field) => `- ${field.label}: ${field.value || field.type}`),
+        ].join('\n'),
         contractFile: draft.contractFile,
       }
       const response = await apiRequest(CONTRACT_ENDPOINTS.settingsList, {
@@ -1001,9 +1047,29 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
     }
   }
 
+  const activePlacedField = placedFields.find((field) => field.id === activeFieldId) || null
+  const signingFields = ['Signature', 'Initial', 'Stamp', 'Image', 'Company', 'Full name', 'Email', 'Sign date', 'Date', 'Text', 'Job title', 'Checkbox', 'Dropdown', 'Radio']
+
   return (
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
-      <section className="legal-sign-workspace">
+      <section className={`legal-sign-workspace ${step === 'list' ? 'is-list' : ''}`}>
+        <div className="legal-create-bar">
+          <div>
+            <p>Contracts</p>
+            <h2>Legal document signing</h2>
+          </div>
+          <button type="button" onClick={startCreateFlow}>
+            <Plus size={17} /> Create Contract
+          </button>
+        </div>
+        {step === 'list' ? (
+          <div className="legal-empty-flow">
+            <FileText size={44} />
+            <strong>Create a contract to send for signature or sign yourself.</strong>
+          </div>
+        ) : null}
+        {step === 'list' ? null : (
+          <>
         {step === 'choice' ? (
           <div className="legal-sign-choice">
             <button type="button" className="legal-sign-choice-card is-active" onClick={() => selectMode('send')}>
@@ -1022,6 +1088,7 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
             <DocumentDropZone draft={draft} onFile={addDocument} />
             <div className="legal-flow-actions">
               <button type="button" className="is-muted" onClick={() => setStep('choice')}>Back</button>
+              <button type="button" className="is-muted" onClick={closeCreateFlow}>Save & close</button>
               <button type="button" onClick={() => setStep('details')}>Continue</button>
             </div>
           </div>
@@ -1060,7 +1127,7 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
               <textarea value={draft.note} onChange={(event) => updateDraft('note', event.target.value)} placeholder="Write a short signing note..." />
             </label>
             <div className="legal-flow-actions">
-              <button type="button" className="is-muted" onClick={() => setStep('documents')}>Save & close</button>
+              <button type="button" className="is-muted" onClick={closeCreateFlow}>Save & close</button>
               <button type="button" onClick={() => setStep('editor')}>Continue</button>
             </div>
           </div>
@@ -1073,6 +1140,7 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
               </div>
               <div>
                 <button type="button" className="is-muted" onClick={() => setStep('details')}>Back</button>
+                <button type="button" className="is-muted" onClick={closeCreateFlow}>Save & close</button>
                 <button type="button" disabled={saving} onClick={submitContract}>{saving ? 'Saving...' : 'Send'}</button>
               </div>
             </div>
@@ -1082,13 +1150,31 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
                 <DocumentThumb draft={draft} />
               </aside>
               <main className="legal-editor-canvas">
-                <div className="legal-document-paper">
+                <div
+                  className="legal-document-paper"
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={dropSigningField}
+                >
                   <h1>{draft.documentName || 'Agreement'}</h1>
                   <textarea
                     value={draft.contractBody}
                     onChange={(event) => updateDraft('contractBody', event.target.value)}
                     placeholder="Add agreement description, clauses, payment terms, scope, responsibilities, and signing instructions..."
                   />
+                  <div className="legal-field-overlay" aria-label="Placed signing fields">
+                    {placedFields.map((field) => (
+                      <button
+                        key={field.id}
+                        type="button"
+                        className={`legal-placed-field ${field.id === activeFieldId ? 'is-active' : ''}`}
+                        style={{ left: `${field.x}%`, top: `${field.y}%` }}
+                        onClick={() => setActiveFieldId(field.id)}
+                      >
+                        <span>{field.label}</span>
+                        <small>{field.value || field.type}</small>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </main>
               <aside className="legal-editor-recipients">
@@ -1103,14 +1189,41 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
                 </div>
                 <h4>Standard fields</h4>
                 <div className="legal-field-list">
-                  {['Signature', 'Initial', 'Stamp', 'Image', 'Company', 'Full name', 'Email', 'Sign date', 'Date', 'Text', 'Job title', 'Checkbox', 'Dropdown', 'Radio'].map((item) => (
-                    <button key={item} type="button">{item}</button>
+                  {signingFields.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      draggable
+                      onDragStart={(event) => event.dataTransfer.setData('text/plain', item)}
+                    >
+                      <GripVertical size={13} /> {item}
+                    </button>
                   ))}
+                </div>
+                <div className="legal-field-options">
+                  <h4>Field options</h4>
+                  {activePlacedField ? (
+                    <>
+                      <label>
+                        <span>Label</span>
+                        <input value={activePlacedField.label} onChange={(event) => updatePlacedField(activePlacedField.id, { label: event.target.value })} />
+                      </label>
+                      <label>
+                        <span>Text / value</span>
+                        <input value={activePlacedField.value} onChange={(event) => updatePlacedField(activePlacedField.id, { value: event.target.value })} />
+                      </label>
+                      <button type="button" onClick={() => removePlacedField(activePlacedField.id)}>Remove field</button>
+                    </>
+                  ) : (
+                    <p>Drag a field into the document, then click it to edit.</p>
+                  )}
                 </div>
               </aside>
             </div>
             {message ? <p className="legal-flow-message">{message}</p> : null}
           </div>
+        )}
+          </>
         )}
       </section>
 
@@ -1158,6 +1271,33 @@ function DocumentThumb({ draft }) {
       <strong>{draft.fileName || draft.documentName || 'Agreement'}</strong>
     </div>
   )
+}
+
+function defaultSigningFieldValue(fieldType, draft) {
+  const today = new Date().toISOString().slice(0, 10)
+  const values = {
+    Signature: 'Signature required',
+    Initial: 'Initials',
+    Stamp: 'Stamp',
+    Image: 'Image',
+    Company: draft.senderName || 'Cromgen Technology',
+    'Full name': draft.recipientName || 'Full name',
+    Email: draft.recipientEmail || 'email@example.com',
+    'Sign date': today,
+    Date: today,
+    Text: 'Text',
+    'Job title': 'Job title',
+    Checkbox: 'Checkbox',
+    Dropdown: 'Select option',
+    Radio: 'Radio option',
+  }
+  return values[fieldType] || fieldType
+}
+
+function clampPercent(value, min, max) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return min
+  return Math.max(min, Math.min(max, number))
 }
 
 function PolicySettingsPage({ policies, onSave }) {
