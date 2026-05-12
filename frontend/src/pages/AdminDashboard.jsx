@@ -33,6 +33,7 @@ import {
   Plus,
   Send,
   Sparkles,
+  UserPlus,
   Users,
   WandSparkles,
   X,
@@ -252,6 +253,9 @@ function EnterpriseAdminApp() {
   const [messages, setMessages] = useState(() => readStoredMessages())
   const [legalBuilderOpen, setLegalBuilderOpen] = useState(false)
   const [confirmRequest, setConfirmRequest] = useState(null)
+  const [assignUserRequest, setAssignUserRequest] = useState(null)
+  const [assignUserEmail, setAssignUserEmail] = useState('')
+  const [assigningUser, setAssigningUser] = useState(false)
 
   useEffect(() => {
     confirmActionHandler = (message) => new Promise((resolve) => {
@@ -661,6 +665,38 @@ function EnterpriseAdminApp() {
     }
   }
 
+  const openAssignProjectToUser = (row) => {
+    setAssignUserRequest(row)
+    setAssignUserEmail(row.assignedUserEmail || row.email || '')
+  }
+
+  const assignProjectToUser = async (event) => {
+    event.preventDefault()
+    if (!assignUserRequest) return
+    const email = String(assignUserEmail || '').trim().toLowerCase()
+    if (!email) {
+      setToast('User email is required.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setToast('Enter a valid user email.')
+      return
+    }
+
+    setAssigningUser(true)
+    try {
+      await requestProjectUpdate(assignUserRequest.id, createProjectPayload({ ...assignUserRequest, assignedUserEmail: email }))
+      setToast(`Project assigned to ${email}.`)
+      setAssignUserRequest(null)
+      setAssignUserEmail('')
+      await loadMongoData(activePage)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Project could not be assigned.')
+    } finally {
+      setAssigningUser(false)
+    }
+  }
+
   const saveSiteSettings = async (settings) => {
     if (!await confirmAction('Are you sure you want to save settings?')) return
     try {
@@ -823,7 +859,7 @@ function EnterpriseAdminApp() {
                   onDeleteSelected={deleteSelectedRecords}
                 />
               ) : (
-                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} />
+                <EnterpriseModule activePage={activePage} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} />
               )}
             </div>
 
@@ -889,6 +925,19 @@ function EnterpriseAdminApp() {
           onClose={() => setModalOpen(false)}
         />
         <DetailsModal record={detailsRecord} onClose={() => setDetailsRecord(null)} />
+        <AssignProjectUserModal
+          open={Boolean(assignUserRequest)}
+          project={assignUserRequest}
+          email={assignUserEmail}
+          saving={assigningUser}
+          onEmailChange={setAssignUserEmail}
+          onSubmit={assignProjectToUser}
+          onClose={() => {
+            if (assigningUser) return
+            setAssignUserRequest(null)
+            setAssignUserEmail('')
+          }}
+        />
         <ConfirmDialog
           open={Boolean(confirmRequest)}
           message={confirmRequest?.message || ''}
@@ -1061,7 +1110,7 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange }) {
+function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser }) {
   const ModuleIcon = pageMeta.icon
   const isLeadManagement = activePage === 'leads-management'
   const badgeItems = isLeadManagement ? ['Create Record', 'Refresh Data'] : ['Live data', 'JWT protected', 'CSV/PDF export', 'Real records only']
@@ -1072,6 +1121,11 @@ function EnterpriseModule({ activePage, pageMeta, module, onView, onEdit, onDele
           icon: ExternalLink,
           hidden: (row) => !row.googleDocUrl,
           onClick: (row) => window.open(row.googleDocUrl, '_blank', 'noopener,noreferrer'),
+        },
+        {
+          label: 'Assign To User',
+          icon: UserPlus,
+          onClick: (row) => onAssignProjectToUser?.(row),
         },
         {
           label: 'Pause',
@@ -2643,6 +2697,8 @@ function projectToFallbackPayload(project = {}) {
     notes: project.contractBody || project.notes || '',
     articleUrl: project.googleDocUrl || project.articleUrl || '',
     googleDocUrl: project.googleDocUrl || project.articleUrl || '',
+    assignedUserEmail: project.assignedUserEmail || project.email || '',
+    email: project.assignedUserEmail || project.email || '',
     amount: project.budget || project.amount || '',
     budget: project.budget || project.amount || '',
     date: project.startDate || project.date || '',
@@ -2662,6 +2718,7 @@ function projectFromFallbackRecord(record = {}) {
     dueDate: record.dueDate || '',
     budget: record.budget || record.amount || '',
     googleDocUrl: record.googleDocUrl || record.articleUrl || '',
+    assignedUserEmail: record.assignedUserEmail || record.email || '',
     contractBody: record.contractBody || record.notes || '',
   }
 }
@@ -2675,6 +2732,7 @@ function createProjectPayload(form = {}) {
   const projectStatus = form.projectStatus || form.status || 'active'
   const projectPriority = form.projectPriority || form.priority || 'Medium'
   const contractBody = String(form.contractBody || form.notes || '').trim()
+  const assignedUserEmail = String(form.assignedUserEmail || form.email || '').trim().toLowerCase()
 
   return {
     ...form,
@@ -2692,6 +2750,8 @@ function createProjectPayload(form = {}) {
     dueDate: String(form.dueDate || '').trim(),
     budget: normalizedBudget,
     googleDocUrl: String(form.googleDocUrl || '').trim(),
+    assignedUserEmail,
+    email: assignedUserEmail,
     contractBody,
     notes: contractBody,
   }
@@ -2712,6 +2772,38 @@ function DetailsModal({ record, onClose }) {
             </div>
           ))}
       </div>
+    </Modal>
+  )
+}
+
+function AssignProjectUserModal({ open, project, email, saving, onEmailChange, onSubmit, onClose }) {
+  return (
+    <Modal open={open} title="Assign To User" onClose={onClose}>
+      <form onSubmit={onSubmit} className="space-y-5">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Project</p>
+          <p className="mt-2 text-sm font-black text-white">{project?.title || project?.project || project?.name || 'Selected project'}</p>
+        </div>
+        <label className="block">
+          <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">User Email</span>
+          <input
+            type="email"
+            value={email || ''}
+            onChange={(event) => onEmailChange(event.target.value)}
+            placeholder="user@example.com"
+            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/60"
+            required
+          />
+        </label>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={saving} className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white hover:bg-white/15 disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="submit" disabled={saving} className="rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-500 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-60">
+            {saving ? 'Assigning...' : 'Assign To User'}
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }
@@ -2886,6 +2978,7 @@ function getModuleConfig(page, data, currentRole = 'admin') {
         dueDate: project.dueDate,
         budget: project.budget,
         googleDocUrl: project.googleDocUrl,
+        assignedUserEmail: project.assignedUserEmail || '',
         contractBody: project.contractBody,
         projectStatus: project.projectStatus || 'active',
         createdBy: project.createdBy,

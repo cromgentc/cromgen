@@ -71,6 +71,7 @@ export function normalizeProject(project = {}) {
     dueDate: String(project.dueDate || '').trim(),
     budget: String(project.budget || '').trim(),
     googleDocUrl: String(project.googleDocUrl || '').trim(),
+    assignedUserEmail: String(project.assignedUserEmail || project.email || '').trim().toLowerCase(),
     contractBody: String(project.contractBody || '').trim(),
     createdBy: String(project.createdBy || '').trim(),
     createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : '',
@@ -92,6 +93,7 @@ function sanitizeProjectFields(body = {}) {
     dueDate: String(body.dueDate || '').trim(),
     budget,
     googleDocUrl: String(body.googleDocUrl || '').trim(),
+    assignedUserEmail: String(body.assignedUserEmail || body.email || '').trim().toLowerCase(),
     contractBody: String(body.contractBody || '').trim(),
     createdBy: String(body.createdBy || '').trim(),
   }

@@ -149,6 +149,7 @@ function toPublicWorkforceRecord(record) {
     answer: record.answer || '',
     articleUrl: record.articleUrl || '',
     googleDocUrl: record.googleDocUrl || '',
+    assignedUserEmail: record.assignedUserEmail || '',
     accessLevel: record.accessLevel || '',
     lastLogin: record.lastLogin || '',
     ipAddress: record.ipAddress || '',
