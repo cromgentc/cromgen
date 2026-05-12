@@ -32,7 +32,9 @@ export async function createSettingContract(request) {
   const body = await readJson(request)
 
   const isDraft = String(body.status || '').toLowerCase() === 'draft'
-  if (!body.title || (!isDraft && (!body.recipientName || !body.recipientEmail))) {
+  const isCompanySigned = String(body.status || '').toLowerCase() === 'company-signed'
+  const shouldEmailRecipient = !isDraft && !isCompanySigned
+  if (!body.title || (shouldEmailRecipient && (!body.recipientName || !body.recipientEmail))) {
     return validationError(isDraft ? 'Title is required' : 'Title, recipient name, and recipient email are required')
   }
 
@@ -43,6 +45,8 @@ export async function createSettingContract(request) {
   const contract = await createContract(body)
   const emailResult = isDraft
     ? { sent: false, reason: 'Saved as draft' }
+    : isCompanySigned
+      ? { sent: false, reason: 'Signed by sender' }
     : await sendContractRequestEmail(contract, createSigningUrl(request, contract)).catch((error) => ({
         sent: false,
         reason: error instanceof Error ? error.message : 'Email failed',
@@ -52,6 +56,8 @@ export async function createSettingContract(request) {
     ok: true,
     message: isDraft
       ? 'Contract saved as draft.'
+      : isCompanySigned
+        ? 'Contract signed and saved.'
       : emailResult.sent
         ? 'Contract saved and signing email sent to recipient.'
         : 'Contract saved, but signing email could not be sent.',
@@ -82,7 +88,9 @@ export async function updateSettingContract(request, { token }) {
   if (!existingContract) return notFound('Contract not found')
 
   const isDraft = String(body.status || '').toLowerCase() === 'draft'
-  if (!body.title || (!isDraft && (!body.recipientName || !body.recipientEmail))) {
+  const isCompanySigned = String(body.status || '').toLowerCase() === 'company-signed'
+  const shouldEmailRecipient = !isDraft && !isCompanySigned
+  if (!body.title || (shouldEmailRecipient && (!body.recipientName || !body.recipientEmail))) {
     return validationError(isDraft ? 'Title is required' : 'Title, recipient name, and recipient email are required')
   }
 
@@ -91,7 +99,7 @@ export async function updateSettingContract(request, { token }) {
   }
 
   const contract = await updateContractByToken(token, body)
-  const shouldSend = String(body.status || '').toLowerCase() !== 'draft' && String(existingContract.status || '').toLowerCase() === 'draft'
+  const shouldSend = shouldEmailRecipient && String(existingContract.status || '').toLowerCase() === 'draft'
   const emailResult = shouldSend
     ? await sendContractRequestEmail(contract, createSigningUrl(request, contract)).catch((error) => ({
         sent: false,
@@ -103,6 +111,7 @@ export async function updateSettingContract(request, { token }) {
     ok: true,
     message: shouldSend
       ? emailResult.sent ? 'Contract saved and signing email sent to recipient.' : 'Contract saved, but signing email could not be sent.'
+      : isCompanySigned ? 'Contract signed and saved.'
       : 'Contract updated successfully.',
     contract,
     email: emailResult,

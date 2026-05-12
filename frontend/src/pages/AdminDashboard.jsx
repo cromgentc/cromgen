@@ -1080,8 +1080,16 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       return
     }
 
-    if (status !== 'draft' && (!draft.recipientEmail.trim() || !draft.recipientName.trim())) {
+    const isSelfSigning = mode === 'self' && status !== 'draft'
+    const hasSignatureField = placedFields.some((field) => String(field.type || field.label || '').toLowerCase() === 'signature')
+
+    if (status !== 'draft' && !isSelfSigning && (!draft.recipientEmail.trim() || !draft.recipientName.trim())) {
       setMessage('Recipient email and recipient name are required before sending.')
+      return
+    }
+
+    if (isSelfSigning && !hasSignatureField) {
+      setMessage('Signature field is required before saving.')
       return
     }
 
@@ -1089,7 +1097,8 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
     setMessage('')
 
     try {
-      const payload = createContractPayload(status)
+      const payloadStatus = isSelfSigning ? 'company-signed' : status
+      const payload = createContractPayload(payloadStatus)
       const endpoint = editingContractId ? CONTRACT_ENDPOINTS.settingsDetail(editingContractId) : CONTRACT_ENDPOINTS.settingsList
       const response = await apiRequest(endpoint, {
         method: 'POST',
@@ -1102,6 +1111,8 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       const emailReason = response.email?.reason ? ` ${response.email.reason}` : ''
       const nextMessage = status === 'draft'
         ? 'Contract saved as draft.'
+        : isSelfSigning
+          ? 'Contract signed and saved.'
         : response.email?.sent
           ? `Contract saved and signing email sent to ${draft.recipientEmail.trim()}.`
           : `Contract saved, but signing email could not be sent.${emailReason}`
