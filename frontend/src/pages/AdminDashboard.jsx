@@ -400,7 +400,7 @@ function EnterpriseAdminApp() {
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
   const isLeadManagementPage = activePage === 'leads-management'
-  const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || 'admin'
+  const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || ''
   const canCreateActivePage = supportedCreatePages.includes(activePage) && canCreateForRole(activePage, currentRole)
   const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
@@ -453,7 +453,10 @@ function EnterpriseAdminApp() {
     setSaving(true)
 
     try {
-      const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || 'admin'
+      const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || ''
+      if (!canCreateForRole(activePage, currentRole)) {
+        throw new Error('Create access is not available for your role.')
+      }
       let nextPage = activePage
       const normalizedForm = activePage === 'user-management'
         ? {
@@ -468,12 +471,18 @@ function EnterpriseAdminApp() {
         await updateRecord(activePage, editingRecord.id, normalizedForm)
       } else if (activePage === 'user-management') {
         if (normalizedForm.role === 'vendor') {
+          if (!['admin', 'staff'].includes(String(currentRole || '').toLowerCase())) {
+            throw new Error('Only admin or staff can create vendor accounts.')
+          }
           await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify({ ...normalizedForm, status: 'active' }) })
           nextPage = 'vendor-management'
         } else {
           await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(normalizedForm) })
         }
       } else if (activePage === 'vendor-management') {
+        if (!['admin', 'staff'].includes(String(currentRole || '').toLowerCase())) {
+          throw new Error('Only admin or staff can create vendor accounts.')
+        }
         await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'project-management' || activePage === 'legal-team') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
@@ -3124,12 +3133,13 @@ function getRoleCreationOptions(currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'vendor') return ['user']
   if (role === 'staff') return ['user', 'vendor']
-  return ['staff', 'admin', 'vendor', 'user']
+  if (role === 'admin') return ['staff', 'admin', 'vendor', 'user']
+  return ['user']
 }
 
 function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
-  if (!role || role === 'admin') return true
+  if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
   if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
@@ -3138,7 +3148,7 @@ function canAccessPageForRole(page, currentRole) {
 
 function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
-  if (!role || role === 'admin') return true
+  if (role === 'admin') return true
   if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
   if (role === 'vendor') return page === 'user-management'
   return false
