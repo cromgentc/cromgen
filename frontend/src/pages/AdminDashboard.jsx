@@ -3275,17 +3275,6 @@ function scopeDataForRole(data, currentUser) {
     }
   }
 
-  if (role === 'vendor' && Array.isArray(scoped.assignedTasks)) {
-    scoped.assignedTasks = scoped.assignedTasks.filter((task) => (
-      isTaskAssignedToCurrentVendor(task, currentUser) || String(task.createdBy || '') === ownId
-    ))
-  }
-  if (role === 'vendor' && Array.isArray(scoped.tasks)) {
-    scoped.tasks = scoped.tasks.filter((task) => (
-      isTaskAssignedToCurrentVendor(task, currentUser) || String(task.createdBy || '') === ownId
-    ))
-  }
-
   for (const key of ['contracts', 'leads', 'newsPosts', 'serviceSamples']) {
     if (Array.isArray(scoped[key])) scoped[key] = role === 'staff' ? [] : scoped[key].filter(isOwnRow)
   }
@@ -3493,35 +3482,6 @@ function createUserAssignOptions(users = []) {
     .filter(Boolean)
 
   return options.length ? options : ['No users available']
-}
-
-function isTaskAssignedToCurrentVendor(task = {}, vendor = {}) {
-  const assignee = normalizeAssigneeToken(task.assignee)
-  const compactAssignee = compactAssigneeToken(task.assignee)
-  if (!assignee && !compactAssignee) return false
-  const tokens = [
-    task.assigneeVendorCode,
-    task.assigneeVendorId,
-    task.assigneeEmail,
-    vendor.vendorCode,
-    vendor.code,
-    vendor.email,
-    vendor.name,
-    vendor.company,
-    vendor.id,
-  ].map(normalizeAssigneeToken).filter(Boolean)
-  const compactTokens = tokens.map(compactAssigneeToken).filter(Boolean)
-
-  return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
-    || compactTokens.some((token) => compactAssignee.includes(token) || token.includes(compactAssignee))
-}
-
-function normalizeAssigneeToken(value) {
-  return String(value || '').trim().toLowerCase()
-}
-
-function compactAssigneeToken(value) {
-  return normalizeAssigneeToken(value).replace(/[^a-z0-9]/g, '')
 }
 
 function createProjectAssignOptions(projects = []) {
