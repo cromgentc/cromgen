@@ -88,21 +88,21 @@ const authConfig = {
 }
 
 const unifiedLoginRoles = {
-  admin: {
-    label: 'Admin',
-    redirectTo: '/admin-dashboard',
-  },
-  staff: {
-    label: 'Staff',
-    redirectTo: '/staff-dashboard',
-  },
   user: {
     label: 'User',
     redirectTo: '/user-dashboard',
   },
+  admin: {
+    label: 'Admin',
+    redirectTo: '/admin-dashboard',
+  },
   vendor: {
     label: 'Vendor',
     redirectTo: '/vendor-dashboard',
+  },
+  staff: {
+    label: 'Staff',
+    redirectTo: '/staff-dashboard',
   },
 }
 
@@ -165,8 +165,8 @@ export function AuthPage({ type }) {
         return
       }
 
-      const selectedLoginRole = type === 'login' ? formData.loginRole || 'admin' : config.role
-      const loginConfig = type === 'login' ? unifiedLoginRoles[selectedLoginRole] || unifiedLoginRoles.admin : config
+      const selectedLoginRole = type === 'login' ? formData.loginRole || 'user' : config.role
+      const loginConfig = type === 'login' ? unifiedLoginRoles[selectedLoginRole] || unifiedLoginRoles.user : config
       const data = await apiRequest(type === 'login' ? AUTH_ENDPOINTS.unifiedLogin : loginConfig.endpoint, {
         method: 'POST',
         body: JSON.stringify(type === 'login' ? { ...formData, role: selectedLoginRole } : formData),
@@ -453,7 +453,7 @@ function PasswordIcon({ visible }) {
 
 function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
   const [showPassword, setShowPassword] = useState(false)
-  const selectedRole = formData.loginRole || 'admin'
+  const selectedRole = formData.loginRole || 'user'
 
   return (
     <main className="min-h-screen bg-white pt-32 text-[#0f172a] sm:pt-36 lg:pt-28">
