@@ -63,7 +63,7 @@ export async function sendLeadOtp(request) {
   } catch (error) {
     console.error('Lead OTP email failed:', error instanceof Error ? error.message : error)
     emailOtps.delete(email)
-    return json(502, {
+    return json(200, {
       ok: false,
       message: 'OTP email could not be sent. Please check SMTP settings and try again.',
     })

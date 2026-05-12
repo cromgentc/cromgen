@@ -170,6 +170,9 @@ export function MachineLearningSolutionsPage() {
         method: 'POST',
         body: JSON.stringify({ email }),
       })
+      if (data.ok === false) {
+        throw new Error(data.message || 'Unable to send OTP.')
+      }
       setStep('otp')
       setDevOtp(data.devOtp || '')
       setStatus({ type: 'success', message: data.message || 'OTP sent to your email address.' })
