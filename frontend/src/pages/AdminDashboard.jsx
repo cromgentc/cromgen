@@ -241,7 +241,7 @@ function EnterpriseAdminApp() {
   const [searchQuery, setSearchQuery] = useState('')
   const [clearedNotifications, setClearedNotifications] = useState(false)
   const [messages, setMessages] = useState(() => readStoredMessages())
-  const [legalCreateSignal, setLegalCreateSignal] = useState(0)
+  const [legalBuilderOpen, setLegalBuilderOpen] = useState(false)
 
   const loadMongoData = async (page = activePage) => {
     const coreRequests = await Promise.allSettled([
@@ -609,7 +609,7 @@ function EnterpriseAdminApp() {
                       </button>
                     ) : null}
                     {activePage === 'legal-team' ? (
-                      <button type="button" onClick={() => setLegalCreateSignal((value) => value + 1)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
+                      <button type="button" onClick={() => setLegalBuilderOpen(true)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
                         <Plus size={18} /> Create Contract
                       </button>
                     ) : null}
@@ -636,9 +636,9 @@ function EnterpriseAdminApp() {
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : activePage === 'legal-team' ? (
                 <LegalContractsWorkspace
-                  key={`legal-contracts-${legalCreateSignal}`}
                   module={module}
-                  createSignal={legalCreateSignal}
+                  createOpen={legalBuilderOpen}
+                  onCreateOpenChange={setLegalBuilderOpen}
                   onSaved={async () => loadMongoData('legal-team')}
                   onOpenContract={(row) => window.location.assign(`/contract-sign/${row.id}`)}
                   onDelete={deleteRecord}
@@ -926,7 +926,7 @@ function ModuleSummary({ module }) {
   )
 }
 
-function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract, onDelete }) {
+function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSaved, onOpenContract, onDelete }) {
   const [step, setStep] = useState('list')
   const [mode, setMode] = useState('send')
   const [saving, setSaving] = useState(false)
@@ -951,9 +951,9 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
   }
 
   useEffect(() => {
-    if (!createSignal) return
+    if (!createOpen) return
     startCreateFlow()
-  }, [createSignal])
+  }, [createOpen])
 
   const selectMode = (nextMode) => {
     setMode(nextMode)
@@ -963,6 +963,7 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
 
   const closeCreateFlow = () => {
     setStep('list')
+    onCreateOpenChange?.(false)
     setMessage('')
   }
 
@@ -973,6 +974,7 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
     setActiveFieldId('')
     setMode('send')
     setStep('editor')
+    onCreateOpenChange?.(true)
     setMessage('')
   }
 
@@ -1079,6 +1081,7 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
       })
       await onSaved?.()
       setStep('list')
+      onCreateOpenChange?.(false)
       setEditingContractId('')
       setMessage(response.message || (status === 'draft' ? 'Contract saved as draft.' : 'Contract sent to recipient successfully.'))
     } catch (error) {

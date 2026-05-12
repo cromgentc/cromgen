@@ -7476,6 +7476,8 @@ header #mobile-navigation summary:hover {
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #ffffff;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
 }
 
