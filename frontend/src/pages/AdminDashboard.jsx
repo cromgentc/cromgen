@@ -1110,7 +1110,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       setStep('list')
       onCreateOpenChange?.(false)
       setEditingContractId('')
-      const emailFailureReason = response.email?.reason ? ` ${response.email.reason}` : ''
+      const emailFailureReason = formatContractEmailFailureReason(response.email?.reason)
       const nextMessage = status === 'draft'
         ? 'Contract saved as draft.'
         : isSelfSigning && response.email?.sent
@@ -1118,10 +1118,10 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
         : isSelfSigning && !draft.recipientEmail.trim()
           ? 'Contract signed and saved. Add recipient email to send it.'
         : isSelfSigning
-          ? `Contract signed and saved, but signing email could not be sent.${emailFailureReason || ' Check SMTP/email settings.'}`
+          ? `Contract signed and saved, but signing email could not be sent.${emailFailureReason}`
         : response.email?.sent
           ? `Contract saved and signing email sent to ${draft.recipientEmail.trim()}.`
-          : `Contract saved, but signing email could not be sent.${emailFailureReason || ' Check SMTP/email settings.'}`
+          : `Contract saved, but signing email could not be sent.${emailFailureReason}`
       setMessage(nextMessage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Contract could not be saved.')
@@ -1416,6 +1416,15 @@ function defaultSigningFieldValue(fieldType, draft) {
     Radio: 'Radio option',
   }
   return values[fieldType] || fieldType
+}
+
+function formatContractEmailFailureReason(reason) {
+  const value = String(reason || '').trim()
+  if (/first party signature|required before email/i.test(value)) {
+    return ' Backend is still running the old contract email validation. Redeploy the backend, then send again.'
+  }
+
+  return value ? ` ${value}` : ' Check SMTP/email settings.'
 }
 
 function clampPercent(value, min, max) {
