@@ -114,7 +114,7 @@ const formDefaults = {
   'user-management': { name: '', email: '', password: '', role: 'staff' },
   'vendor-management': { name: '', company: '', email: '', phone: '', serviceCategory: '', password: '', status: 'active' },
   'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
-  'legal-team': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', googleDocUrl: '', contractFile: null, contractBody: '' },
+  'legal-team': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
   'candidate-management': { name: '', email: '', role: '', status: 'New', notes: '' },
@@ -1937,16 +1937,13 @@ function getModuleConfig(page, data) {
         client: contract.recipientName,
         email: contract.recipientEmail,
         senderName: contract.senderName,
-        googleDocUrl: contract.googleDocUrl,
-        contractFile: contract.contractFile || null,
-        contractFileName: contract.contractFile?.name || '',
         contractBody: contract.contractBody,
         status: contract.status || 'pending',
         projectStatus: contract.projectStatus || 'active',
         createdAt: formatDate(contract.createdAt),
       })),
       columns: commonColumns(isLegalTeam
-        ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'contractFileName', 'createdAt']
+        ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'createdAt']
         : ['title', 'client', 'email', 'projectStatus', 'status', 'createdAt']),
       emptyText: 'The contracts/projects collection is empty.',
     }
@@ -2410,8 +2407,6 @@ function getFormFields(page, data = emptyData) {
       { name: 'recipientEmail', label: 'Client Email', type: 'email', ...commonRequired },
       { name: 'senderName', label: 'Legal Owner' },
       { name: 'projectStatus', label: 'Project Status', type: 'select', options: ['live', 'active', 'inactive', 'closed'] },
-      { name: 'googleDocUrl', label: 'Google Doc URL' },
-      { name: 'contractFile', label: 'Upload DOCX Contract File (Optional)', type: 'docx' },
       { name: 'contractBody', label: 'Description', type: 'richtext' },
     ],
     'leads-management': [

@@ -329,7 +329,13 @@ export function ContractSigningPage({ token }) {
       return
     }
 
-    const html = createSignedHtml(contract, formData, isOfficeDoc ? '' : fileUrl, docxHtml)
+    const html = createSignedHtml(
+      contract,
+      formData,
+      isOfficeDoc ? '' : fileUrl,
+      docxHtml,
+      formData.finalContractBody || contract.contractBody,
+    )
     openPdfPrintWindow(html, contract.slug || 'signed-contract')
   }
 
@@ -404,14 +410,14 @@ export function ContractSigningPage({ token }) {
         {contract ? (
           <div className="contract-sign-workspace">
             <article className="contract-document">
-              {contract.contractFile?.data ? (
-                <div className="contract-attachment-box">
-                  <div
-                    className={`contract-preview-frame ${isPlacementMode || isDatePlacementMode ? 'is-placing' : ''}`}
-                    onClick={addDatePlacement}
-                    onDoubleClick={addSignaturePlacement}
-                  >
-                    {isOfficeDoc ? (
+              <div className="contract-attachment-box">
+                <div
+                  className={`contract-preview-frame ${isPlacementMode || isDatePlacementMode ? 'is-placing' : ''}`}
+                  onClick={addDatePlacement}
+                  onDoubleClick={addSignaturePlacement}
+                >
+                  {contract.contractFile?.data ? (
+                    isOfficeDoc ? (
                       <DocxHtmlPreview html={docxHtml} />
                     ) : isPdf || isText ? (
                       <iframe src={fileUrl} title="Contract file preview" />
@@ -420,30 +426,32 @@ export function ContractSigningPage({ token }) {
                         <strong>{fileName}</strong>
                         <p>This file type can be opened separately. Place your signature on this signing sheet.</p>
                       </div>
-                    )}
-                    <div
-                      className="contract-placement-layer"
-                      aria-hidden="true"
-                      onClick={addDatePlacement}
-                      onDoubleClick={addSignaturePlacement}
-                    >
-                      {(formData.signaturePlacements || []).map((placement) => (
-                        <span
-                          key={placement.id}
-                          className={`contract-placed-signature is-${placement.type} ${placement.type.endsWith('-date') ? 'is-date' : ''}`}
-                          style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            removeSignaturePlacement(placement.id)
-                          }}
-                        >
-                          {placement.image ? <img src={placement.image} alt="" /> : <b>{placement.label}</b>}
-                        </span>
-                      ))}
-                    </div>
+                    )
+                  ) : (
+                    <ContractBodyPreview title={contract.title} body={formData.finalContractBody || contract.contractBody} />
+                  )}
+                  <div
+                    className="contract-placement-layer"
+                    aria-hidden="true"
+                    onClick={addDatePlacement}
+                    onDoubleClick={addSignaturePlacement}
+                  >
+                    {(formData.signaturePlacements || []).map((placement) => (
+                      <span
+                        key={placement.id}
+                        className={`contract-placed-signature is-${placement.type} ${placement.type.endsWith('-date') ? 'is-date' : ''}`}
+                        style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          removeSignaturePlacement(placement.id)
+                        }}
+                      >
+                        {placement.image ? <img src={placement.image} alt="" /> : <b>{placement.label}</b>}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              ) : null}
+              </div>
             </article>
 
             <aside className="contract-sign-form is-compact">
@@ -605,15 +613,16 @@ function openPdfPrintWindow(html, fileName) {
   }
 }
 
-function createSignedHtml(contract, formData, fileUrl = '', docxHtml = '') {
+function createSignedHtml(contract, formData, fileUrl = '', docxHtml = '', contractBody = '') {
   const companySign = formData.companySignatureData || contract.companySignatureData
   const clientSign = formData.signatureUpload || formData.signatureData || contract.signatureUpload || contract.signatureData
   const placements = formData.signaturePlacements || contract.signaturePlacements || []
-  const printableBody = docxHtml ? extractHtmlBody(docxHtml) : ''
+  const normalizedContractBody = String(contractBody || '').trim()
+  const printableBody = docxHtml ? extractHtmlBody(docxHtml) : normalizedContractBody ? formatContractBodyHtml(normalizedContractBody) : ''
   const placementHtml = placements.map((placement) => `
     <div style="position:absolute;left:${placement.x}%;top:${placement.y}%;transform:translate(-50%,-50%);min-width:140px;text-align:center">
-      ${placement.image ? `<img src="${placement.image}" style="max-width:160px;max-height:70px;display:block;margin:auto">` : `<strong style="font-family:'Brush Script MT','Segoe Script',cursive;font-size:24px">${placement.label || ''}</strong>`}
-      ${placement.label ? `<small style="display:block;color:#475467">${placement.label}</small>` : ''}
+      ${placement.image ? `<img src="${placement.image}" style="max-width:160px;max-height:70px;display:block;margin:auto">` : `<strong style="font-family:'Brush Script MT','Segoe Script',cursive;font-size:24px">${escapeHtmlText(placement.label || '')}</strong>`}
+      ${placement.label ? `<small style="display:block;color:#475467">${escapeHtmlText(placement.label)}</small>` : ''}
     </div>
   `).join('')
 
@@ -664,6 +673,63 @@ function extractHtmlBody(value) {
   const html = String(value || '')
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
   return bodyMatch ? bodyMatch[1] : html
+}
+
+function ContractBodyPreview({ title, body }) {
+  return (
+    <iframe
+      className="contract-docx-html-frame"
+      srcDoc={createContractBodyHtml(title, body)}
+      title="Contract description preview"
+    />
+  )
+}
+
+function createContractBodyHtml(title, body) {
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <style>
+          html,body{margin:0;min-height:100%;background:#f8fafc}
+          body{font-family:Arial,sans-serif;color:#101828;line-height:1.65;padding:48px}
+          main{max-width:820px;margin:auto;background:#fff;min-height:920px;padding:52px 58px;box-shadow:0 18px 50px rgba(15,23,42,.12)}
+          h1{margin:0 0 26px;font-size:28px;line-height:1.2;color:#111827}
+          p{margin:0 0 14px;font-size:15px}
+          strong{font-weight:700}
+          em{font-style:italic}
+        </style>
+      </head>
+      <body>
+        <main>
+          <h1>${escapeHtmlText(title || 'Contract')}</h1>
+          ${formatContractBodyHtml(body)}
+        </main>
+      </body>
+    </html>
+  `
+}
+
+function formatContractBodyHtml(value) {
+  const lines = String(value || '').trim()
+    ? String(value).split(/\r?\n/)
+    : ['Contract description is not available.']
+
+  return lines.map((rawLine) => {
+    const line = rawLine.trim()
+    if (!line) return '<p>&nbsp;</p>'
+    const bullet = line.match(/^[-*]\s+(.+)$/)
+    const numbered = line.match(/^\d+[.)]\s+(.+)$/)
+    if (bullet) return `<p>&bull; ${formatInlineMarkup(bullet[1])}</p>`
+    if (numbered) return `<p>${formatInlineMarkup(line)}</p>`
+    return `<p>${formatInlineMarkup(line)}</p>`
+  }).join('')
+}
+
+function formatInlineMarkup(value) {
+  return escapeHtmlText(value)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
 }
 
 function escapeHtmlText(value) {
