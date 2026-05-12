@@ -214,7 +214,7 @@ function App() {
   const activeOnboardingPage = useMemo(() => findOnboardingPage(route), [route])
   const activeServiceDetail = useMemo(() => findServiceDetail(route), [route])
 
-  if (route === 'admin-dashboard') {
+  if (['admin-dashboard', 'staff-dashboard', 'user-dashboard', 'vendor-dashboard'].includes(route)) {
     return <AdminDashboard />
   }
 

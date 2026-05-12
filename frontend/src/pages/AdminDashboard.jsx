@@ -414,28 +414,42 @@ function EnterpriseAdminApp() {
     setSaving(true)
 
     try {
+      const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || 'admin'
+      const normalizedForm = activePage === 'user-management'
+        ? {
+            ...form,
+            role: getRoleCreationOptions(currentRole).includes(form.role)
+              ? form.role
+              : getRoleCreationOptions(currentRole)[0],
+          }
+        : form
+
       if (editingRecord) {
-        await updateRecord(activePage, editingRecord.id, form)
+        await updateRecord(activePage, editingRecord.id, normalizedForm)
       } else if (activePage === 'user-management') {
-        await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(form) })
+        if (normalizedForm.role === 'vendor') {
+          await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify({ ...normalizedForm, status: 'active' }) })
+        } else {
+          await apiRequest(AUTH_ENDPOINTS.settingsUsers, { method: 'POST', body: JSON.stringify(normalizedForm) })
+        }
       } else if (activePage === 'vendor-management') {
-        await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'project-management' || activePage === 'legal-team') {
-        await apiRequest(CONTRACT_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(CONTRACT_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'leads-management') {
-        await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'job-postings') {
-        await apiRequest(JOB_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(JOB_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'applications') {
-        await apiRequest(APPLICATION_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(applicationPayload(form)) })
+        await apiRequest(APPLICATION_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(applicationPayload(normalizedForm)) })
       } else if (activePage === 'blog-management') {
-        await apiRequest(NEWS_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(NEWS_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'service-samples') {
-        await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else {
         const type = workforceTypeForPage(activePage)
         if (!type) throw new Error('Create API is not configured for this module yet.')
-        await apiRequest(WORKFORCE_ENDPOINTS.settingsList(type), { method: 'POST', body: JSON.stringify(form) })
+        await apiRequest(WORKFORCE_ENDPOINTS.settingsList(type), { method: 'POST', body: JSON.stringify(normalizedForm) })
       }
 
       setModalOpen(false)
@@ -765,6 +779,7 @@ function EnterpriseAdminApp() {
           page={activePage}
           form={form}
           data={data}
+          currentRole={currentAdmin?.role || localStorage.getItem('cromgen_auth_role')}
           editingRecord={editingRecord}
           saving={saving}
           onChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))}
@@ -2272,8 +2287,8 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
   )
 }
 
-function RecordModal({ open, page, form, data, editingRecord, saving, onChange, onSubmit, onClose }) {
-  const fields = getFormFields(page, data)
+function RecordModal({ open, page, form, data, currentRole, editingRecord, saving, onChange, onSubmit, onClose }) {
+  const fields = getFormFields(page, data, currentRole)
   const applyTextStyle = (fieldName, wrapper) => {
     const value = form[fieldName] || ''
     onChange(fieldName, `${value}${value ? ' ' : ''}${wrapper}selected text${wrapper}`)
@@ -3008,7 +3023,21 @@ function countMonth(items, monthNumber) {
   }).length
 }
 
-function getFormFields(page, data = emptyData) {
+function getRoleCreationOptions(currentRole) {
+  const role = String(currentRole || '').toLowerCase()
+  if (role === 'vendor') return ['user']
+  if (role === 'staff') return ['vendor', 'user']
+  return ['staff', 'admin', 'vendor', 'user']
+}
+
+function getTeamRoleOptions(currentRole) {
+  const role = String(currentRole || '').toLowerCase()
+  if (role === 'vendor') return ['User']
+  if (role === 'staff') return ['Vendor', 'User']
+  return userRoleOptions
+}
+
+function getFormFields(page, data = emptyData, currentRole = 'admin') {
   const commonRequired = { required: true }
   const jobRoleOptions = Array.from(new Set((data.jobs || []).map((job) => job.title).filter(Boolean)))
   const hiringRoleOptions = jobRoleOptions.length ? jobRoleOptions : ['AI Solutions Associate', 'Digital Marketing Executive', 'Customer Support Specialist', 'Frontend Developer', 'HR Recruitment Coordinator']
@@ -3017,7 +3046,7 @@ function getFormFields(page, data = emptyData) {
       { name: 'name', label: 'Name', ...commonRequired },
       { name: 'email', label: 'Email', type: 'email', ...commonRequired },
       { name: 'password', label: 'Password', type: 'password', ...commonRequired },
-      { name: 'role', label: 'Role', type: 'select', options: ['staff', 'admin'] },
+      { name: 'role', label: 'Role', type: 'select', options: getRoleCreationOptions(currentRole) },
     ],
     'vendor-management': [
       { name: 'name', label: 'Vendor Name', ...commonRequired },
@@ -3083,7 +3112,7 @@ function getFormFields(page, data = emptyData) {
     'team-management': [
       { name: 'name', label: 'Member Name', ...commonRequired },
       { name: 'email', label: 'Email', type: 'email' },
-      { name: 'role', label: 'Role', type: 'select', options: userRoleOptions },
+      { name: 'role', label: 'Role', type: 'select', options: getTeamRoleOptions(currentRole) },
       { name: 'department', label: 'Department' },
       { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'On Leave'] },
       { name: 'notes', label: 'Details', type: 'textarea' },

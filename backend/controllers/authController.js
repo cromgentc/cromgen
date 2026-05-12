@@ -22,6 +22,8 @@ import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
 
 const adminOnly = requireRole(['admin'])
+const userCreateAccess = requireRole(['admin', 'staff', 'vendor'])
+const vendorCreateAccess = requireRole(['admin', 'staff'])
 
 export function authRouteInfo(_request, params = {}) {
   return json(200, {
@@ -181,7 +183,7 @@ export async function updateCurrentUser(request) {
 }
 
 export async function listSettingUsers(request) {
-  const auth = adminOnly(request)
+  const auth = userCreateAccess(request)
   if (auth.error) return auth.error
 
   return json(200, {
@@ -191,11 +193,12 @@ export async function listSettingUsers(request) {
 }
 
 export async function createSettingUser(request) {
-  const auth = adminOnly(request)
+  const auth = userCreateAccess(request)
   if (auth.error) return auth.error
 
   const body = await readJson(request)
   const { name, email, password, role = 'staff' } = body
+  const requesterRole = auth.payload?.role
 
   if (!name || !email || !password) {
     return validationError('Name, email, and password are required')
@@ -203,6 +206,14 @@ export async function createSettingUser(request) {
 
   if (!['admin', 'staff', 'user'].includes(role)) {
     return validationError('Role must be admin, staff, or user')
+  }
+
+  if (requesterRole === 'staff' && !['user'].includes(role)) {
+    return forbidden('Staff can only create user accounts from this module')
+  }
+
+  if (requesterRole === 'vendor' && role !== 'user') {
+    return forbidden('Vendor can only create user accounts')
   }
 
   try {
@@ -258,7 +269,7 @@ export async function deleteSettingUser(request, { id }) {
 }
 
 export async function listSettingVendors(request) {
-  const auth = adminOnly(request)
+  const auth = vendorCreateAccess(request)
   if (auth.error) return auth.error
 
   return json(200, {
@@ -268,7 +279,7 @@ export async function listSettingVendors(request) {
 }
 
 export async function createSettingVendor(request) {
-  const auth = adminOnly(request)
+  const auth = vendorCreateAccess(request)
   if (auth.error) return auth.error
 
   const body = await readJson(request)
