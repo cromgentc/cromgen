@@ -7,11 +7,13 @@ import { leadRoutes } from './leadRoutes.js'
 import { newsRoutes } from './newsRoutes.js'
 import { policyRoutes } from './policyRoutes.js'
 import { serviceRoutes } from './serviceRoutes.js'
+import { serviceSampleRoutes } from './serviceSampleRoutes.js'
 import { siteSettingsRoutes } from './siteSettingsRoutes.js'
 import { workforceRoutes } from './workforceRoutes.js'
 
 export const routes = [
   ...serviceRoutes,
+  ...serviceSampleRoutes,
   ...applicationRoutes,
   ...authRoutes,
   ...contractRoutes,

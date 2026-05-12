@@ -3,6 +3,7 @@ import { connectDB } from './config/db.js'
 import { seedPolicies } from './models/Policy.js'
 import { seedSiteSettings } from './models/SiteSettings.js'
 import { seedSystemUsers } from './models/User.js'
+import { seedServiceSamples } from './models/ServiceSample.js'
 import { routes } from './routes/index.js'
 import {
   createSettingWorkforceRecord,
@@ -59,6 +60,7 @@ connectDB()
     await seedPolicies()
     await seedSiteSettings()
     await seedSystemUsers()
+    await seedServiceSamples()
 
     listenOnPreferredPort(preferredPort)
   })

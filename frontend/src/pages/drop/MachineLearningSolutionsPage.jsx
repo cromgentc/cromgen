@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, BrainCircuit, CheckCircle2, Download, LineChart, Mail, ShieldCheck, Sparkles } from 'lucide-react'
 import aiServicesImage from '../../assets/artificial-intelligence-services.png'
-import { LEAD_ENDPOINTS, apiRequest } from '../../api/apiEndpoint.js'
+import { LEAD_ENDPOINTS, SERVICE_SAMPLE_ENDPOINTS, apiRequest } from '../../api/apiEndpoint.js'
 
 const serviceItems = [
   {
@@ -97,6 +97,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function MachineLearningSolutionsPage() {
   const [activeService, setActiveService] = useState(serviceItems[0])
+  const [backendSamples, setBackendSamples] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -111,6 +112,16 @@ export function MachineLearningSolutionsPage() {
   const [devOtp, setDevOtp] = useState('')
   const [step, setStep] = useState('details')
   const [isBusy, setIsBusy] = useState(false)
+  const activeBackendSample = useMemo(() => {
+    const aiSamples = backendSamples.filter((sample) => sample.category === 'Artificial Intelligence')
+    return aiSamples.find((sample) => sample.title.toLowerCase().includes(activeService.title.toLowerCase())) || aiSamples[0] || null
+  }, [activeService.title, backendSamples])
+
+  useEffect(() => {
+    apiRequest(SERVICE_SAMPLE_ENDPOINTS.publicList)
+      .then((data) => setBackendSamples(data.samples || []))
+      .catch(() => setBackendSamples([]))
+  }, [])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -217,12 +228,12 @@ export function MachineLearningSolutionsPage() {
             form.company ? `Company: ${form.company}` : '',
             `Selected ML service: ${activeService.title}`,
             form.useCase ? `Use case: ${form.useCase}` : '',
-            `Requested sample: ${activeService.sample}`,
+            `Requested sample: ${activeBackendSample?.title || activeService.sample}`,
           ].filter(Boolean).join('\n\n'),
         }),
       })
 
-      downloadSample(activeService)
+      downloadSample(activeService, activeBackendSample)
       setStatus({ type: 'success', message: 'Lead submitted. Your sample download has started.' })
       setForm({ name: '', email: '', phone: '', company: '', useCase: '', otp: '' })
       setOtpToken('')
@@ -341,7 +352,7 @@ export function MachineLearningSolutionsPage() {
               copy={activeService.copy}
             />
             <button type="button" onClick={() => openSampleModal(activeService)} className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-[#0f172a] px-7 py-4 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl shadow-slate-900/15 transition duration-300 hover:-translate-y-1 hover:bg-[#ff4b2d]">
-              <Download size={18} /> Download {activeService.sample}
+              <Download size={18} /> Download {activeBackendSample?.title || activeService.sample}
             </button>
           </div>
 
@@ -528,27 +539,30 @@ function SectionTitle({ eyebrow, title, copy, dark = false }) {
   )
 }
 
-function downloadSample(service) {
+function downloadSample(service, backendSample) {
   const sample = [
-    `Cromgen Technology - ${service.sample}`,
+    `Cromgen Technology - ${backendSample?.title || service.sample}`,
     '',
     `Selected service: ${service.title}`,
     `Overview: ${service.copy}`,
+    backendSample?.summary ? `Backend sample summary: ${backendSample.summary}` : '',
     '',
     'Related scope:',
     ...service.related.map((item) => `- ${item}`),
     '',
-    'Model summary:',
-    '- Lead score: 87/100',
-    '- Churn risk: 18%',
-    '- Sales forecast: +24% next 30 days',
-    '- Fraud signal: Low',
-    '',
-    'Recommended actions:',
-    '- Prioritize this lead for sales follow-up within 24 hours.',
-    '- Use recommendation engine output for bundled service offer.',
-    '- Track conversion outcome to retrain model quality.',
-  ].join('\n')
+    backendSample?.content || [
+      'Model summary:',
+      '- Lead score: 87/100',
+      '- Churn risk: 18%',
+      '- Sales forecast: +24% next 30 days',
+      '- Fraud signal: Low',
+      '',
+      'Recommended actions:',
+      '- Prioritize this lead for sales follow-up within 24 hours.',
+      '- Use recommendation engine output for bundled service offer.',
+      '- Track conversion outcome to retrain model quality.',
+    ].join('\n'),
+  ].filter(Boolean).join('\n')
 
   const blob = new Blob([sample], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)

@@ -46,6 +46,7 @@ import {
   LEAD_ENDPOINTS,
   NEWS_ENDPOINTS,
   POLICY_ENDPOINTS,
+  SERVICE_SAMPLE_ENDPOINTS,
   SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
   WORKFORCE_ENDPOINTS,
@@ -62,6 +63,7 @@ const emptyData = {
   siteSettings: null,
   policies: [],
   newsPosts: [],
+  serviceSamples: [],
   candidates: [],
   teams: [],
   roles: [],
@@ -158,9 +160,11 @@ const formDefaults = {
   'faq-management': { question: '', answer: '', category: '', status: 'Published', notes: '' },
   'contact-requests': { name: '', email: '', subject: '', priority: 'Medium', status: 'Open', notes: '' },
   'blog-management': { title: '', category: 'Company Update', summary: '', image: '', date: '' },
+  'service-samples': { category: 'Artificial Intelligence', title: '', summary: '', content: '', status: 'Published' },
 }
 
 const supportedCreatePages = Object.keys(formDefaults)
+const serviceSampleCategoryOptions = ['Artificial Intelligence', 'Digital Marketing', 'Call Center', 'IT', 'Software Development', 'HR Consultant', 'Telecommunications']
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
@@ -245,13 +249,14 @@ function EnterpriseAdminApp() {
       apiRequest(AUTH_ENDPOINTS.currentUser),
       apiRequest(POLICY_ENDPOINTS.settingsList),
       apiRequest(NEWS_ENDPOINTS.settingsList),
+      apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsList),
     ])
     const requiredWorkforceTypes = workforceTypesForPage(page)
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
 
-    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, policies, newsPosts] = coreRequests.map((result) => (
+    const [users, vendors, contracts, leads, applications, jobs, siteSettings, currentUser, policies, newsPosts, serviceSamples] = coreRequests.map((result) => (
       result.status === 'fulfilled' ? result.value : {}
     ))
     const workforceData = Object.fromEntries(
@@ -271,6 +276,7 @@ function EnterpriseAdminApp() {
       siteSettings: siteSettings.settings || null,
       policies: policies.policies || [],
       newsPosts: newsPosts.posts || [],
+      serviceSamples: serviceSamples.samples || [],
       ...Object.fromEntries(workforceRecordTypes.map((type) => [type, current[type] || []])),
       ...workforceData,
     }))
@@ -374,6 +380,8 @@ function EnterpriseAdminApp() {
         await apiRequest(APPLICATION_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(applicationPayload(form)) })
       } else if (activePage === 'blog-management') {
         await apiRequest(NEWS_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
+      } else if (activePage === 'service-samples') {
+        await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(form) })
       } else {
         const type = workforceTypeForPage(activePage)
         if (!type) throw new Error('Create API is not configured for this module yet.')
@@ -424,6 +432,14 @@ function EnterpriseAdminApp() {
       return
     }
 
+    if (page === 'service-samples') {
+      await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsDetail(id), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      return
+    }
+
     const type = workforceTypeForPage(page)
     if (!type) throw new Error('Update API is not configured for this module yet.')
     await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, id), {
@@ -448,6 +464,8 @@ function EnterpriseAdminApp() {
         await apiRequest(JOB_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (module.type === 'newsPosts') {
         await apiRequest(NEWS_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+      } else if (module.type === 'serviceSamples') {
+        await apiRequest(SERVICE_SAMPLE_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (workforceRecordTypes.includes(module.type)) {
         await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(module.type, row.id), { method: 'DELETE' })
       } else {
@@ -1986,6 +2004,27 @@ function getModuleConfig(page, data) {
     }
   }
 
+  if (page === 'service-samples') {
+    return {
+      type: 'serviceSamples',
+      title: 'Service Samples',
+      source: SERVICE_SAMPLE_ENDPOINTS.settingsList,
+      isLive: true,
+      canEdit: true,
+      rows: data.serviceSamples.map((sample) => ({
+        id: sample.slug,
+        title: sample.title,
+        category: sample.category,
+        summary: sample.summary,
+        content: sample.content,
+        status: sample.status,
+        createdAt: formatDate(sample.createdAt),
+      })),
+      columns: commonColumns(['title', 'category', 'summary', 'status', 'createdAt']),
+      emptyText: 'The service samples collection is empty.',
+    }
+  }
+
   if (['applications', 'candidate-management', 'interview-management', 'hiring-pipeline'].includes(page)) {
     return {
       type: 'applications',
@@ -2385,6 +2424,13 @@ function getFormFields(page, data = emptyData) {
       { name: 'summary', label: 'Summary', type: 'textarea', ...commonRequired },
       { name: 'image', label: 'Image URL' },
       { name: 'date', label: 'Date Label' },
+    ],
+    'service-samples': [
+      { name: 'category', label: 'Service Category', type: 'select', options: serviceSampleCategoryOptions, ...commonRequired },
+      { name: 'title', label: 'Sample Title', ...commonRequired },
+      { name: 'summary', label: 'Sample Summary', type: 'textarea', ...commonRequired },
+      { name: 'content', label: 'Sample Content', type: 'textarea', ...commonRequired },
+      { name: 'status', label: 'Status', type: 'select', options: ['Published', 'Draft'] },
     ],
     'candidate-management': [
       { name: 'name', label: 'Candidate Name', ...commonRequired },

@@ -189,6 +189,7 @@ export const adminNavigation = [
     icon: FileCog,
     items: [
       ['website-settings', 'Website Settings'],
+      ['service-samples', 'Service Samples'],
       ['seo-settings', 'SEO Settings'],
       ['theme-customization', 'Theme Customization'],
       ['legal-pages', 'Legal Pages'],
@@ -235,4 +236,5 @@ export const pageCatalog = {
   'job-postings': { title: 'Job Postings', tag: 'Hiring Operations', icon: CalendarClock },
   'performance-reports': { title: 'Reports', tag: 'Executive Analytics', icon: ChartArea },
   'system-settings': { title: 'Settings', tag: 'Platform Control', icon: Settings },
+  'service-samples': { title: 'Service Samples', tag: 'Website Content', icon: FileCog },
 }

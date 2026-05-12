@@ -60,6 +60,13 @@ export const LEAD_ENDPOINTS = {
   settingsDelete: (id) => `/api/settings/leads/${encodeURIComponent(id)}`,
 }
 
+export const SERVICE_SAMPLE_ENDPOINTS = {
+  publicList: '/api/service-samples',
+  settingsList: '/api/settings/service-samples',
+  settingsDetail: (slug) => `/api/settings/service-samples/${encodeURIComponent(slug)}`,
+  settingsDelete: (slug) => `/api/settings/service-samples/${encodeURIComponent(slug)}`,
+}
+
 export const APPLICATION_ENDPOINTS = {
   publicCreate: '/api/applications',
   settingsList: '/api/settings/applications',
