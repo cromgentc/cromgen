@@ -44,19 +44,30 @@ export async function sendLeadOtp(request) {
     expiresAt: Date.now() + OTP_TTL_MS,
   })
 
-  const emailResult = await sendEmail({
-    to: email,
-    subject: 'Your Cromgen sample download OTP',
-    text: `Your Cromgen Technology OTP is ${otp}. It will expire in 10 minutes.`,
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6">
-        <h2>Your Cromgen Technology OTP</h2>
-        <p>Use this code to verify your email and download the Machine Learning Solutions sample.</p>
-        <p style="font-size:28px;font-weight:800;letter-spacing:6px;color:#ff4b2d">${otp}</p>
-        <p>This code will expire in 10 minutes.</p>
-      </div>
-    `,
-  })
+  let emailResult
+
+  try {
+    emailResult = await sendEmail({
+      to: email,
+      subject: 'Your Cromgen sample download OTP',
+      text: `Your Cromgen Technology OTP is ${otp}. It will expire in 10 minutes.`,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6">
+          <h2>Your Cromgen Technology OTP</h2>
+          <p>Use this code to verify your email and download the Machine Learning Solutions sample.</p>
+          <p style="font-size:28px;font-weight:800;letter-spacing:6px;color:#ff4b2d">${otp}</p>
+          <p>This code will expire in 10 minutes.</p>
+        </div>
+      `,
+    })
+  } catch (error) {
+    console.error('Lead OTP email failed:', error instanceof Error ? error.message : error)
+    emailOtps.delete(email)
+    return json(502, {
+      ok: false,
+      message: 'OTP email could not be sent. Please check SMTP settings and try again.',
+    })
+  }
 
   return json(200, {
     ok: true,

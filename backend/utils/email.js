@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import net from 'node:net'
 import tls from 'node:tls'
 import { getSiteSettings } from '../models/SiteSettings.js'
 
@@ -44,22 +45,37 @@ export async function sendEmail({ to, subject, text, html }) {
 
 function sendSmtp({ host, port, user, pass, from, to, message }) {
   return new Promise((resolve, reject) => {
-    const socket = tls.connect({ host, port, servername: host }, async () => {
+    const useImplicitTls = port === 465
+    const socket = useImplicitTls
+      ? tls.connect({ host, port, servername: host })
+      : net.connect({ host, port })
+
+    socket.once('connect', async () => {
+      let activeSocket = socket
+
       try {
-        await readResponse(socket)
-        await command(socket, `EHLO ${host}`)
-        await command(socket, 'AUTH LOGIN')
-        await command(socket, Buffer.from(user).toString('base64'))
-        await command(socket, Buffer.from(pass).toString('base64'))
-        await command(socket, `MAIL FROM:<${from}>`)
-        await command(socket, `RCPT TO:<${to}>`)
-        await command(socket, 'DATA', 354)
-        await command(socket, `${message}\r\n.`)
-        await command(socket, 'QUIT')
-        socket.end()
+        await readResponse(activeSocket)
+        await command(activeSocket, `EHLO ${host}`)
+
+        if (!useImplicitTls) {
+          await command(activeSocket, 'STARTTLS', 220)
+          activeSocket = tls.connect({ socket: activeSocket, servername: host })
+          await onceSecure(activeSocket)
+          await command(activeSocket, `EHLO ${host}`)
+        }
+
+        await command(activeSocket, 'AUTH LOGIN')
+        await command(activeSocket, Buffer.from(user).toString('base64'))
+        await command(activeSocket, Buffer.from(pass).toString('base64'))
+        await command(activeSocket, `MAIL FROM:<${from}>`)
+        await command(activeSocket, `RCPT TO:<${to}>`)
+        await command(activeSocket, 'DATA', 354)
+        await command(activeSocket, `${message}\r\n.`)
+        await command(activeSocket, 'QUIT')
+        activeSocket.end()
         resolve()
       } catch (error) {
-        socket.destroy()
+        activeSocket.destroy()
         reject(error)
       }
     })
@@ -70,6 +86,13 @@ function sendSmtp({ host, port, user, pass, from, to, message }) {
     })
 
     socket.on('error', reject)
+  })
+}
+
+function onceSecure(socket) {
+  return new Promise((resolve, reject) => {
+    socket.once('secureConnect', resolve)
+    socket.once('error', reject)
   })
 }
 
