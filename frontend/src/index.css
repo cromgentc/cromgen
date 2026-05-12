@@ -51,6 +51,33 @@ body {
   background: #eaf3f1;
 }
 
+.admin-scrollbar {
+  scrollbar-color: rgba(34, 211, 238, 0.48) transparent;
+  scrollbar-width: thin;
+}
+
+.admin-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.admin-scrollbar::-webkit-scrollbar-track,
+.admin-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.admin-scrollbar::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.72), rgba(99, 102, 241, 0.5));
+  background-clip: padding-box;
+}
+
+.admin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.95), rgba(129, 140, 248, 0.75));
+  background-clip: padding-box;
+}
+
 header nav,
 header nav > div > div > div > div,
 footer textarea,

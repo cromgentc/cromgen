@@ -573,7 +573,7 @@ function EnterpriseAdminApp() {
             onNavigate={navigateAdmin}
           />
 
-          <section className="h-screen min-w-0 flex-1 overflow-y-auto">
+          <section className="admin-scrollbar h-screen min-w-0 flex-1 overflow-y-auto">
             <Navbar
               onToggleSidebar={() => setCollapsed((value) => !value)}
               onOpenMobile={() => setMobileOpen(true)}

@@ -49,7 +49,7 @@ export function Sidebar({ activePage, collapsed, mobileOpen, onCloseMobile, onNa
         </label>
       ) : null}
 
-      <nav className="flex-1 space-y-2 overflow-y-auto px-4 pb-5">
+      <nav className="admin-scrollbar flex-1 space-y-2 overflow-y-auto px-4 pb-5">
         {visibleNavigation.map((group) => {
           const isActive = group.items.some(([key]) => key === activePage)
           const isOpen = openGroup === group.label
