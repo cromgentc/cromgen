@@ -31,8 +31,9 @@ export async function createSettingContract(request) {
 
   const body = await readJson(request)
 
-  if (!body.title || !body.recipientName || !body.recipientEmail) {
-    return validationError('Title, recipient name, and recipient email are required')
+  const isDraft = String(body.status || '').toLowerCase() === 'draft'
+  if (!body.title || (!isDraft && (!body.recipientName || !body.recipientEmail))) {
+    return validationError(isDraft ? 'Title is required' : 'Title, recipient name, and recipient email are required')
   }
 
   if (body.contractFile?.data && !isDocxFile(body.contractFile)) {
@@ -40,16 +41,16 @@ export async function createSettingContract(request) {
   }
 
   const contract = await createContract(body)
-  const origin = process.env.APP_ORIGIN || request.headers.origin || `http://${request.headers.host}`
-  const signingUrl = `${origin.replace(/\/$/, '')}/contract-sign/${contract.signingToken}`
-  const emailResult = await sendContractRequestEmail(contract, signingUrl).catch((error) => ({
-    sent: false,
-    reason: error instanceof Error ? error.message : 'Email failed',
-  }))
+  const emailResult = isDraft
+    ? { sent: false, reason: 'Saved as draft' }
+    : await sendContractRequestEmail(contract, createSigningUrl(request, contract)).catch((error) => ({
+        sent: false,
+        reason: error instanceof Error ? error.message : 'Email failed',
+      }))
 
   return json(201, {
     ok: true,
-    message: emailResult.sent ? 'Contract sent to recipient successfully.' : 'Contract saved, but email could not be sent.',
+    message: isDraft ? 'Contract saved as draft.' : emailResult.sent ? 'Contract sent to recipient successfully.' : 'Contract saved, but email could not be sent.',
     contract,
     email: emailResult,
   })
@@ -76,8 +77,9 @@ export async function updateSettingContract(request, { token }) {
   const existingContract = await findContractByToken(token)
   if (!existingContract) return notFound('Contract not found')
 
-  if (!body.title || !body.recipientName || !body.recipientEmail) {
-    return validationError('Title, recipient name, and recipient email are required')
+  const isDraft = String(body.status || '').toLowerCase() === 'draft'
+  if (!body.title || (!isDraft && (!body.recipientName || !body.recipientEmail))) {
+    return validationError(isDraft ? 'Title is required' : 'Title, recipient name, and recipient email are required')
   }
 
   if (body.contractFile?.data && !isDocxFile(body.contractFile)) {
@@ -85,11 +87,21 @@ export async function updateSettingContract(request, { token }) {
   }
 
   const contract = await updateContractByToken(token, body)
+  const shouldSend = String(body.status || '').toLowerCase() !== 'draft' && String(existingContract.status || '').toLowerCase() === 'draft'
+  const emailResult = shouldSend
+    ? await sendContractRequestEmail(contract, createSigningUrl(request, contract)).catch((error) => ({
+        sent: false,
+        reason: error instanceof Error ? error.message : 'Email failed',
+      }))
+    : { sent: false, reason: shouldSend ? 'Email failed' : 'Email not requested' }
 
   return json(200, {
     ok: true,
-    message: 'Contract updated successfully.',
+    message: shouldSend
+      ? emailResult.sent ? 'Contract sent to recipient successfully.' : 'Contract updated, but email could not be sent.'
+      : 'Contract updated successfully.',
     contract,
+    email: emailResult,
   })
 }
 
@@ -454,6 +466,11 @@ function clampPercent(value) {
   const number = Number(value)
   if (!Number.isFinite(number)) return 0
   return Math.max(0, Math.min(100, number))
+}
+
+function createSigningUrl(request, contract) {
+  const origin = process.env.APP_ORIGIN || request.headers.origin || `http://${request.headers.host}`
+  return `${origin.replace(/\/$/, '')}/contract-sign/${contract.signingToken}`
 }
 
 async function sendSignedNotificationEmail(contract, signingUrl) {

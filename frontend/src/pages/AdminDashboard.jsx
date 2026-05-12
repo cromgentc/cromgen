@@ -926,23 +926,14 @@ function ModuleSummary({ module }) {
   )
 }
 
-function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract, onEdit, onDelete }) {
+function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract, onDelete }) {
   const [step, setStep] = useState('list')
   const [mode, setMode] = useState('send')
   const [saving, setSaving] = useState(false)
+  const [editingContractId, setEditingContractId] = useState('')
   const [placedFields, setPlacedFields] = useState([])
   const [activeFieldId, setActiveFieldId] = useState('')
-  const [draft, setDraft] = useState({
-    documentName: 'Agreement',
-    recipientEmail: '',
-    recipientName: '',
-    senderName: 'Cromgen Technology',
-    note: '',
-    contractBody: '',
-    fileName: '',
-    filePreview: '',
-    contractFile: null,
-  })
+  const [draft, setDraft] = useState(createEmptyLegalContractDraft())
   const [message, setMessage] = useState('')
 
   const updateDraft = (field, value) => {
@@ -952,8 +943,10 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
   const startCreateFlow = () => {
     setStep('choice')
     setMode('send')
+    setDraft(createEmptyLegalContractDraft())
     setPlacedFields([])
     setActiveFieldId('')
+    setEditingContractId('')
     setMessage('')
   }
 
@@ -970,6 +963,16 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
 
   const closeCreateFlow = () => {
     setStep('list')
+    setMessage('')
+  }
+
+  const openDraftForEdit = (row) => {
+    setDraft(createLegalContractDraftFromRow(row))
+    setEditingContractId(row.id || '')
+    setPlacedFields(row.signaturePlacements || [])
+    setActiveFieldId('')
+    setMode('send')
+    setStep('editor')
     setMessage('')
   }
 
@@ -1037,9 +1040,30 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
     }
   }
 
-  const submitContract = async () => {
-    if (!draft.documentName.trim() || !draft.recipientEmail.trim() || !draft.recipientName.trim()) {
-      setMessage('Document name, recipient email, and recipient name are required.')
+  const createContractPayload = (status) => ({
+    title: draft.documentName.trim() || 'Agreement',
+    recipientName: draft.recipientName.trim(),
+    recipientEmail: draft.recipientEmail.trim(),
+    senderName: draft.senderName.trim() || 'Cromgen Technology',
+    projectStatus: 'active',
+    status,
+    contractBody: [
+      draft.contractBody,
+      placedFields.length ? '\n\nSigning fields:\n' : '',
+      ...placedFields.map((field) => `- ${field.label}: ${field.value || field.type}`),
+    ].join('\n'),
+    contractFile: draft.contractFile,
+    signaturePlacements: placedFields,
+  })
+
+  const saveContract = async (status) => {
+    if (!draft.documentName.trim()) {
+      setMessage('Document name is required.')
+      return
+    }
+
+    if (status !== 'draft' && (!draft.recipientEmail.trim() || !draft.recipientName.trim())) {
+      setMessage('Recipient email and recipient name are required before sending.')
       return
     }
 
@@ -1047,26 +1071,16 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
     setMessage('')
 
     try {
-      const payload = {
-        title: draft.documentName.trim(),
-        recipientName: draft.recipientName.trim(),
-        recipientEmail: draft.recipientEmail.trim(),
-        senderName: draft.senderName.trim() || 'Cromgen Technology',
-        projectStatus: 'active',
-        contractBody: [
-          draft.contractBody,
-          placedFields.length ? '\n\nSigning fields:\n' : '',
-          ...placedFields.map((field) => `- ${field.label}: ${field.value || field.type}`),
-        ].join('\n'),
-        contractFile: draft.contractFile,
-      }
-      const response = await apiRequest(CONTRACT_ENDPOINTS.settingsList, {
+      const payload = createContractPayload(status)
+      const endpoint = editingContractId ? CONTRACT_ENDPOINTS.settingsDetail(editingContractId) : CONTRACT_ENDPOINTS.settingsList
+      const response = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify(payload),
       })
       await onSaved?.()
       setStep('list')
-      setMessage(response.message || 'Contract sent to recipient successfully.')
+      setEditingContractId('')
+      setMessage(response.message || (status === 'draft' ? 'Contract saved as draft.' : 'Contract sent to recipient successfully.'))
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Contract could not be saved.')
     } finally {
@@ -1094,8 +1108,9 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
         ) : null}
         {step === 'list' ? null : (
           <>
+          <div className="legal-builder-modal-backdrop" aria-hidden="true" onClick={closeCreateFlow}></div>
         {step === 'choice' ? (
-          <div className="legal-sign-choice">
+          <div className="legal-builder-modal-panel legal-sign-choice">
             <button type="button" className="legal-sign-choice-card is-active" onClick={() => selectMode('send')}>
               <Send size={54} strokeWidth={1.8} />
               <strong>Send for signatures</strong>
@@ -1106,18 +1121,18 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
             </button>
           </div>
         ) : step === 'documents' ? (
-          <div className="legal-documents-step">
+          <div className="legal-builder-modal-panel legal-documents-step">
             <h2>{mode === 'self' ? 'Sign yourself' : 'Send for signatures'}</h2>
             <h3>Add documents</h3>
             <DocumentDropZone draft={draft} onFile={addDocument} />
             <div className="legal-flow-actions">
               <button type="button" className="is-muted" onClick={() => setStep('choice')}>Back</button>
-              <button type="button" className="is-muted" onClick={closeCreateFlow}>Save & close</button>
+              <button type="button" className="is-muted" onClick={() => saveContract('draft')}>{saving ? 'Saving...' : 'Save draft'}</button>
               <button type="button" onClick={() => setStep('details')}>Continue</button>
             </div>
           </div>
         ) : step === 'details' ? (
-          <div className="legal-details-step">
+          <div className="legal-builder-modal-panel legal-details-step">
             <h2>Edit document details</h2>
             <div className="legal-detail-documents">
               {draft.fileName ? <DocumentThumb draft={draft} /> : null}
@@ -1151,12 +1166,12 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
               <textarea value={draft.note} onChange={(event) => updateDraft('note', event.target.value)} placeholder="Write a short signing note..." />
             </label>
             <div className="legal-flow-actions">
-              <button type="button" className="is-muted" onClick={closeCreateFlow}>Save & close</button>
+              <button type="button" className="is-muted" onClick={() => saveContract('draft')}>{saving ? 'Saving...' : 'Save draft'}</button>
               <button type="button" onClick={() => setStep('editor')}>Continue</button>
             </div>
           </div>
         ) : (
-          <div className="legal-editor-step">
+          <div className="legal-builder-modal-panel legal-editor-step">
             <div className="legal-editor-topbar">
               <div>
                 <FileText size={22} />
@@ -1164,8 +1179,8 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
               </div>
               <div>
                 <button type="button" className="is-muted" onClick={() => setStep('details')}>Back</button>
-                <button type="button" className="is-muted" onClick={closeCreateFlow}>Save & close</button>
-                <button type="button" disabled={saving} onClick={submitContract}>{saving ? 'Saving...' : 'Send'}</button>
+                <button type="button" className="is-muted" onClick={() => saveContract('draft')}>{saving ? 'Saving...' : 'Save draft'}</button>
+                <button type="button" disabled={saving} onClick={() => saveContract('pending')}>{saving ? 'Saving...' : 'Send'}</button>
               </div>
             </div>
             <div className="legal-editor-grid">
@@ -1257,7 +1272,7 @@ function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract
         rows={module.rows}
         columns={module.columns}
         onView={onOpenContract}
-        onEdit={onEdit}
+        onEdit={openDraftForEdit}
         onDelete={onDelete}
         emptyText={module.emptyText}
       />
@@ -1296,6 +1311,34 @@ function DocumentThumb({ draft }) {
       <strong>{draft.fileName || draft.documentName || 'Agreement'}</strong>
     </div>
   )
+}
+
+function createEmptyLegalContractDraft() {
+  return {
+    documentName: 'Agreement',
+    recipientEmail: '',
+    recipientName: '',
+    senderName: 'Cromgen Technology',
+    note: '',
+    contractBody: '',
+    fileName: '',
+    filePreview: '',
+    contractFile: null,
+  }
+}
+
+function createLegalContractDraftFromRow(row) {
+  return {
+    documentName: row.title || 'Agreement',
+    recipientEmail: row.recipientEmail || row.email || '',
+    recipientName: row.recipientName || row.client || '',
+    senderName: row.senderName || 'Cromgen Technology',
+    note: '',
+    contractBody: row.contractBody || '',
+    fileName: row.contractFile?.name || row.fileName || '',
+    filePreview: '',
+    contractFile: row.contractFile || null,
+  }
 }
 
 function defaultSigningFieldValue(fieldType, draft) {
@@ -2356,7 +2399,10 @@ function getModuleConfig(page, data) {
         client: contract.recipientName,
         email: contract.recipientEmail,
         senderName: contract.senderName,
+        contractFile: contract.contractFile || null,
+        fileName: contract.contractFile?.name || '',
         contractBody: contract.contractBody,
+        signaturePlacements: contract.signaturePlacements || [],
         status: contract.status || 'pending',
         projectStatus: contract.projectStatus || 'active',
         createdAt: formatDate(contract.createdAt),

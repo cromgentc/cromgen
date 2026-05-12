@@ -18,11 +18,12 @@ export async function findContracts() {
 
 export async function createContract(fields) {
   const now = new Date()
+  const sanitizedFields = sanitizeContractFields(fields)
   const contract = normalizeContract({
-    ...sanitizeContractFields(fields),
+    ...sanitizedFields,
     slug: createSlug(fields.title),
     signingToken: randomBytes(24).toString('hex'),
-    status: 'pending',
+    status: sanitizedFields.status || 'pending',
     createdAt: now,
     updatedAt: now,
   })
@@ -50,11 +51,13 @@ export async function updateContractByToken(signingToken, fields) {
   const sanitizedFields = sanitizeContractFields(fields)
   const nextContractFile = sanitizedFields.contractFile?.data ? sanitizedFields.contractFile : existing.contractFile
   const nextGoogleDocUrl = sanitizedFields.googleDocUrl || existing.googleDocUrl || ''
+  const nextStatus = sanitizedFields.status || existing.status || 'pending'
   const contract = normalizeContract({
     ...existing,
     ...sanitizedFields,
     contractFile: nextContractFile,
     googleDocUrl: nextGoogleDocUrl,
+    status: nextStatus,
     updatedAt,
   })
 
@@ -183,7 +186,14 @@ function sanitizeContractFields(body) {
     contractFile: normalizeContractFile(body.contractFile),
     senderName: String(body.senderName || 'Cromgen Technology').trim(),
     projectStatus: normalizeProjectStatus(body.projectStatus),
+    status: normalizeContractStatus(body.status),
+    signaturePlacements: normalizeSignaturePlacements(body.signaturePlacements),
   }
+}
+
+function normalizeContractStatus(status) {
+  const value = String(status || '').trim().toLowerCase()
+  return ['draft', 'pending', 'company-signed', 'signed'].includes(value) ? value : ''
 }
 
 function normalizeProjectStatus(status) {

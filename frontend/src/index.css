@@ -7460,6 +7460,40 @@ header #mobile-navigation summary:hover {
   font-size: 0.95rem;
 }
 
+.legal-builder-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(14px);
+}
+
+.legal-builder-modal-panel {
+  position: fixed;
+  z-index: 81;
+  inset: 76px 24px 24px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+}
+
+.legal-builder-modal-panel.legal-sign-choice {
+  inset: 110px max(24px, calc((100vw - 760px) / 2)) auto;
+  min-height: 300px;
+}
+
+.legal-builder-modal-panel.legal-documents-step {
+  inset: 90px auto auto max(24px, calc((100vw - 460px) / 2));
+  width: min(420px, calc(100vw - 48px));
+  max-height: calc(100vh - 120px);
+}
+
+.legal-builder-modal-panel.legal-details-step,
+.legal-builder-modal-panel.legal-editor-step {
+  max-height: calc(100vh - 100px);
+}
+
 .legal-sign-choice {
   display: grid;
   min-height: 360px;
