@@ -33,9 +33,9 @@ export async function createSettingContract(request) {
 
   const isDraft = String(body.status || '').toLowerCase() === 'draft'
   const isCompanySigned = String(body.status || '').toLowerCase() === 'company-signed'
-  const shouldEmailRecipient = !isDraft && !isCompanySigned
-  if (!body.title || (shouldEmailRecipient && (!body.recipientName || !body.recipientEmail))) {
-    return validationError(isDraft ? 'Title is required' : 'Title, recipient name, and recipient email are required')
+  const shouldEmailRecipient = !isDraft && Boolean(body.recipientEmail)
+  if (!body.title || (!isDraft && !isCompanySigned && !body.recipientEmail)) {
+    return validationError(isDraft ? 'Title is required' : 'Title and recipient email are required')
   }
 
   if (body.contractFile?.data && !isDocxFile(body.contractFile)) {
@@ -45,8 +45,8 @@ export async function createSettingContract(request) {
   const contract = await createContract(body)
   const emailResult = isDraft
     ? { sent: false, reason: 'Saved as draft' }
-    : isCompanySigned
-      ? { sent: false, reason: 'Signed by sender' }
+    : !shouldEmailRecipient
+      ? { sent: false, reason: isCompanySigned ? 'Signed by sender' : 'Recipient email is required before sending' }
     : await sendContractRequestEmail(contract, createSigningUrl(request, contract)).catch((error) => ({
         sent: false,
         reason: error instanceof Error ? error.message : 'Email failed',
@@ -56,7 +56,7 @@ export async function createSettingContract(request) {
     ok: true,
     message: isDraft
       ? 'Contract saved as draft.'
-      : isCompanySigned
+      : !shouldEmailRecipient && isCompanySigned
         ? 'Contract signed and saved.'
       : emailResult.sent
         ? 'Contract saved and signing email sent to recipient.'
@@ -89,9 +89,9 @@ export async function updateSettingContract(request, { token }) {
 
   const isDraft = String(body.status || '').toLowerCase() === 'draft'
   const isCompanySigned = String(body.status || '').toLowerCase() === 'company-signed'
-  const shouldEmailRecipient = !isDraft && !isCompanySigned
-  if (!body.title || (shouldEmailRecipient && (!body.recipientName || !body.recipientEmail))) {
-    return validationError(isDraft ? 'Title is required' : 'Title, recipient name, and recipient email are required')
+  const shouldEmailRecipient = !isDraft && Boolean(body.recipientEmail)
+  if (!body.title || (!isDraft && !isCompanySigned && !body.recipientEmail)) {
+    return validationError(isDraft ? 'Title is required' : 'Title and recipient email are required')
   }
 
   if (body.contractFile?.data && !isDocxFile(body.contractFile)) {
@@ -99,7 +99,7 @@ export async function updateSettingContract(request, { token }) {
   }
 
   const contract = await updateContractByToken(token, body)
-  const shouldSend = shouldEmailRecipient && String(existingContract.status || '').toLowerCase() === 'draft'
+  const shouldSend = shouldEmailRecipient
   const emailResult = shouldSend
     ? await sendContractRequestEmail(contract, createSigningUrl(request, contract)).catch((error) => ({
         sent: false,

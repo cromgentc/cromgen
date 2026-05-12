@@ -1083,8 +1083,8 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
     const isSelfSigning = mode === 'self' && status !== 'draft'
     const hasSignatureField = placedFields.some((field) => String(field.type || field.label || '').toLowerCase() === 'signature')
 
-    if (status !== 'draft' && !isSelfSigning && (!draft.recipientEmail.trim() || !draft.recipientName.trim())) {
-      setMessage('Recipient email and recipient name are required before sending.')
+    if (status !== 'draft' && !isSelfSigning && !draft.recipientEmail.trim()) {
+      setMessage('Recipient email is required before sending.')
       return
     }
 
@@ -1108,14 +1108,13 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       setStep('list')
       onCreateOpenChange?.(false)
       setEditingContractId('')
-      const emailReason = response.email?.reason ? ` ${response.email.reason}` : ''
       const nextMessage = status === 'draft'
         ? 'Contract saved as draft.'
         : isSelfSigning
           ? 'Contract signed and saved.'
         : response.email?.sent
           ? `Contract saved and signing email sent to ${draft.recipientEmail.trim()}.`
-          : `Contract saved, but signing email could not be sent.${emailReason}`
+          : 'Contract saved, but signing email could not be sent. Check SMTP/email settings.'
       setMessage(nextMessage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Contract could not be saved.')
