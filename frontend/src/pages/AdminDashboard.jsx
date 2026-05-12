@@ -3165,7 +3165,7 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       dueDate: record.dueDate,
       priority: record.priority,
       category: record.category,
-      assignee: record.assignee,
+      assignee: formatAssigneeDisplay(record.assignee),
       deadline: record.deadline,
       progress: record.progress,
       channel: record.channel,
@@ -3560,13 +3560,22 @@ function createVendorAssignOptions(vendors = []) {
     .map((vendor) => {
       const code = vendor.vendorCode || vendor.code || 'NO-CODE'
       const label = vendor.company || vendor.name || vendor.email || 'Vendor'
-      const email = vendor.email ? ` - ${vendor.email}` : ''
-      const id = vendor.id ? ` - ${vendor.id}` : ''
-      return `${code} - ${label}${email}${id}`
+      return `${label} - ${code}`
     })
     .filter(Boolean)
 
   return options.length ? options : ['No vendors available']
+}
+
+function formatAssigneeDisplay(value = '') {
+  const parts = String(value || '')
+    .split(' - ')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(part))
+    .filter((part) => !/^[a-f0-9]{24}$/i.test(part))
+
+  return parts.join(' - ')
 }
 
 function createUserAssignOptions(users = []) {
