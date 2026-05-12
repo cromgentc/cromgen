@@ -244,8 +244,8 @@ export async function signCompanyPublicContract(request, { token }) {
     companySignatureName: body.companySignatureName || existingContract.senderName || 'Cromgen Technology',
   }
 
-  if (!signedBody.companySignatureName || !signedBody.companySignatureData) {
-    return validationError('First party signature and signer name are required')
+  if (!existingContract.recipientEmail) {
+    return validationError('Recipient email is required before sending')
   }
 
   const signedContractFile = await createSignedPdfFile(existingContract, signedBody)
@@ -269,8 +269,8 @@ export async function signCompanyPublicContract(request, { token }) {
   return json(emailResult.sent ? 200 : 503, {
     ok: emailResult.sent,
     message: emailResult.sent
-      ? 'First party signed. Contract email sent to second party.'
-      : 'First party signed. Email is not configured or failed to send.',
+      ? 'Contract email sent to second party.'
+      : 'Email is not configured or failed to send.',
     contract,
     email: emailResult,
   })

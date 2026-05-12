@@ -117,7 +117,7 @@ export function ContractSigningPage({ token }) {
     const y = ((event.clientY - rect.top) / rect.height) * 100
     const label = formData.signatureName
 
-    if (!savedSignature) {
+    if (!isFirstParty && !savedSignature) {
       setStatus({ type: 'error', message: 'Please draw and save your signature first.' })
       return
     }
@@ -132,7 +132,7 @@ export function ContractSigningPage({ token }) {
           x: clampPlacementPercent(x, 10, 90),
           y: clampPlacementPercent(y, 6, 94),
           label: isFirstParty ? formData.companySignatureName : label,
-          image: savedSignature,
+          image: savedSignature || '',
         },
       ],
     }))
@@ -265,8 +265,8 @@ export function ContractSigningPage({ token }) {
     if (!token || !contract) return
 
     const hasSignature = (formData.signaturePlacements || []).some((placement) => placement.type === signatureType)
-    if (!savedSignature || !hasSignature) {
-      setStatus({ type: 'error', message: 'Please add and place your signature before submitting.' })
+    if ((!isFirstParty && !savedSignature) || !hasSignature) {
+      setStatus({ type: 'error', message: isFirstParty ? 'Please place the first party signature field before sending.' : 'Please add and place your signature before submitting.' })
       return
     }
 
@@ -455,8 +455,8 @@ export function ContractSigningPage({ token }) {
               ) : !canSecondPartySign ? (
                 <div className="contract-waiting-box">
                   <span>Waiting</span>
-                  <strong>First party signature pending</strong>
-                  <p>The contract will be available for your signature after the first party signs and submits it.</p>
+                  <strong>Contract is being prepared</strong>
+                  <p>The contract will be available for your signature after it is sent.</p>
                 </div>
               ) : (
                 <>
