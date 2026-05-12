@@ -636,11 +636,11 @@ function EnterpriseAdminApp() {
                 <SettingsModule activePage={activePage} settings={data.siteSettings} onSave={saveSiteSettings} />
               ) : activePage === 'legal-team' ? (
                 <LegalContractsWorkspace
+                  key={`legal-contracts-${legalCreateSignal}`}
                   module={module}
                   createSignal={legalCreateSignal}
                   onSaved={async () => loadMongoData('legal-team')}
                   onOpenContract={(row) => window.location.assign(`/contract-sign/${row.id}`)}
-                  onEdit={openEditModal}
                   onDelete={deleteRecord}
                 />
               ) : (
