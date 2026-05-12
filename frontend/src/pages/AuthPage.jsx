@@ -90,7 +90,7 @@ const authConfig = {
 const unifiedLoginRoles = {
   user: {
     label: 'User',
-    redirectTo: '/user-dashboard',
+    redirectTo: '/admin-dashboard',
   },
   admin: {
     label: 'Admin',
@@ -98,11 +98,11 @@ const unifiedLoginRoles = {
   },
   vendor: {
     label: 'Vendor',
-    redirectTo: '/vendor-dashboard',
+    redirectTo: '/admin-dashboard',
   },
   staff: {
     label: 'Staff',
-    redirectTo: '/staff-dashboard',
+    redirectTo: '/admin-dashboard',
   },
 }
 

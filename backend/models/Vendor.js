@@ -49,6 +49,12 @@ export function findVendorByEmail(email) {
   })
 }
 
+export async function findVendorById(id) {
+  if (!ObjectId.isValid(id)) return null
+
+  return collection().findOne({ _id: new ObjectId(id) })
+}
+
 export async function updateVendorStatus(id, status) {
   if (!ObjectId.isValid(id)) return null
 

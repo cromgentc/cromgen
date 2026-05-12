@@ -12,6 +12,7 @@ import {
   createVendor,
   deleteVendorById,
   findVendorByEmail,
+  findVendorById,
   findVendors,
   toPublicVendor,
   updateVendorStatus,
@@ -102,8 +103,20 @@ export async function currentUser(request) {
   const payload = token ? verifyToken(token) : null
   if (!payload?.sub) return unauthorized('Authorization token is required')
 
+  if (payload.role === 'vendor') {
+    const vendor = await findVendorById(payload.sub)
+    if (!vendor || vendor.status === 'suspended') {
+      return unauthorized('Invalid login details')
+    }
+
+    return json(200, {
+      ok: true,
+      user: { ...toPublicVendor(vendor), role: 'vendor' },
+    })
+  }
+
   const user = await findActiveUserById(payload.sub)
-  if (!user || !['admin', 'staff'].includes(user.role)) {
+  if (!user || !['admin', 'staff', 'user'].includes(user.role)) {
     return unauthorized('Invalid login details')
   }
 
@@ -119,7 +132,7 @@ export async function updateCurrentUser(request) {
   if (!payload?.sub) return unauthorized('Authorization token is required')
 
   const existing = await findActiveUserById(payload.sub)
-  if (!existing || !['admin', 'staff'].includes(existing.role)) {
+  if (!existing || !['admin', 'staff', 'user'].includes(existing.role)) {
     return unauthorized('Invalid login details')
   }
 
@@ -155,8 +168,8 @@ export async function createSettingUser(request) {
     return validationError('Name, email, and password are required')
   }
 
-  if (!['admin', 'staff'].includes(role)) {
-    return validationError('Role must be admin or staff')
+  if (!['admin', 'staff', 'user'].includes(role)) {
+    return validationError('Role must be admin, staff, or user')
   }
 
   try {
