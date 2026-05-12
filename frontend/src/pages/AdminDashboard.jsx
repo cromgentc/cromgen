@@ -241,6 +241,7 @@ function EnterpriseAdminApp() {
   const [searchQuery, setSearchQuery] = useState('')
   const [clearedNotifications, setClearedNotifications] = useState(false)
   const [messages, setMessages] = useState(() => readStoredMessages())
+  const [legalCreateSignal, setLegalCreateSignal] = useState(0)
 
   const loadMongoData = async (page = activePage) => {
     const coreRequests = await Promise.allSettled([
@@ -607,6 +608,11 @@ function EnterpriseAdminApp() {
                         <Plus size={18} /> {activePage === 'job-postings' ? 'Create Job Postings' : 'Create Record'}
                       </button>
                     ) : null}
+                    {activePage === 'legal-team' ? (
+                      <button type="button" onClick={() => setLegalCreateSignal((value) => value + 1)} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-slate-950 shadow-xl shadow-cyan-500/10 transition hover:-translate-y-0.5">
+                        <Plus size={18} /> Create Contract
+                      </button>
+                    ) : null}
                     <button type="button" onClick={() => loadMongoData(activePage)} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/15">
                       <WandSparkles size={18} /> Refresh Data
                     </button>
@@ -631,6 +637,7 @@ function EnterpriseAdminApp() {
               ) : activePage === 'legal-team' ? (
                 <LegalContractsWorkspace
                   module={module}
+                  createSignal={legalCreateSignal}
                   onSaved={async () => loadMongoData('legal-team')}
                   onOpenContract={(row) => window.location.assign(`/contract-sign/${row.id}`)}
                   onEdit={openEditModal}
@@ -919,7 +926,7 @@ function ModuleSummary({ module }) {
   )
 }
 
-function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDelete }) {
+function LegalContractsWorkspace({ module, createSignal, onSaved, onOpenContract, onEdit, onDelete }) {
   const [step, setStep] = useState('list')
   const [mode, setMode] = useState('send')
   const [saving, setSaving] = useState(false)
@@ -949,6 +956,11 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
     setActiveFieldId('')
     setMessage('')
   }
+
+  useEffect(() => {
+    if (!createSignal) return
+    startCreateFlow()
+  }, [createSignal])
 
   const selectMode = (nextMode) => {
     setMode(nextMode)
@@ -1058,9 +1070,6 @@ function LegalContractsWorkspace({ module, onSaved, onOpenContract, onEdit, onDe
             <p>Contracts</p>
             <h2>Legal document signing</h2>
           </div>
-          <button type="button" onClick={startCreateFlow}>
-            <Plus size={17} /> Create Contract
-          </button>
         </div>
         {step === 'list' ? (
           <div className="legal-empty-flow">
