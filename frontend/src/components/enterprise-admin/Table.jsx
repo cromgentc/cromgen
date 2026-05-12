@@ -96,6 +96,7 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
 
   const deleteSelectedRows = async () => {
     if (!selectedRows.length) return
+    if (!window.confirm(`Are you sure you want to delete ${selectedRows.length} selected record${selectedRows.length === 1 ? '' : 's'}?`)) return
     await onDeleteSelected?.(selectedRows)
     setSelectedIds([])
   }
@@ -262,7 +263,7 @@ export function EnterpriseTable({ title, rows, columns, onView, onEdit, onDelete
                           </button>
                         ) : null}
                         {onDelete ? (
-                          <button type="button" onClick={() => { setOpenActionId(''); onDelete(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-rose-200 hover:bg-rose-400/10">
+                          <button type="button" onClick={() => { setOpenActionId(''); if (window.confirm('Are you sure you want to delete this record?')) onDelete(row) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-rose-200 hover:bg-rose-400/10">
                             <Trash2 size={15} /> Delete
                           </button>
                         ) : null}

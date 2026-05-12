@@ -177,6 +177,7 @@ const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team 
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
 const dashboardPages = ['dashboard']
+const confirmAction = (message) => window.confirm(message)
 const workforceRecordTypes = [
   'candidates',
   'teams',
@@ -388,6 +389,7 @@ function EnterpriseAdminApp() {
 
   const createRecord = async (event) => {
     event.preventDefault()
+    if (!confirmAction(editingRecord ? 'Are you sure you want to save changes?' : 'Are you sure you want to save this record?')) return
     setSaving(true)
 
     try {
@@ -524,6 +526,7 @@ function EnterpriseAdminApp() {
   }
 
   const saveSiteSettings = async (settings) => {
+    if (!confirmAction('Are you sure you want to save settings?')) return
     try {
       const response = await apiRequest(SITE_ENDPOINTS.settingsDetail, {
         method: 'POST',
@@ -537,6 +540,7 @@ function EnterpriseAdminApp() {
   }
 
   const savePolicySettings = async (slug, policy) => {
+    if (!confirmAction('Are you sure you want to save this page?')) return
     try {
       const response = await apiRequest(POLICY_ENDPOINTS.settingsDetail(slug), {
         method: 'POST',
@@ -553,6 +557,7 @@ function EnterpriseAdminApp() {
   }
 
   const saveProfileSettings = async (profile) => {
+    if (!confirmAction('Are you sure you want to save profile changes?')) return
     try {
       const response = await apiRequest(AUTH_ENDPOINTS.updateCurrentUser, {
         method: 'POST',
@@ -1129,6 +1134,7 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       return
     }
 
+    if (!confirmAction(status === 'draft' ? 'Are you sure you want to save this contract?' : 'Are you sure you want to save and send this contract?')) return
     setSaving(true)
     setMessage('')
 
@@ -1530,6 +1536,7 @@ function PolicySettingsPage({ policies, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!confirmAction('Are you sure you want to save changes?')) return
     setSaving(true)
     await onSave(draft.slug, draft)
     setSaving(false)
@@ -1665,6 +1672,7 @@ function SeoSettingsPage({ settings, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!confirmAction('Are you sure you want to save changes?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -1747,6 +1755,7 @@ function ThemeCustomizationPage({ settings, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!confirmAction('Are you sure you want to save changes?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -1942,6 +1951,7 @@ function SettingsModule({ activePage, settings, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!confirmAction('Are you sure you want to save settings?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
@@ -2115,6 +2125,7 @@ function ProfileSettingsPage({ currentAdmin, onSave }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (!confirmAction('Are you sure you want to save profile changes?')) return
     setSaving(true)
     await onSave(draft)
     setSaving(false)
