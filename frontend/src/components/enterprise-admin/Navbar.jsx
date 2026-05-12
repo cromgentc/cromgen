@@ -14,16 +14,23 @@ export function Navbar({
   searchQuery,
   onSearchChange,
   searchResults = [],
+  currentUser,
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const storedUser = readStoredUser()
+  const profileUser = currentUser || storedUser || {}
+  const profileRole = titleCase(profileUser.role || localStorage.getItem('cromgen_auth_role') || 'user')
+  const profileName = profileUser.name || profileUser.company || profileUser.email || `${profileRole} User`
+  const profileMeta = profileUser.email || `${profileRole} Account`
+  const profileInitial = String(profileName || profileRole || 'U').trim()[0]?.toUpperCase() || 'U'
 
   const profileActions = [
     ['profile-settings', 'Profile Settings'],
     ['admin-access-control', 'Admin Access Control'],
     ['client-billing', 'Billing Workspace'],
     ['logout', 'Logout'],
-  ]
+  ].filter(([target]) => profileRole === 'Admin' || target !== 'admin-access-control')
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/55 px-4 py-4 shadow-xl shadow-black/5 backdrop-blur-2xl lg:px-7">
@@ -95,10 +102,10 @@ export function Navbar({
 
         <div className="relative">
           <button type="button" onClick={() => setProfileOpen((open) => !open)} className="flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-2 pr-4 text-white transition hover:bg-white/15">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-400 to-fuchsia-500 font-black">A</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-400 to-fuchsia-500 font-black">{profileInitial}</span>
             <span className="hidden text-left lg:block">
-              <b className="block text-sm">Admin</b>
-              <small className="block text-xs text-slate-400">Cromgen HQ</small>
+              <b className="block max-w-32 truncate text-sm">{profileName}</b>
+              <small className="block max-w-32 truncate text-xs text-slate-400">{profileRole}</small>
             </span>
           </button>
           <AnimatePresence>
@@ -109,6 +116,13 @@ export function Navbar({
                 exit={{ opacity: 0, y: 10, scale: 0.96 }}
                 className="absolute right-0 mt-3 w-64 rounded-3xl border border-white/10 bg-slate-950/95 p-3 text-white shadow-2xl shadow-black/30 backdrop-blur-2xl"
               >
+                <div className="mb-2 rounded-2xl bg-white/[0.08] px-3 py-3">
+                  <b className="block truncate text-sm text-white">{profileName}</b>
+                  <small className="mt-1 block truncate text-xs font-semibold text-slate-400">{profileMeta}</small>
+                  <span className="mt-2 inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100">
+                    {profileRole}
+                  </span>
+                </div>
                 {profileActions.map(([target, label]) => (
                   <button
                     key={target}
@@ -129,4 +143,20 @@ export function Navbar({
       </div>
     </header>
   )
+}
+
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('cromgen_auth_user') || 'null')
+  } catch {
+    return null
+  }
+}
+
+function titleCase(value) {
+  return String(value || '')
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => word[0]?.toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }

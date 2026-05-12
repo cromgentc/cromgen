@@ -670,6 +670,7 @@ function EnterpriseAdminApp() {
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               searchResults={searchResults}
+              currentUser={currentAdmin}
             />
 
             <div className="px-4 py-6 lg:px-7">
