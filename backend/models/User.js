@@ -74,7 +74,7 @@ export function countUsersByRole(role) {
   })
 }
 
-export async function createUser({ name, email, password, role }) {
+export async function createUser({ name, email, password, role, phone = '', title = '', location = '' }) {
   const now = new Date()
   const normalizedEmail = String(email).trim().toLowerCase()
   const existing = await collection().findOne({ email: normalizedEmail, role })
@@ -88,6 +88,9 @@ export async function createUser({ name, email, password, role }) {
     name: String(name || role).trim(),
     email: normalizedEmail,
     role,
+    phone: String(phone || '').trim(),
+    title: String(title || '').trim(),
+    location: String(location || '').trim(),
     passwordHash: hashPassword(password),
     isActive: true,
     createdAt: now,

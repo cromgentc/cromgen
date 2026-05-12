@@ -11,8 +11,8 @@ const authConfig = {
     role: 'admin',
     button: 'Login',
     fields: ['email', 'password'],
-    switchLabel: 'Create Account',
-    switchHref: '/vendor-register',
+    switchLabel: 'Create User Account',
+    switchHref: '/user-register',
     redirectTo: '/admin-dashboard',
   },
   'admin-login': {
@@ -49,6 +49,18 @@ const authConfig = {
     fields: ['email', 'password'],
     switchLabel: 'Register as vendor',
     switchHref: '/vendor-register',
+    redirectTo: '/admin-dashboard',
+  },
+  'user-register': {
+    eyebrow: 'User Portal',
+    title: 'User Register',
+    copy: 'Create a Cromgen user account to access the shared dashboard panel.',
+    endpoint: AUTH_ENDPOINTS.userRegister,
+    role: 'user',
+    button: 'Create User Account',
+    fields: ['name', 'email', 'phone', 'location', 'password'],
+    switchLabel: 'Already registered?',
+    switchHref: '/login',
     redirectTo: '/admin-dashboard',
   },
   'vendor-register': {
@@ -201,6 +213,19 @@ export function AuthPage({ type }) {
   if (type === 'vendor-register') {
     return (
       <VendorRegisterPage
+        formData={formData}
+        handleChange={handleChange}
+        handleSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        status={status}
+        switchHref={switchHref}
+      />
+    )
+  }
+
+  if (type === 'user-register') {
+    return (
+      <UserRegisterPage
         formData={formData}
         handleChange={handleChange}
         handleSubmit={handleSubmit}
@@ -457,11 +482,31 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
 
   return (
     <main className="min-h-screen bg-white pt-32 text-[#0f172a] sm:pt-36 lg:pt-28">
-      <section className="relative isolate flex min-h-[calc(100vh-7rem)] items-center justify-center overflow-hidden px-5 py-16">
+      <section className="relative isolate min-h-[calc(100vh-7rem)] overflow-hidden px-5 py-16">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_18%,rgba(255,75,45,0.15),transparent_30%),radial-gradient(circle_at_78%_16%,rgba(255,107,74,0.12),transparent_28%),linear-gradient(180deg,#ffffff,#f8fafc)]" />
         <div className="absolute left-1/2 top-24 -z-10 h-64 w-64 -translate-x-1/2 rounded-full bg-[#ff4b2d]/10 blur-3xl" />
 
-        <form onSubmit={handleSubmit} className="w-full max-w-[500px] rounded-[2rem] border border-[rgba(15,23,42,0.08)] bg-white/86 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition duration-300 hover:-translate-y-1 sm:p-8">
+        <div className="mx-auto grid min-h-[calc(100vh-12rem)] max-w-7xl items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
+          <div className="max-w-2xl">
+            <div className="inline-flex rounded-full border border-[rgba(15,23,42,0.08)] bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#ff4b2d] shadow-xl shadow-slate-900/5 backdrop-blur">
+              Unified Access
+            </div>
+            <h1 className="mt-7 text-4xl font-black leading-[1.02] text-[#0f172a] sm:text-6xl lg:text-7xl">
+              One portal for every Cromgen role.
+            </h1>
+            <p className="mt-6 max-w-xl text-base font-semibold leading-8 text-[#475569] sm:text-lg">
+              Login as user, admin, vendor, or staff and continue into the role-authenticated Cromgen dashboard panel.
+            </p>
+            <div className="mt-9 grid max-w-2xl gap-4 sm:grid-cols-2">
+              {['Role based access', 'Shared dashboard panel', 'Secure account session', 'Fast operations handoff'].map((item) => (
+                <article key={item} className="rounded-2xl border border-[rgba(15,23,42,0.08)] bg-white/80 p-5 text-sm font-black text-[#0f172a] shadow-xl shadow-slate-900/5 backdrop-blur">
+                  {item}
+                </article>
+              ))}
+            </div>
+          </div>
+
+        <form onSubmit={handleSubmit} className="w-full rounded-[2rem] border border-[rgba(15,23,42,0.08)] bg-white/86 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition duration-300 hover:-translate-y-1 sm:p-8">
           <div className="text-center">
             <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-[rgba(15,23,42,0.08)]">
               <img src={logo} alt="Cromgen Technology" className="h-11 w-11 object-contain" />
@@ -537,7 +582,7 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
               Forgot Password?
             </a>
             <a href={switchHref} className="text-sm font-black text-[#0f172a] transition hover:text-[#ff4b2d]">
-              Vendor Register
+              Create User Account
             </a>
           </div>
 
@@ -553,6 +598,7 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
             {isSubmitting ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        </div>
       </section>
     </main>
   )
@@ -655,6 +701,88 @@ function AdminShieldIcon() {
       <path d="M12 3 5 6v5c0 4.5 2.9 8.7 7 10 4.1-1.3 7-5.5 7-10V6l-7-3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
       <path d="m9.5 12 1.7 1.7 3.8-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function UserRegisterPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
+  const fields = [
+    ['name', 'Full Name', 'text'],
+    ['email', 'Email Address', 'email'],
+    ['phone', 'Phone Number', 'tel'],
+    ['location', 'Location', 'text'],
+    ['password', 'Password', 'password'],
+  ]
+
+  return (
+    <main className="min-h-screen bg-white pt-32 text-[#0f172a] sm:pt-36 lg:pt-28">
+      <section className="relative isolate overflow-hidden px-5 py-16">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_16%_14%,rgba(255,75,45,0.15),transparent_30%),radial-gradient(circle_at_84%_18%,rgba(255,107,74,0.12),transparent_28%),linear-gradient(180deg,#ffffff,#f8fafc)]" />
+        <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
+          <div className="max-w-2xl">
+            <div className="inline-flex rounded-full border border-[rgba(15,23,42,0.08)] bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#ff4b2d] shadow-xl shadow-slate-900/5 backdrop-blur">
+              User Registration
+            </div>
+            <h1 className="mt-7 text-4xl font-black leading-[1.02] text-[#0f172a] sm:text-6xl lg:text-7xl">
+              Create your Cromgen user account.
+            </h1>
+            <p className="mt-6 max-w-xl text-base font-semibold leading-8 text-[#475569] sm:text-lg">
+              Register once and access the same Cromgen dashboard panel with user-level permissions and a focused workspace.
+            </p>
+            <div className="mt-9 grid max-w-2xl gap-4 sm:grid-cols-2">
+              {['User workspace', 'Role-aware access', 'Secure profile', 'Dashboard ready'].map((item) => (
+                <article key={item} className="rounded-2xl border border-[rgba(15,23,42,0.08)] bg-white/80 p-5 text-sm font-black text-[#0f172a] shadow-xl shadow-slate-900/5 backdrop-blur">
+                  {item}
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="rounded-[2rem] border border-[rgba(15,23,42,0.08)] bg-white/88 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl sm:p-8">
+            <div className="text-center">
+              <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-[rgba(15,23,42,0.08)]">
+                <img src={logo} alt="Cromgen Technology" className="h-11 w-11 object-contain" />
+              </span>
+              <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-[#ff4b2d]">User Portal</p>
+              <h2 className="mt-3 text-3xl font-black text-[#0f172a]">Register</h2>
+            </div>
+
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
+              {fields.map(([field, label, type]) => (
+                <label key={field} className={field === 'password' ? 'md:col-span-2' : ''}>
+                  <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">{label}</span>
+                  <input
+                    name={field}
+                    type={type}
+                    value={formData[field] || ''}
+                    onChange={handleChange}
+                    required={['name', 'email', 'password'].includes(field)}
+                    autoComplete={field === 'password' ? 'new-password' : field}
+                    placeholder={label}
+                    className="min-h-[52px] w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]"
+                  />
+                </label>
+              ))}
+            </div>
+
+            {status.message ? (
+              <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>{status.message}</p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="mt-7 w-full rounded-2xl bg-gradient-to-r from-[#ff4b2d] to-[#ff6b4a] px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl shadow-[#ff4b2d]/25 transition duration-300 hover:-translate-y-1 disabled:cursor-wait disabled:opacity-70"
+            >
+              {isSubmitting ? 'Creating account...' : 'Create User Account'}
+            </button>
+
+            <a href={switchHref} className="mt-5 flex justify-center text-sm font-black text-[#ff4b2d]">
+              Already registered? Login
+            </a>
+          </form>
+        </div>
+      </section>
+    </main>
   )
 }
 

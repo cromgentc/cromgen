@@ -73,7 +73,7 @@ const policyPages = [
 
 const supportPages = ['support-tickets', 'help-center', 'faq-management', 'contact-requests']
 
-const authPages = ['login', 'admin-login', 'staff-login', 'vendor-login', 'vendor-register', 'candidate-login', 'candidate-register']
+const authPages = ['login', 'admin-login', 'staff-login', 'vendor-login', 'user-register', 'vendor-register', 'candidate-login', 'candidate-register']
 
 const dashboardPages = {
   'admin-dashboard': 'admin',
@@ -122,6 +122,7 @@ function getPageTitle(route) {
   if (route === 'admin-login') return 'Admin Login | Cromgen Technology'
   if (route === 'staff-login') return 'Staff Login | Cromgen Technology'
   if (route === 'vendor-login') return 'Vendor Login | Cromgen Technology'
+  if (route === 'user-register') return 'User Register | Cromgen Technology'
   if (route === 'vendor-register') return 'Vendor Register | Cromgen Technology'
   if (route === 'candidate-login') return 'Candidate Login | Cromgen Technology'
   if (route === 'candidate-register') return 'Candidate Register | Cromgen Technology'

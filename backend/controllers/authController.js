@@ -94,6 +94,39 @@ export async function adminRegister(request) {
   }
 }
 
+export async function userRegister(request) {
+  const body = await readJson(request)
+  const { name, email, password } = body
+
+  if (!name || !email || !password) {
+    return validationError('Name, email, and password are required')
+  }
+
+  try {
+    const user = await createUser({
+      ...body,
+      role: 'user',
+    })
+
+    return json(201, {
+      ok: true,
+      message: 'User registered successfully',
+      user: toPublicUser(user),
+      token: signToken({
+        sub: String(user._id),
+        role: user.role,
+        email: user.email,
+      }),
+    })
+  } catch (error) {
+    if (error?.code === 11000) {
+      return validationError('User email is already registered')
+    }
+
+    throw error
+  }
+}
+
 export function staffLogin(request) {
   return loginUser(request, ['staff', 'user'])
 }
