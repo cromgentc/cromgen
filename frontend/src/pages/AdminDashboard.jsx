@@ -176,7 +176,6 @@ const serviceSampleCategoryOptions = ['Artificial Intelligence', 'Digital Market
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
-const dashboardPages = ['overview', 'analytics', 'ai-insights', 'live-statistics']
 const workforceRecordTypes = [
   'candidates',
   'teams',
@@ -226,7 +225,7 @@ const workforceRecordTypes = [
 
 function EnterpriseAdminApp() {
   const { isDark } = useAdminTheme()
-  const [activePage, setActivePage] = useState('overview')
+  const [activePage, setActivePage] = useState('legal-team')
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -262,9 +261,7 @@ function EnterpriseAdminApp() {
     }
     const requestedCoreKeys = new Set()
 
-    if (dashboardPages.includes(page)) {
-      ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
-    } else if (page === 'user-management') {
+    if (page === 'user-management') {
       requestedCoreKeys.add('users')
     } else if (page === 'vendor-management') {
       requestedCoreKeys.add('vendors')
@@ -339,10 +336,6 @@ function EnterpriseAdminApp() {
   }, [activePage])
 
   const pageMeta = useMemo(() => {
-    if (dashboardPages.includes(activePage)) {
-      return { title: 'Enterprise Command Center', tag: 'Live Data', icon: Sparkles }
-    }
-
     return pageCatalog[activePage] || {
       title: activePage === 'notification-settings' ? 'Social Settings' : titleize(activePage),
       tag: 'Live Module',
@@ -644,9 +637,7 @@ function EnterpriseAdminApp() {
                 </div>
               </motion.header>
 
-              {dashboardPages.includes(activePage) ? (
-                <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
-              ) : activePage === 'profile-settings' ? (
+              {activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : activePage === 'system-settings' ? (
                 <PolicySettingsPage policies={data.policies} onSave={savePolicySettings} />
