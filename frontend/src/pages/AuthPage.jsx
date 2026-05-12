@@ -94,15 +94,15 @@ const unifiedLoginRoles = {
   },
   staff: {
     label: 'Staff',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/staff-dashboard',
   },
   user: {
     label: 'User',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/user-dashboard',
   },
   vendor: {
     label: 'Vendor',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/vendor-dashboard',
   },
 }
 

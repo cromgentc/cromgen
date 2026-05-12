@@ -78,6 +78,7 @@ const authPages = ['login', 'admin-login', 'staff-login', 'vendor-login', 'vendo
 const dashboardPages = {
   'admin-dashboard': 'admin',
   'staff-dashboard': 'staff',
+  'user-dashboard': 'user',
   'vendor-dashboard': 'vendor',
 }
 
@@ -128,6 +129,7 @@ function getPageTitle(route) {
   if (route.startsWith('contract-sign/')) return 'Contract Signing | Cromgen Technology'
   if (route === 'admin-dashboard') return 'Admin Dashboard | Cromgen Technology'
   if (route === 'staff-dashboard') return 'Staff Dashboard | Cromgen Technology'
+  if (route === 'user-dashboard') return 'User Dashboard | Cromgen Technology'
   if (route === 'vendor-dashboard') return 'Vendor Dashboard | Cromgen Technology'
   if (supportPages.includes(route)) return `${route.split('-').map((word) => word[0]?.toUpperCase() + word.slice(1)).join(' ')} | Cromgen Technology`
 

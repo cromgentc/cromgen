@@ -21,6 +21,17 @@ const dashboardConfig = {
       ['Reports', 'Track assigned review and support activity.'],
     ],
   },
+  user: {
+    eyebrow: 'User Panel',
+    title: 'User Dashboard',
+    copy: 'Access your assigned Cromgen workspace, updates, and account information.',
+    cards: [
+      ['Workspace', 'Review assigned updates and available portal actions.'],
+      ['Account', 'Keep your profile and contact information current.'],
+      ['Notifications', 'Track Cromgen messages and operational updates.'],
+      ['Support', 'Open support resources when help is needed.'],
+    ],
+  },
   vendor: {
     eyebrow: 'Vendor Portal',
     title: 'Vendor Dashboard',
