@@ -8,9 +8,10 @@ export async function sendEmail({ to, subject, text, html }) {
   const emailConfig = savedSettings?.emailConfig || {}
   const host = emailConfig.smtpHost || process.env.SMTP_HOST
   const user = emailConfig.smtpUser || process.env.SMTP_USER
-  const pass = emailConfig.smtpPass || process.env.SMTP_PASS
+  const rawPass = emailConfig.smtpPass || process.env.SMTP_PASS
   const from = emailConfig.mailFrom || process.env.MAIL_FROM || user
   const port = Number(emailConfig.smtpPort || process.env.SMTP_PORT || 465)
+  const pass = /gmail/i.test(host || '') ? String(rawPass || '').replace(/\s+/g, '') : rawPass
 
   if (!host || !user || !pass || !from) {
     console.warn('Email not sent. Configure SMTP_HOST, SMTP_USER, SMTP_PASS, and MAIL_FROM.')
