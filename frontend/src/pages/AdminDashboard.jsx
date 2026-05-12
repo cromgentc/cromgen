@@ -1099,7 +1099,13 @@ function LegalContractsWorkspace({ module, createOpen, onCreateOpenChange, onSav
       setStep('list')
       onCreateOpenChange?.(false)
       setEditingContractId('')
-      setMessage(response.message || (status === 'draft' ? 'Contract saved as draft.' : 'Contract sent to recipient successfully.'))
+      const emailReason = response.email?.reason ? ` ${response.email.reason}` : ''
+      const nextMessage = status === 'draft'
+        ? 'Contract saved as draft.'
+        : response.email?.sent
+          ? `Contract saved and signing email sent to ${draft.recipientEmail.trim()}.`
+          : `Contract saved, but signing email could not be sent.${emailReason}`
+      setMessage(nextMessage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Contract could not be saved.')
     } finally {

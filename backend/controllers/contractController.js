@@ -50,7 +50,11 @@ export async function createSettingContract(request) {
 
   return json(201, {
     ok: true,
-    message: isDraft ? 'Contract saved as draft.' : emailResult.sent ? 'Contract sent to recipient successfully.' : 'Contract saved, but email could not be sent.',
+    message: isDraft
+      ? 'Contract saved as draft.'
+      : emailResult.sent
+        ? 'Contract saved and signing email sent to recipient.'
+        : 'Contract saved, but signing email could not be sent.',
     contract,
     email: emailResult,
   })
@@ -98,7 +102,7 @@ export async function updateSettingContract(request, { token }) {
   return json(200, {
     ok: true,
     message: shouldSend
-      ? emailResult.sent ? 'Contract sent to recipient successfully.' : 'Contract updated, but email could not be sent.'
+      ? emailResult.sent ? 'Contract saved and signing email sent to recipient.' : 'Contract saved, but signing email could not be sent.'
       : 'Contract updated successfully.',
     contract,
     email: emailResult,
@@ -292,12 +296,18 @@ export async function signPublicContract(request, { token }) {
 
   const origin = process.env.APP_ORIGIN || request.headers.origin || `http://${request.headers.host}`
   const signingUrl = `${origin.replace(/\/$/, '')}/contract-sign/${contract.signingToken}`
-  await sendSignedNotificationEmail(contract, signingUrl).catch(() => null)
+  const notificationResult = await sendSignedNotificationEmail(contract, signingUrl).catch((error) => ({
+    sent: false,
+    reason: error instanceof Error ? error.message : 'Email failed',
+  }))
 
   return json(200, {
     ok: true,
-    message: 'Contract signed successfully',
+    message: notificationResult?.sent === false
+      ? 'Contract signed successfully, but signed copy notification could not be sent.'
+      : 'Contract signed successfully. Signed copy notification sent.',
     contract,
+    email: notificationResult || { sent: true },
   })
 }
 
