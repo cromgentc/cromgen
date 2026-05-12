@@ -479,6 +479,11 @@ function PasswordIcon({ visible }) {
 function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
   const [showPassword, setShowPassword] = useState(false)
   const selectedRole = formData.loginRole || 'user'
+  const registerLink = selectedRole === 'user'
+    ? { href: '/user-register', label: 'User Register' }
+    : selectedRole === 'vendor'
+      ? { href: '/vendor-register', label: 'Vendor Register' }
+      : null
 
   return (
     <main className="min-h-screen bg-white pt-32 text-[#0f172a] sm:pt-36 lg:pt-28">
@@ -581,9 +586,11 @@ function CromgenLoginPage({ formData, handleChange, handleSubmit, isSubmitting, 
             <a href="mailto:hello@cromgentechnology.com?subject=Password%20Reset" className="text-sm font-black text-[#ff4b2d] transition hover:text-[#ff6b4a]">
               Forgot Password?
             </a>
-            <a href={switchHref} className="text-sm font-black text-[#0f172a] transition hover:text-[#ff4b2d]">
-              Create User Account
-            </a>
+            {registerLink ? (
+              <a href={registerLink.href} className="text-sm font-black text-[#0f172a] transition hover:text-[#ff4b2d]">
+                {registerLink.label}
+              </a>
+            ) : null}
           </div>
 
           {status.message ? (
