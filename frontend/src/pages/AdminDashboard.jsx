@@ -151,7 +151,7 @@ const formDefaults = {
   'billing-cycle': { name: '', cycle: '', amount: '', dueDate: '', status: 'Active', notes: '' },
   'invoice-management': { name: '', invoiceNumber: '', company: '', amount: '', dueDate: '', status: 'Unpaid', notes: '' },
   'revenue-analytics': { name: '', category: '', amount: '', metric: '', status: 'Tracked', notes: '' },
-  wallet: { name: '', balance: '', amount: '', method: '', status: 'Active', notes: '' },
+  wallet: { name: '', invoiceBill: '', balance: '', amount: '', method: 'PayPal', status: 'Active', notes: '' },
   'withdraw-requests': { name: '', amount: '', method: 'PayPal', paypalEmail: '', accountNumber: '', upiId: '', qrScanner: '', requestDate: '', status: 'Pending', notes: '' },
   'sales-pipeline': { name: '', company: '', amount: '', stage: 'New', nextAction: '', status: 'Open', notes: '' },
   'follow-ups': { name: '', company: '', dueDate: '', channel: 'Call', status: 'Pending', notes: '' },
@@ -333,6 +333,8 @@ function EnterpriseAdminApp() {
       }
     } else if (page === 'withdraw-requests') {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('projects')
+    } else if (page === 'wallet') {
+      requestedCoreKeys.add('vendors')
     } else if (['legal-team', 'audio-recording-projects', 'video-collection-projects', 'script-management', 'quality-check', 'live-monitoring'].includes(page)) {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('contracts')
     } else if (page === 'leads-management') {
@@ -540,7 +542,11 @@ function EnterpriseAdminApp() {
       } else {
         const type = workforceTypeForPage(activePage)
         if (!type) throw new Error('Create API is not configured for this module yet.')
-        const payload = type === 'withdrawRequests' ? createWithdrawRequestPayload(normalizedForm, currentRole) : normalizedForm
+        const payload = type === 'withdrawRequests'
+          ? createWithdrawRequestPayload(normalizedForm, currentRole)
+          : type === 'wallets'
+            ? createWalletPayload(normalizedForm, data.wallets)
+            : normalizedForm
         await apiRequest(WORKFORCE_ENDPOINTS.settingsList(type), { method: 'POST', body: JSON.stringify(payload) })
       }
 
@@ -606,6 +612,8 @@ function EnterpriseAdminApp() {
     if (!type) throw new Error('Update API is not configured for this module yet.')
     const workforcePayload = type === 'withdrawRequests'
       ? createWithdrawRequestPayload(payload, currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || '')
+      : type === 'wallets'
+        ? createWalletPayload(payload, data.wallets, { id })
       : payload
     await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(type, id), {
       method: 'POST',
@@ -2801,6 +2809,29 @@ function createWithdrawRequestPayload(form = {}, currentRole = 'admin') {
   }
 }
 
+function createWalletPayload(form = {}, walletRecords = [], editingRecord = null) {
+  const amount = normalizeCurrencyAmount(form.amount)
+  const invoiceBill = normalizeCurrencyAmount(form.invoiceBill || form.billAmount)
+  const walletName = String(form.name || '').trim()
+  const previousTotal = (walletRecords || [])
+    .filter((record) => String(record.id || '') !== String(editingRecord?.id || ''))
+    .filter((record) => String(record.name || '').trim() === walletName)
+    .reduce((total, record) => total + Number(normalizeCurrencyAmount(record.amount) || 0), 0)
+  const balance = roundMoney(previousTotal + Number(amount || 0))
+
+  return {
+    ...form,
+    name: walletName,
+    invoiceBill,
+    billAmount: invoiceBill,
+    amount,
+    balance,
+    method: form.method || 'PayPal',
+    status: form.status || 'Active',
+    notes: String(form.notes || '').trim(),
+  }
+}
+
 function normalizeCurrencyAmount(value) {
   return String(value || '')
     .replace(/[^\d.]/g, '')
@@ -2894,7 +2925,7 @@ const workforcePageModules = {
   'billing-cycle': { type: 'billingCycles', title: 'Billing Cycle', fields: ['name', 'cycle', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
   'invoice-management': { type: 'invoices', title: 'Invoice Management', fields: ['name', 'invoiceNumber', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'] },
   'revenue-analytics': { type: 'revenueAnalytics', title: 'Revenue Analytics', fields: ['name', 'category', 'amount', 'metric', 'status', 'notes', 'createdAt'] },
-  wallet: { type: 'wallets', title: 'Wallet', fields: ['name', 'balance', 'amount', 'method', 'status', 'notes', 'createdAt'] },
+  wallet: { type: 'wallets', title: 'Wallet', fields: ['name', 'invoiceBill', 'balance', 'amount', 'method', 'status', 'notes', 'createdAt'] },
   'withdraw-requests': { type: 'withdrawRequests', title: 'Withdraw Requests', fields: ['name', 'billAmount', 'withdrawableAmount', 'method', 'requestDate', 'status', 'releaseDate', 'notes', 'createdAt'] },
   'sales-pipeline': { type: 'salesPipeline', title: 'Sales Pipeline', fields: ['name', 'company', 'amount', 'stage', 'nextAction', 'status', 'notes', 'createdAt'] },
   'follow-ups': { type: 'followUps', title: 'Follow Ups', fields: ['name', 'company', 'dueDate', 'channel', 'status', 'notes', 'createdAt'] },
@@ -3227,6 +3258,7 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       phone: record.phone,
       project: record.project,
       amount: record.amount,
+      invoiceBill: record.invoiceBill || record.billAmount,
       billAmount: record.billAmount,
       withdrawableAmount: record.withdrawableAmount || record.amount,
       platformFee: record.platformFee,
@@ -3641,6 +3673,18 @@ function createVendorAssignOptions(vendors = []) {
   return options.length ? options : ['No vendors available']
 }
 
+function createVendorWalletOptions(vendors = []) {
+  const options = (vendors || [])
+    .map((vendor) => {
+      const code = vendor.vendorCode || vendor.code || 'NO-CODE'
+      const label = vendor.company || vendor.name || vendor.email || 'Vendor'
+      return `${label} - ${code}`
+    })
+    .filter(Boolean)
+
+  return options.length ? options : ['No vendors available']
+}
+
 function formatAssigneeDisplay(value = '') {
   const parts = String(value || '')
     .split(' - ')
@@ -3685,6 +3729,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
   const jobRoleOptions = Array.from(new Set((data.jobs || []).map((job) => job.title).filter(Boolean)))
   const hiringRoleOptions = jobRoleOptions.length ? jobRoleOptions : ['AI Solutions Associate', 'Digital Marketing Executive', 'Customer Support Specialist', 'Frontend Developer', 'HR Recruitment Coordinator']
   const vendorAssignOptions = createVendorAssignOptions(data.vendors)
+  const vendorWalletOptions = createVendorWalletOptions(data.vendors)
   const userAssignOptions = createUserAssignOptions(data.users)
   const assigneeOptions = String(currentRole || '').toLowerCase() === 'vendor' ? userAssignOptions : vendorAssignOptions
   const projectAssignOptions = createProjectAssignOptions(data.projects)
@@ -3931,10 +3976,11 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
     wallet: [
-      { name: 'name', label: 'Wallet Name', ...commonRequired },
-      { name: 'balance', label: 'Balance', type: 'number' },
-      { name: 'amount', label: 'Last Amount', type: 'number' },
-      { name: 'method', label: 'Method' },
+      { name: 'name', label: 'Wallet Name', type: 'select', options: vendorWalletOptions, ...commonRequired },
+      { name: 'invoiceBill', label: 'Invoice Bill', type: 'number', numericOnly: true },
+      { name: 'balance', label: 'Balance', type: 'number', numericOnly: true },
+      { name: 'amount', label: 'Last Amount', type: 'number', numericOnly: true },
+      { name: 'method', label: 'Method', type: 'select', options: ['PayPal', 'Bank Account', 'UPI ID', 'QR Scanner'] },
       { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Hold', 'Closed'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
@@ -4138,6 +4184,7 @@ function commonColumns(keys) {
     phone: 'Phone',
     project: 'Project',
     amount: 'Amount',
+    invoiceBill: 'Invoice Bill',
     billAmount: 'Bill Amount',
     withdrawableAmount: 'Withdrawable',
     platformFee: 'Platform 10%',

@@ -124,6 +124,7 @@ function toPublicWorkforceRecord(record) {
     phone: record.phone || '',
     project: record.project || '',
     amount: record.amount || '',
+    invoiceBill: record.invoiceBill || '',
     billAmount: record.billAmount || '',
     withdrawableAmount: record.withdrawableAmount || '',
     platformFee: record.platformFee || '',
