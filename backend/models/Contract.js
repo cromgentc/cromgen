@@ -156,6 +156,10 @@ export function normalizeContract(contract) {
     senderName: String(contract.senderName || 'Cromgen Technology').trim(),
     status: String(contract.status || 'pending').trim(),
     projectStatus: normalizeProjectStatus(contract.projectStatus),
+    projectPriority: normalizeProjectPriority(contract.projectPriority),
+    startDate: String(contract.startDate || '').trim(),
+    dueDate: String(contract.dueDate || '').trim(),
+    budget: String(contract.budget || '').trim(),
     finalContractBody: String(contract.finalContractBody || contract.contractBody || '').trim(),
     contractDate: String(contract.contractDate || '').trim(),
     contractTimestamp: String(contract.contractTimestamp || '').trim(),
@@ -186,6 +190,10 @@ function sanitizeContractFields(body) {
     contractFile: normalizeContractFile(body.contractFile),
     senderName: String(body.senderName || 'Cromgen Technology').trim(),
     projectStatus: normalizeProjectStatus(body.projectStatus),
+    projectPriority: normalizeProjectPriority(body.projectPriority),
+    startDate: String(body.startDate || '').trim(),
+    dueDate: String(body.dueDate || '').trim(),
+    budget: String(body.budget || '').trim(),
     status: normalizeContractStatus(body.status),
     signaturePlacements: normalizeSignaturePlacements(body.signaturePlacements),
   }
@@ -199,6 +207,11 @@ function normalizeContractStatus(status) {
 function normalizeProjectStatus(status) {
   const value = String(status || 'active').trim().toLowerCase()
   return ['live', 'active', 'inactive', 'closed'].includes(value) ? value : 'active'
+}
+
+function normalizeProjectPriority(priority) {
+  const value = String(priority || 'Medium').trim()
+  return ['Low', 'Medium', 'High', 'Urgent'].includes(value) ? value : 'Medium'
 }
 
 function normalizeContractFile(file) {

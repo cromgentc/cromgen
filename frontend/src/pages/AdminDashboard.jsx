@@ -121,7 +121,7 @@ const emptyData = {
 const formDefaults = {
   'user-management': { name: '', email: '', password: '', role: 'staff' },
   'vendor-management': { name: '', company: '', email: '', phone: '', serviceCategory: '', password: '', status: 'active' },
-  'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
+  'project-management': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', projectPriority: 'Medium', startDate: '', dueDate: '', budget: '', contractBody: '' },
   'legal-team': { title: '', recipientName: '', recipientEmail: '', senderName: 'Cromgen Technology', projectStatus: 'active', contractBody: '' },
   'leads-management': { name: '', email: '', service: '', query: '' },
   'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
@@ -495,7 +495,10 @@ function EnterpriseAdminApp() {
         }
         await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(createVendorPayload(normalizedForm)) })
       } else if (activePage === 'project-management' || activePage === 'legal-team') {
-        await apiRequest(CONTRACT_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(normalizedForm) })
+        await apiRequest(CONTRACT_ENDPOINTS.settingsList, {
+          method: 'POST',
+          body: JSON.stringify(activePage === 'project-management' ? createProjectPayload(normalizedForm) : normalizedForm),
+        })
       } else if (activePage === 'leads-management') {
         await apiRequest(LEAD_ENDPOINTS.publicCreate, { method: 'POST', body: JSON.stringify(normalizedForm) })
       } else if (activePage === 'job-postings') {
@@ -2501,6 +2504,23 @@ function createVendorPayload(form = {}) {
   return payload
 }
 
+function createProjectPayload(form = {}) {
+  return {
+    ...form,
+    title: String(form.title || '').trim(),
+    recipientName: String(form.recipientName || '').trim(),
+    recipientEmail: String(form.recipientEmail || '').trim().toLowerCase(),
+    senderName: String(form.senderName || 'Cromgen Technology').trim(),
+    projectStatus: form.projectStatus || 'active',
+    projectPriority: form.projectPriority || 'Medium',
+    startDate: String(form.startDate || '').trim(),
+    dueDate: String(form.dueDate || '').trim(),
+    budget: String(form.budget || '').trim(),
+    contractBody: String(form.contractBody || '').trim(),
+    status: form.status || 'draft',
+  }
+}
+
 function DetailsModal({ record, onClose }) {
   if (!record) return null
 
@@ -2692,6 +2712,10 @@ function getModuleConfig(page, data) {
         client: contract.recipientName,
         email: contract.recipientEmail,
         senderName: contract.senderName,
+        projectPriority: contract.projectPriority || 'Medium',
+        startDate: contract.startDate,
+        dueDate: contract.dueDate,
+        budget: contract.budget,
         contractFile: contract.contractFile || null,
         fileName: contract.contractFile?.name || '',
         contractBody: contract.contractBody,
@@ -2702,8 +2726,8 @@ function getModuleConfig(page, data) {
       })),
       columns: commonColumns(isLegalTeam
         ? ['title', 'client', 'email', 'senderName', 'projectStatus', 'status', 'createdAt']
-        : ['title', 'client', 'email', 'projectStatus', 'status', 'createdAt']),
-      emptyText: 'The contracts/projects collection is empty.',
+        : ['title', 'client', 'senderName', 'projectStatus', 'projectPriority', 'dueDate', 'budget', 'createdAt']),
+      emptyText: isLegalTeam ? 'The legal contracts collection is empty.' : 'No projects added yet.',
     }
   }
 
@@ -3228,11 +3252,15 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     ],
     'project-management': [
       { name: 'title', label: 'Project Name', ...commonRequired },
-      { name: 'recipientName', label: 'Client Name', ...commonRequired },
-      { name: 'recipientEmail', label: 'Client Email', type: 'email', ...commonRequired },
+      { name: 'recipientName', label: 'Client Name' },
+      { name: 'recipientEmail', label: 'Client Email', type: 'email' },
       { name: 'senderName', label: 'Project Owner' },
       { name: 'projectStatus', label: 'Project Status', type: 'select', options: ['live', 'active', 'inactive', 'closed'] },
-      { name: 'contractBody', label: 'Description', type: 'textarea' },
+      { name: 'projectPriority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'startDate', label: 'Start Date', type: 'date' },
+      { name: 'dueDate', label: 'Due Date', type: 'date' },
+      { name: 'budget', label: 'Budget' },
+      { name: 'contractBody', label: 'Project Notes', type: 'textarea' },
     ],
     'legal-team': [
       { name: 'title', label: 'Contract / Project Name', ...commonRequired },
@@ -3653,6 +3681,10 @@ function commonColumns(keys) {
     contractFile: 'Contract File',
     contractFileName: 'Contract File',
     contractBody: 'Description',
+    projectPriority: 'Priority',
+    startDate: 'Start Date',
+    dueDate: 'Due Date',
+    budget: 'Budget',
     query: 'Query',
     department: 'Department',
     location: 'Location',
