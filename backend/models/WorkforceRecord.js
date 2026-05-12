@@ -145,6 +145,7 @@ function toPublicWorkforceRecord(record) {
     method: record.method || '',
     paypalEmail: record.paypalEmail || '',
     accountNumber: record.accountNumber || '',
+    ifscCode: record.ifscCode || '',
     upiId: record.upiId || '',
     qrScanner: record.qrScanner || '',
     balance: record.balance || '',
