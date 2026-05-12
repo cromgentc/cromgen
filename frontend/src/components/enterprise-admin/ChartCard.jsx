@@ -10,8 +10,8 @@ export function ChartCard({ title, eyebrow, action, children, className = '' }) 
         </div>
         {action ? <div>{action}</div> : null}
       </div>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-72 min-h-72 w-full min-w-0 overflow-hidden">
+        <ResponsiveContainer width="100%" height={288} minWidth={0}>
           {children}
         </ResponsiveContainer>
       </div>

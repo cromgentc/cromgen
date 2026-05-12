@@ -57,7 +57,6 @@ import {
   LEAD_ENDPOINTS,
   NEWS_ENDPOINTS,
   POLICY_ENDPOINTS,
-  PROJECT_ENDPOINTS,
   SERVICE_SAMPLE_ENDPOINTS,
   SITE_ENDPOINTS,
   VENDOR_ENDPOINTS,
@@ -288,7 +287,7 @@ function EnterpriseAdminApp() {
       users: [AUTH_ENDPOINTS.settingsUsers, (response) => response.users || []],
       vendors: [VENDOR_ENDPOINTS.settingsList, (response) => response.vendors || []],
       contracts: [CONTRACT_ENDPOINTS.settingsList, (response) => response.contracts || []],
-      projects: [PROJECT_ENDPOINTS.settingsList, selectProjectsResponse],
+      projects: [WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType), selectProjectsResponse],
       leads: [LEAD_ENDPOINTS.settingsList, (response) => response.leads || []],
       applications: [APPLICATION_ENDPOINTS.settingsList, (response) => response.applications || []],
       jobs: [JOB_ENDPOINTS.settingsList, (response) => response.jobs || []],
@@ -2573,56 +2572,30 @@ function createVendorPayload(form = {}) {
 }
 
 async function requestProjectList() {
-  try {
-    return await apiRequest(PROJECT_ENDPOINTS.settingsList)
-  } catch (error) {
-    if (!isMissingProjectRouteError(error)) throw error
-    const response = await apiRequest(WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType))
-    return {
-      ok: true,
-      fallback: true,
-      projects: (response.records || []).map(projectFromFallbackRecord),
-    }
+  const response = await apiRequest(WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType))
+  return {
+    ok: true,
+    fallback: true,
+    projects: (response.records || []).map(projectFromFallbackRecord),
   }
 }
 
 async function requestProjectCreate(payload) {
-  try {
-    return await apiRequest(PROJECT_ENDPOINTS.settingsList, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  } catch (error) {
-    if (!isMissingProjectRouteError(error)) throw error
-    return apiRequest(WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType), {
-      method: 'POST',
-      body: JSON.stringify(projectToFallbackPayload(payload)),
-    })
-  }
+  return apiRequest(WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType), {
+    method: 'POST',
+    body: JSON.stringify(projectToFallbackPayload(payload)),
+  })
 }
 
 async function requestProjectUpdate(id, payload) {
-  try {
-    return await apiRequest(PROJECT_ENDPOINTS.settingsDetail(id), {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  } catch (error) {
-    if (!isMissingProjectRouteError(error)) throw error
-    return apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(projectFallbackWorkforceType, id), {
-      method: 'POST',
-      body: JSON.stringify(projectToFallbackPayload(payload)),
-    })
-  }
+  return apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(projectFallbackWorkforceType, id), {
+    method: 'POST',
+    body: JSON.stringify(projectToFallbackPayload(payload)),
+  })
 }
 
 async function requestProjectDelete(id) {
-  try {
-    return await apiRequest(PROJECT_ENDPOINTS.settingsDelete(id), { method: 'DELETE' })
-  } catch (error) {
-    if (!isMissingProjectRouteError(error)) throw error
-    return apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(projectFallbackWorkforceType, id), { method: 'DELETE' })
-  }
+  return apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(projectFallbackWorkforceType, id), { method: 'DELETE' })
 }
 
 function selectProjectsResponse(response = {}) {
@@ -2669,12 +2642,6 @@ function projectFromFallbackRecord(record = {}) {
     googleDocUrl: record.googleDocUrl || record.articleUrl || '',
     contractBody: record.contractBody || record.notes || '',
   }
-}
-
-function isMissingProjectRouteError(error) {
-  const status = error?.cause?.response?.status
-  const message = String(error?.message || error?.cause?.response?.data?.message || '').toLowerCase()
-  return status === 404 || message.includes('updated backend route') || message.includes('route')
 }
 
 function createProjectPayload(form = {}) {
@@ -2887,7 +2854,7 @@ function getModuleConfig(page, data) {
     return {
       type: 'projects',
       title: 'Project Management',
-      source: PROJECT_ENDPOINTS.settingsList,
+      source: WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType),
       isLive: true,
       canEdit: true,
       rows: data.projects.map((project) => ({
