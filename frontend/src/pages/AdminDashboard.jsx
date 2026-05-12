@@ -153,7 +153,7 @@ const formDefaults = {
   'invoice-management': { name: '', invoiceNumber: '', company: '', amount: '', dueDate: '', status: 'Unpaid', notes: '' },
   'revenue-analytics': { name: '', category: '', amount: '', metric: '', status: 'Tracked', notes: '' },
   wallet: { name: '', invoiceBill: '', balance: '', amount: '', method: 'PayPal', status: 'Active', notes: '' },
-  'withdraw-requests': { name: '', amount: '', method: 'PayPal', paypalEmail: '', accountNumber: '', ifscCode: '', upiId: '', qrScanner: '', requestDate: '', status: 'Pending', notes: '' },
+  'withdraw-requests': { name: '', amount: '', method: 'PayPal', paypalEmail: '', accountNumber: '', ifscCode: '', upiId: '', qrScanner: '', requestDate: '', status: 'Pending', notes: '', invoiceFile: null },
   'sales-pipeline': { name: '', company: '', amount: '', stage: 'New', nextAction: '', status: 'Open', notes: '' },
   'follow-ups': { name: '', company: '', dueDate: '', channel: 'Call', status: 'Pending', notes: '' },
   'email-campaigns': { name: '', subject: '', category: '', openRate: '', status: 'Draft', notes: '' },
@@ -2559,12 +2559,22 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
     })
   }
 
+  const updateDocumentField = async (fieldName, file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    onChange(fieldName, {
+      name: file.name,
+      type: file.type || 'application/octet-stream',
+      data: dataUrl,
+    })
+  }
+
   return (
     <Modal open={open} title={`${editingRecord ? 'Edit' : 'Create'} ${titleize(page)}`} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           {fields.map((field) => (
-            <label key={field.name} className={['textarea', 'richtext', 'docx'].includes(field.type) ? 'md:col-span-2' : ''}>
+            <label key={field.name} className={['textarea', 'richtext', 'docx', 'document'].includes(field.type) ? 'md:col-span-2' : ''}>
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">{field.label}</span>
               {field.type === 'textarea' || field.type === 'richtext' ? (
                 <>
@@ -2615,6 +2625,20 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
                     type="file"
                     accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={(event) => updateDocxField(field.name, event.target.files?.[0])}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300"
+                    required={field.required && !form[field.name]}
+                  />
+                </div>
+              ) : field.type === 'document' ? (
+                <div className="space-y-3 rounded-3xl border border-dashed border-white/15 bg-slate-950/35 p-4">
+                  <div>
+                    <p className="text-sm font-black text-white">{form[field.name]?.name || 'No invoice uploaded'}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">PDF, DOC, DOCX, Excel, JPG, and PNG files are supported.</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept={field.accept || '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png'}
+                    onChange={(event) => updateDocumentField(field.name, event.target.files?.[0])}
                     className="w-full rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm font-semibold text-slate-300"
                     required={field.required && !form[field.name]}
                   />
@@ -3278,6 +3302,7 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       channel: record.channel,
       subject: record.subject,
       invoiceNumber: record.invoiceNumber,
+      invoiceFile: record.invoiceFile,
       cycle: record.cycle,
       method: record.method,
       paypalEmail: record.paypalEmail,
@@ -4022,6 +4047,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'requestDate', label: 'Request Date', type: 'date' },
       ...(!isStaffOrVendor ? [{ name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Approved', 'Paid', 'Rejected'] }] : []),
       { name: 'notes', label: 'Message', type: 'textarea' },
+      { name: 'invoiceFile', label: 'Invoice Upload', type: 'document', accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png' },
     ],
     'sales-pipeline': [
       { name: 'name', label: 'Lead / Deal Name', ...commonRequired },
@@ -4225,6 +4251,7 @@ function commonColumns(keys) {
     channel: 'Channel',
     subject: 'Subject',
     invoiceNumber: 'Invoice',
+    invoiceFile: 'Invoice File',
     image: 'Image',
     summary: 'Summary',
     experience: 'Experience',

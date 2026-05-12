@@ -141,6 +141,7 @@ function toPublicWorkforceRecord(record) {
     channel: record.channel || '',
     subject: record.subject || '',
     invoiceNumber: record.invoiceNumber || '',
+    invoiceFile: record.invoiceFile || null,
     cycle: record.cycle || '',
     method: record.method || '',
     paypalEmail: record.paypalEmail || '',
