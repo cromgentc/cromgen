@@ -349,7 +349,7 @@ function EnterpriseAdminApp() {
     const coreRequests = await Promise.allSettled(coreEntries.map(([key, endpoint]) => (
       key === 'projects' ? requestProjectList() : apiRequest(endpoint)
     )))
-    const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'assign-tasks') ? workforceTypesForPage(page) : []
+    const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && ['assign-tasks', 'task-management'].includes(page)) ? workforceTypesForPage(page) : []
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
     )
@@ -3041,7 +3041,7 @@ function getModuleConfig(page, data, currentRole = 'admin') {
 
 function workforceModule(type, title, records, fields, currentRole = 'admin') {
   const role = String(currentRole || '').toLowerCase()
-  const vendorAssignedTaskView = role === 'vendor' && type === 'assignedTasks'
+  const vendorAssignedTaskView = role === 'vendor' && ['assignedTasks', 'tasks'].includes(type)
   return {
     type,
     title,
@@ -3262,6 +3262,11 @@ function scopeDataForRole(data, currentUser) {
       isTaskAssignedToCurrentVendor(task, currentUser) || String(task.createdBy || '') === ownId
     ))
   }
+  if (role === 'vendor' && Array.isArray(scoped.tasks)) {
+    scoped.tasks = scoped.tasks.filter((task) => (
+      isTaskAssignedToCurrentVendor(task, currentUser) || String(task.createdBy || '') === ownId
+    ))
+  }
 
   for (const key of ['contracts', 'leads', 'newsPosts', 'serviceSamples']) {
     if (Array.isArray(scoped[key])) scoped[key] = role === 'staff' ? [] : scoped[key].filter(isOwnRow)
@@ -3429,7 +3434,7 @@ function canAccessPageForRole(page, currentRole) {
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
   if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'assign-tasks'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks'].includes(page)
   return false
 }
 

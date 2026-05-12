@@ -10,6 +10,7 @@ import {
 import { json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
+const vendorTaskReadableTypes = new Set(['assignedTasks', 'tasks'])
 const assignedTaskReadAuth = requireRole(['admin', 'staff', 'vendor'])
 const assignedTaskWriteAuth = requireRole(['admin', 'staff', 'vendor'])
 const publicReadableTypes = new Set(['helpCenter', 'faqs'])
@@ -43,13 +44,13 @@ export async function createPublicWorkforceRecord(request, { type }) {
 }
 
 export async function listWorkforceRecords(request, { type }) {
-  const auth = type === 'assignedTasks' ? assignedTaskReadAuth(request) : settingsAuth(request)
+  const auth = vendorTaskReadableTypes.has(type) ? assignedTaskReadAuth(request) : settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
 
   const records = await findWorkforceRecords(type)
 
-  if (type === 'assignedTasks' && auth.payload?.role === 'vendor') {
+  if (vendorTaskReadableTypes.has(type) && auth.payload?.role === 'vendor') {
     const vendor = await findVendorById(auth.payload.sub)
     const publicVendor = vendor ? toPublicVendor(vendor) : null
     return json(200, {

@@ -188,6 +188,6 @@ function isPageVisibleForRole(page, role) {
   if (role === 'admin') return true
   if (page === 'dashboard' || page === 'logout') return true
   if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'assign-tasks'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks'].includes(page)
   return false
 }
