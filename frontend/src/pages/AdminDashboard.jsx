@@ -3766,7 +3766,7 @@ function createProjectAssignOptions(projects = []) {
 
 function createWithdrawProjectOptions(data = emptyData) {
   const taskProjects = [...(data.assignedTasks || []), ...(data.tasks || [])]
-    .map((task) => task.project)
+    .map((task) => task.project || task.projectName || task.title || task.name)
     .filter(Boolean)
   const projectNames = taskProjects.length
     ? taskProjects
@@ -3988,7 +3988,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     ],
     'assign-tasks': [
       { name: 'name', label: 'Task Name', ...commonRequired },
-      { name: 'project', label: 'Project', type: 'select', options: projectAssignOptions, ...commonRequired },
+      { name: 'project', label: 'Project Name', type: 'select', options: projectAssignOptions, ...commonRequired },
       { name: 'assignee', label: 'Assign To', type: 'select', options: assigneeOptions, ...commonRequired },
       { name: 'deadline', label: 'Deadline', type: 'date' },
       { name: 'status', label: 'Status', type: 'select', options: ['Assigned', 'Accepted', 'In Progress', 'Completed'] },
@@ -4235,7 +4235,7 @@ function commonColumns(keys) {
     permission: 'Permission',
     category: 'Category',
     phone: 'Phone',
-    project: 'Project',
+    project: 'Project Name',
     amount: 'Amount',
     invoiceBill: 'Invoice Bill',
     billAmount: 'Bill Amount',
