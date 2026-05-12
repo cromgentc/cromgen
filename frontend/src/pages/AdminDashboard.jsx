@@ -3459,7 +3459,9 @@ function createVendorAssignOptions(vendors = []) {
     .map((vendor) => {
       const code = vendor.vendorCode || vendor.code || 'NO-CODE'
       const label = vendor.company || vendor.name || vendor.email || 'Vendor'
-      return `${code} - ${label}`
+      const email = vendor.email ? ` - ${vendor.email}` : ''
+      const id = vendor.id ? ` - ${vendor.id}` : ''
+      return `${code} - ${label}${email}${id}`
     })
     .filter(Boolean)
 
@@ -3476,17 +3478,32 @@ function createUserAssignOptions(users = []) {
 }
 
 function isTaskAssignedToCurrentVendor(task = {}, vendor = {}) {
-  const assignee = String(task.assignee || '').toLowerCase()
+  const assignee = normalizeAssigneeToken(task.assignee)
+  const compactAssignee = compactAssigneeToken(task.assignee)
+  if (!assignee && !compactAssignee) return false
   const tokens = [
+    task.assigneeVendorCode,
+    task.assigneeVendorId,
+    task.assigneeEmail,
     vendor.vendorCode,
     vendor.code,
     vendor.email,
     vendor.name,
     vendor.company,
     vendor.id,
-  ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+  ].map(normalizeAssigneeToken).filter(Boolean)
+  const compactTokens = tokens.map(compactAssigneeToken).filter(Boolean)
 
-  return tokens.some((token) => assignee.includes(token))
+  return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
+    || compactTokens.some((token) => compactAssignee.includes(token) || token.includes(compactAssignee))
+}
+
+function normalizeAssigneeToken(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function compactAssigneeToken(value) {
+  return normalizeAssigneeToken(value).replace(/[^a-z0-9]/g, '')
 }
 
 function createProjectAssignOptions(projects = []) {

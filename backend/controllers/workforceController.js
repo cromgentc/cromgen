@@ -116,15 +116,30 @@ export async function deleteSettingWorkforceRecord(request, { type, id }) {
 }
 
 function isTaskAssignedToVendor(record = {}, vendor = {}) {
-  const assignee = String(record.assignee || '').toLowerCase()
+  const assignee = normalizeAssigneeToken(record.assignee)
+  const compactAssignee = compactAssigneeToken(record.assignee)
+  if (!assignee && !compactAssignee) return false
   const tokens = [
+    record.assigneeVendorCode,
+    record.assigneeVendorId,
+    record.assigneeEmail,
     vendor.vendorCode,
     vendor.code,
     vendor.email,
     vendor.name,
     vendor.company,
     vendor.id,
-  ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+  ].map(normalizeAssigneeToken).filter(Boolean)
+  const compactTokens = tokens.map(compactAssigneeToken).filter(Boolean)
 
-  return tokens.some((token) => assignee.includes(token))
+  return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
+    || compactTokens.some((token) => compactAssignee.includes(token) || token.includes(compactAssignee))
+}
+
+function normalizeAssigneeToken(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function compactAssigneeToken(value) {
+  return normalizeAssigneeToken(value).replace(/[^a-z0-9]/g, '')
 }
