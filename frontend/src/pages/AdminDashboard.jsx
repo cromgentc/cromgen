@@ -381,7 +381,8 @@ function EnterpriseAdminApp() {
     if (page === 'logout') {
       localStorage.removeItem('cromgen_auth_token')
       localStorage.removeItem('cromgen_auth_role')
-      window.location.assign('/admin-login')
+      localStorage.removeItem('cromgen_auth_user')
+      window.location.assign('/login')
       return
     }
     setSearchQuery('')

@@ -66,6 +66,7 @@ export function DashboardPage({ role }) {
   const handleLogout = () => {
     localStorage.removeItem('cromgen_auth_token')
     localStorage.removeItem('cromgen_auth_role')
+    localStorage.removeItem('cromgen_auth_user')
     window.location.assign('/login')
   }
 
