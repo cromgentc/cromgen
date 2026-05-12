@@ -5,9 +5,11 @@ import {
   deleteApplicationById,
   findApplicationById,
   findApplications,
+  findApplicationsCreatedBy,
   updateApplicationById,
 } from '../models/Application.js'
-import { json, notFound, readJson, validationError } from '../utils/http.js'
+import { findJobPostBySlug } from '../models/JobPost.js'
+import { forbidden, json, notFound, readJson, validationError } from '../utils/http.js'
 import { verifyToken } from '../utils/security.js'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import mammoth from 'mammoth'
@@ -22,7 +24,11 @@ export async function createPublicApplication(request) {
     return validationError('Job, title, candidate name, email, and phone are required')
   }
 
-  const application = await createApplication(body)
+  const job = await findJobPostBySlug(body.job)
+  const application = await createApplication({
+    ...body,
+    createdBy: job?.createdBy || '',
+  })
 
   return json(201, {
     ok: true,
@@ -36,7 +42,7 @@ export async function listSettingApplications(request) {
   if (auth.error) return auth.error
 
   return json(200, {
-    applications: await findApplications(),
+    applications: auth.payload?.role === 'staff' ? await findApplicationsCreatedBy(auth.payload.sub) : await findApplications(),
   })
 }
 
@@ -51,7 +57,10 @@ export async function createSettingApplication(request) {
     return validationError('Job, title, candidate name, email, and phone are required')
   }
 
-  const application = await createApplication(body)
+  const application = await createApplication({
+    ...body,
+    createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
+  })
 
   return json(201, {
     ok: true,
@@ -71,7 +80,15 @@ export async function updateSettingApplication(request, { id }) {
     return validationError('Job, title, candidate name, email, and phone are required')
   }
 
-  const application = await updateApplicationById(id, body)
+  const existing = await findApplicationById(id)
+  if (auth.payload?.role === 'staff' && existing?.createdBy !== auth.payload.sub) {
+    return forbidden('You can only update applications for your job posts')
+  }
+
+  const application = await updateApplicationById(id, {
+    ...body,
+    createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy || existing?.createdBy,
+  })
   if (!application) return notFound('Application not found')
 
   return json(200, {
@@ -85,6 +102,11 @@ export async function deleteSettingApplication(request, { id }) {
   const auth = settingsAuth(request)
   if (auth.error) return auth.error
 
+  const existing = auth.payload?.role === 'staff' ? await findApplicationById(id) : null
+  if (existing && existing.createdBy !== auth.payload.sub) {
+    return forbidden('You can only delete applications for your job posts')
+  }
+
   const deleted = await deleteApplicationById(id)
   if (!deleted) return notFound('Application not found')
 
@@ -97,6 +119,7 @@ export async function deleteSettingApplication(request, { id }) {
 export async function deleteAllSettingApplications(request) {
   const auth = settingsAuth(request)
   if (auth.error) return auth.error
+  if (auth.payload?.role === 'staff') return forbidden('Staff cannot delete all applications')
 
   const deletedCount = await deleteAllApplications()
 

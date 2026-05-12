@@ -310,7 +310,7 @@ function EnterpriseAdminApp() {
       if (currentRole === 'admin') {
         ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
       } else if (currentRole === 'staff') {
-        ['users', 'vendors'].forEach((key) => requestedCoreKeys.add(key))
+        ['users', 'vendors', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
       } else if (currentRole === 'vendor') {
         ['users', 'vendors'].forEach((key) => requestedCoreKeys.add(key))
       }
@@ -3029,8 +3029,14 @@ function scopeDataForRole(data, currentUser) {
         : []
   }
 
-  for (const key of ['contracts', 'leads', 'applications', 'jobs', 'newsPosts', 'serviceSamples']) {
-    if (Array.isArray(scoped[key])) scoped[key] = scoped[key].filter(isOwnRow)
+  if (role === 'staff') {
+    for (const key of ['applications', 'jobs']) {
+      if (Array.isArray(scoped[key])) scoped[key] = scoped[key].filter(isCreatedByMe)
+    }
+  }
+
+  for (const key of ['contracts', 'leads', 'newsPosts', 'serviceSamples']) {
+    if (Array.isArray(scoped[key])) scoped[key] = role === 'staff' ? [] : scoped[key].filter(isOwnRow)
   }
 
   return scoped
@@ -3179,7 +3185,7 @@ function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
-  if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'job-postings', 'applications'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
   return false
 }
@@ -3188,7 +3194,7 @@ function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
-  if (role === 'staff') return page === 'user-management'
+  if (role === 'staff') return ['user-management', 'job-postings'].includes(page)
   if (role === 'vendor') return page === 'user-management'
   return false
 }

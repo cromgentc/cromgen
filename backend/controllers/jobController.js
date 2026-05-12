@@ -4,15 +4,16 @@ import {
   deleteAllJobPosts,
   deleteJobPostBySlug,
   findJobPosts,
+  findJobPostsCreatedBy,
   updateJobPostBySlug,
 } from '../models/JobPost.js'
-import { json, notFound, readJson, validationError } from '../utils/http.js'
+import { forbidden, json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
 
 export async function listPublicJobPosts() {
   return json(200, {
-    jobs: await findJobPosts(),
+    jobs: (await findJobPosts()).map(stripJobOwner),
   })
 }
 
@@ -21,7 +22,7 @@ export async function listSettingJobPosts(request) {
   if (auth.error) return auth.error
 
   return json(200, {
-    jobs: await findJobPosts(),
+    jobs: auth.payload?.role === 'staff' ? await findJobPostsCreatedBy(auth.payload.sub) : await findJobPosts(),
   })
 }
 
@@ -35,7 +36,10 @@ export async function createSettingJobPost(request) {
     return validationError('Title, department, location, and summary are required')
   }
 
-  const job = await createJobPost(body)
+  const job = await createJobPost({
+    ...body,
+    createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
+  })
 
   return json(201, {
     ok: true,
@@ -54,7 +58,16 @@ export async function updateSettingJobPost(request, { slug }) {
     return validationError('Title, department, location, and summary are required')
   }
 
-  const job = await updateJobPostBySlug(slug, body)
+  const existingJobs = auth.payload?.role === 'staff' ? await findJobPostsCreatedBy(auth.payload.sub) : null
+  const existingJob = existingJobs?.find((job) => job.slug === slug)
+  if (existingJobs && !existingJob) {
+    return forbidden('You can only update job posts created by you')
+  }
+
+  const job = await updateJobPostBySlug(slug, {
+    ...body,
+    createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
+  })
   if (!job) return notFound('Job post not found')
 
   return json(200, {
@@ -68,6 +81,11 @@ export async function deleteSettingJobPost(request, { slug }) {
   const auth = settingsAuth(request)
   if (auth.error) return auth.error
 
+  const existingJobs = auth.payload?.role === 'staff' ? await findJobPostsCreatedBy(auth.payload.sub) : null
+  if (existingJobs && !existingJobs.some((job) => job.slug === slug)) {
+    return forbidden('You can only delete job posts created by you')
+  }
+
   const deleted = await deleteJobPostBySlug(slug)
   if (!deleted) return notFound('Job post not found')
 
@@ -80,6 +98,7 @@ export async function deleteSettingJobPost(request, { slug }) {
 export async function deleteAllSettingJobPosts(request) {
   const auth = settingsAuth(request)
   if (auth.error) return auth.error
+  if (auth.payload?.role === 'staff') return forbidden('Staff cannot delete all job posts')
 
   const deletedCount = await deleteAllJobPosts()
 
@@ -88,4 +107,9 @@ export async function deleteAllSettingJobPosts(request) {
     message: 'All job posts deleted',
     deletedCount,
   })
+}
+
+function stripJobOwner(job) {
+  const { createdBy: _createdBy, ...publicJob } = job
+  return publicJob
 }

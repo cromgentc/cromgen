@@ -187,7 +187,7 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
 function isPageVisibleForRole(page, role) {
   if (role === 'admin') return true
   if (page === 'dashboard' || page === 'logout') return true
-  if (role === 'staff') return ['user-management', 'vendor-management'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'job-postings', 'applications'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management'].includes(page)
   return false
 }

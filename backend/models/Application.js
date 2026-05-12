@@ -20,6 +20,15 @@ export async function findApplications() {
   return applications.map(normalizeApplication)
 }
 
+export async function findApplicationsCreatedBy(userId) {
+  const applications = await collection()
+    .find({ createdBy: String(userId || '') })
+    .sort({ createdAt: -1 })
+    .toArray()
+
+  return applications.map(normalizeApplication)
+}
+
 export async function findApplicationById(id) {
   if (!ObjectId.isValid(id)) return null
   const application = await collection().findOne({ _id: new ObjectId(id) })
@@ -63,6 +72,7 @@ export function normalizeApplication(application) {
     candidate: normalizeCandidate(application.candidate || {}),
     resume: normalizeResume(application.resume || {}),
     status: String(application.status || 'Submitted').trim(),
+    createdBy: String(application.createdBy || '').trim(),
     createdAt: application.createdAt ? new Date(application.createdAt).toISOString() : new Date().toISOString(),
   }
 }
@@ -96,6 +106,7 @@ function sanitizeApplicationFields(body) {
     candidate: normalizeCandidate(body.candidate || {}),
     resume: normalizeResume(body.resume || {}),
     status: String(body.status || 'Submitted').trim(),
+    createdBy: String(body.createdBy || '').trim(),
   }
 }
 
