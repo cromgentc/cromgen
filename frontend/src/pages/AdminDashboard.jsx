@@ -370,6 +370,8 @@ function EnterpriseAdminApp() {
         ? ['wallets']
       : page === 'withdraw-requests' && ['staff', 'vendor'].includes(currentRole)
         ? Array.from(new Set([...workforceTypesForPage(page), 'assignedTasks', 'tasks']))
+      : ['performance-reports', 'user-reports', 'revenue-reports'].includes(page) && currentRole === 'vendor'
+        ? workforceTypesForPage(page)
         : ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'task-management')
           ? workforceTypesForPage(page)
           : []
@@ -3844,8 +3846,8 @@ function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests', 'invoice-management'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests', 'invoice-management'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
   return false
 }
 

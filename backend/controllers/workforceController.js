@@ -14,6 +14,7 @@ const settingsOrVendorTaskAuth = requireRole(['admin', 'staff', 'vendor'])
 const workforceAuth = requireRole(['admin', 'staff', 'vendor'])
 const vendorTaskReadableTypes = new Set(['assignedTasks', 'tasks'])
 const vendorFinanceTypes = new Set(['withdrawRequests', 'wallets'])
+const vendorReportTypes = new Set(['reports', 'userReports', 'revenueReports'])
 const publicReadableTypes = new Set(['helpCenter', 'faqs'])
 const publicCreateTypes = new Set(['supportTickets', 'contactRequests'])
 
@@ -48,7 +49,7 @@ export async function listWorkforceRecords(request, { type }) {
   const auth = workforceAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
-  if (auth.payload?.role === 'vendor' && !vendorTaskReadableTypes.has(type) && !vendorFinanceTypes.has(type)) {
+  if (auth.payload?.role === 'vendor' && !vendorTaskReadableTypes.has(type) && !vendorFinanceTypes.has(type) && !vendorReportTypes.has(type)) {
     return json(200, { ok: true, records: [] })
   }
 
@@ -77,7 +78,14 @@ export async function listWorkforceRecords(request, { type }) {
     })
   }
 
-  if (vendorFinanceTypes.has(type) && auth.payload?.role === 'staff') {
+  if ((vendorFinanceTypes.has(type) || vendorReportTypes.has(type)) && auth.payload?.role === 'staff') {
+    return json(200, {
+      ok: true,
+      records: records.filter((record) => record.createdBy === auth.payload.sub),
+    })
+  }
+
+  if (vendorReportTypes.has(type) && auth.payload?.role === 'vendor') {
     return json(200, {
       ok: true,
       records: records.filter((record) => record.createdBy === auth.payload.sub),
