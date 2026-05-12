@@ -234,6 +234,7 @@ const workforceRecordTypes = [
   'activityLogs',
   'twoFactorAuthentication',
 ]
+const projectFallbackWorkforceType = 'clientProjects'
 
 function EnterpriseAdminApp() {
   const { isDark } = useAdminTheme()
@@ -287,7 +288,7 @@ function EnterpriseAdminApp() {
       users: [AUTH_ENDPOINTS.settingsUsers, (response) => response.users || []],
       vendors: [VENDOR_ENDPOINTS.settingsList, (response) => response.vendors || []],
       contracts: [CONTRACT_ENDPOINTS.settingsList, (response) => response.contracts || []],
-      projects: [PROJECT_ENDPOINTS.settingsList, (response) => response.projects || []],
+      projects: [PROJECT_ENDPOINTS.settingsList, selectProjectsResponse],
       leads: [LEAD_ENDPOINTS.settingsList, (response) => response.leads || []],
       applications: [APPLICATION_ENDPOINTS.settingsList, (response) => response.applications || []],
       jobs: [JOB_ENDPOINTS.settingsList, (response) => response.jobs || []],
@@ -345,7 +346,9 @@ function EnterpriseAdminApp() {
     }
 
     const coreEntries = Array.from(requestedCoreKeys).map((key) => [key, ...coreRequestMap[key]])
-    const coreRequests = await Promise.allSettled(coreEntries.map(([, endpoint]) => apiRequest(endpoint)))
+    const coreRequests = await Promise.allSettled(coreEntries.map(([key, endpoint]) => (
+      key === 'projects' ? requestProjectList() : apiRequest(endpoint)
+    )))
     const requiredWorkforceTypes = ['admin', 'staff'].includes(currentRole) ? workforceTypesForPage(page) : []
     const workforceRequests = await Promise.allSettled(
       requiredWorkforceTypes.map((type) => apiRequest(WORKFORCE_ENDPOINTS.settingsList(type))),
@@ -503,10 +506,7 @@ function EnterpriseAdminApp() {
         }
         await apiRequest(VENDOR_ENDPOINTS.settingsList, { method: 'POST', body: JSON.stringify(createVendorPayload(normalizedForm)) })
       } else if (activePage === 'project-management') {
-        await apiRequest(PROJECT_ENDPOINTS.settingsList, {
-          method: 'POST',
-          body: JSON.stringify(createProjectPayload(normalizedForm)),
-        })
+        await requestProjectCreate(createProjectPayload({ ...normalizedForm, createdBy: currentAdmin?.id || '' }))
       } else if (activePage === 'legal-team') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsList, {
           method: 'POST',
@@ -558,10 +558,7 @@ function EnterpriseAdminApp() {
     }
 
     if (page === 'project-management') {
-      await apiRequest(PROJECT_ENDPOINTS.settingsDetail(id), {
-        method: 'POST',
-        body: JSON.stringify(createProjectPayload(payload)),
-      })
+      await requestProjectUpdate(id, createProjectPayload(payload))
       return
     }
 
@@ -606,7 +603,7 @@ function EnterpriseAdminApp() {
       } else if (type === 'contracts') {
         await apiRequest(CONTRACT_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (type === 'projects') {
-        await apiRequest(PROJECT_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
+        await requestProjectDelete(row.id)
       } else if (type === 'leads') {
         await apiRequest(LEAD_ENDPOINTS.settingsDelete(row.id), { method: 'DELETE' })
       } else if (type === 'applications') {
@@ -649,10 +646,7 @@ function EnterpriseAdminApp() {
 
   const updateProjectStatus = async (row, projectStatus) => {
     try {
-      await apiRequest(PROJECT_ENDPOINTS.settingsDetail(row.id), {
-        method: 'POST',
-        body: JSON.stringify(createProjectPayload({ ...row, projectStatus })),
-      })
+      await requestProjectUpdate(row.id, createProjectPayload({ ...row, projectStatus }))
       setToast(`Project marked ${projectStatus === 'active' ? 'active' : 'paused'}.`)
       await loadMongoData(activePage)
     } catch (error) {
@@ -2578,25 +2572,139 @@ function createVendorPayload(form = {}) {
   return payload
 }
 
+async function requestProjectList() {
+  try {
+    return await apiRequest(PROJECT_ENDPOINTS.settingsList)
+  } catch (error) {
+    if (!isMissingProjectRouteError(error)) throw error
+    const response = await apiRequest(WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType))
+    return {
+      ok: true,
+      fallback: true,
+      projects: (response.records || []).map(projectFromFallbackRecord),
+    }
+  }
+}
+
+async function requestProjectCreate(payload) {
+  try {
+    return await apiRequest(PROJECT_ENDPOINTS.settingsList, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  } catch (error) {
+    if (!isMissingProjectRouteError(error)) throw error
+    return apiRequest(WORKFORCE_ENDPOINTS.settingsList(projectFallbackWorkforceType), {
+      method: 'POST',
+      body: JSON.stringify(projectToFallbackPayload(payload)),
+    })
+  }
+}
+
+async function requestProjectUpdate(id, payload) {
+  try {
+    return await apiRequest(PROJECT_ENDPOINTS.settingsDetail(id), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  } catch (error) {
+    if (!isMissingProjectRouteError(error)) throw error
+    return apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(projectFallbackWorkforceType, id), {
+      method: 'POST',
+      body: JSON.stringify(projectToFallbackPayload(payload)),
+    })
+  }
+}
+
+async function requestProjectDelete(id) {
+  try {
+    return await apiRequest(PROJECT_ENDPOINTS.settingsDelete(id), { method: 'DELETE' })
+  } catch (error) {
+    if (!isMissingProjectRouteError(error)) throw error
+    return apiRequest(WORKFORCE_ENDPOINTS.settingsDetail(projectFallbackWorkforceType, id), { method: 'DELETE' })
+  }
+}
+
+function selectProjectsResponse(response = {}) {
+  return (response.projects || []).map((project) => ({
+    ...project,
+    id: project.id,
+    title: project.title || project.name || project.project || '',
+    senderName: project.senderName || project.company || 'Cromgen Technology',
+    projectStatus: project.projectStatus || project.status || 'active',
+    projectPriority: project.projectPriority || project.priority || 'Medium',
+    contractBody: project.contractBody || project.notes || '',
+  }))
+}
+
+function projectToFallbackPayload(project = {}) {
+  return {
+    name: project.title || project.name || 'Untitled Project',
+    project: project.title || project.project || project.name || 'Untitled Project',
+    company: project.senderName || project.company || 'Cromgen Technology',
+    priority: project.projectPriority || project.priority || 'Medium',
+    status: project.projectStatus || project.status || 'active',
+    dueDate: project.dueDate || '',
+    notes: project.contractBody || project.notes || '',
+    articleUrl: project.googleDocUrl || project.articleUrl || '',
+    googleDocUrl: project.googleDocUrl || project.articleUrl || '',
+    amount: project.budget || project.amount || '',
+    budget: project.budget || project.amount || '',
+    date: project.startDate || project.date || '',
+    startDate: project.startDate || project.date || '',
+  }
+}
+
+function projectFromFallbackRecord(record = {}) {
+  return {
+    ...record,
+    id: record.id,
+    title: record.title || record.project || record.name || '',
+    senderName: record.senderName || record.company || 'Cromgen Technology',
+    projectStatus: record.projectStatus || record.status || 'active',
+    projectPriority: record.projectPriority || record.priority || 'Medium',
+    startDate: record.startDate || record.date || '',
+    dueDate: record.dueDate || '',
+    budget: record.budget || record.amount || '',
+    googleDocUrl: record.googleDocUrl || record.articleUrl || '',
+    contractBody: record.contractBody || record.notes || '',
+  }
+}
+
+function isMissingProjectRouteError(error) {
+  const status = error?.cause?.response?.status
+  const message = String(error?.message || error?.cause?.response?.data?.message || '').toLowerCase()
+  return status === 404 || message.includes('updated backend route') || message.includes('route')
+}
+
 function createProjectPayload(form = {}) {
   const normalizedBudget = String(form.budget || '')
     .replace(/[^\d.]/g, '')
     .replace(/(\..*)\./g, '$1')
 
+  const title = String(form.title || form.project || form.name || '').trim()
+  const projectStatus = form.projectStatus || form.status || 'active'
+  const projectPriority = form.projectPriority || form.priority || 'Medium'
+  const contractBody = String(form.contractBody || form.notes || '').trim()
+
   return {
     ...form,
-    title: String(form.title || '').trim(),
+    title,
+    name: title,
+    project: title,
     recipientName: '',
     recipientEmail: '',
     senderName: String(form.senderName || 'Cromgen Technology').trim(),
-    projectStatus: form.projectStatus || 'active',
-    projectPriority: form.projectPriority || 'Medium',
+    projectStatus,
+    projectPriority,
+    priority: projectPriority,
+    status: projectStatus,
     startDate: String(form.startDate || '').trim(),
     dueDate: String(form.dueDate || '').trim(),
     budget: normalizedBudget,
     googleDocUrl: String(form.googleDocUrl || '').trim(),
-    contractBody: String(form.contractBody || '').trim(),
-    status: form.status || 'draft',
+    contractBody,
+    notes: contractBody,
   }
 }
 
@@ -3157,8 +3265,12 @@ function scopeDataForRole(data, currentUser) {
   }
 
   if (role === 'staff') {
-    for (const key of ['applications', 'jobs', 'projects']) {
+    for (const key of ['applications', 'jobs']) {
       if (Array.isArray(scoped[key])) scoped[key] = scoped[key].filter(isCreatedByMe)
+    }
+    if (Array.isArray(scoped.projects)) {
+      const projectsWithOwners = scoped.projects.filter((project) => project.createdBy)
+      scoped.projects = projectsWithOwners.length ? projectsWithOwners.filter(isCreatedByMe) : scoped.projects
     }
   }
 
