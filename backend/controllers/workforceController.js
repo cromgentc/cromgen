@@ -77,6 +77,13 @@ export async function listWorkforceRecords(request, { type }) {
     })
   }
 
+  if (vendorFinanceTypes.has(type) && auth.payload?.role === 'staff') {
+    return json(200, {
+      ok: true,
+      records: records.filter((record) => record.createdBy === auth.payload.sub),
+    })
+  }
+
   return json(200, {
     ok: true,
     records,
