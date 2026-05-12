@@ -186,7 +186,7 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
 function isPageVisibleForRole(page, role) {
   if (role === 'admin') return true
   if (page === 'dashboard' || page === 'logout') return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'withdraw-requests'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'withdraw-requests'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests'].includes(page)
   return false
 }

@@ -35,6 +35,7 @@ import {
   Sparkles,
   UserPlus,
   Users,
+  Wallet,
   WandSparkles,
   X,
 } from 'lucide-react'
@@ -357,8 +358,12 @@ function EnterpriseAdminApp() {
     const coreRequests = await Promise.allSettled(coreEntries.map(([key, endpoint]) => (
       key === 'projects' ? requestProjectList() : apiRequest(endpoint)
     )))
-    const requiredWorkforceTypes = currentRole === 'vendor' && page === 'assign-tasks'
+    const requiredWorkforceTypes = dashboardPages.includes(page) && ['admin', 'staff', 'vendor'].includes(currentRole)
+      ? ['wallets']
+      : currentRole === 'vendor' && page === 'assign-tasks'
       ? ['assignedTasks', 'tasks']
+      : page === 'wallet' && ['staff', 'vendor'].includes(currentRole)
+        ? ['wallets']
       : page === 'withdraw-requests' && ['staff', 'vendor'].includes(currentRole)
         ? Array.from(new Set([...workforceTypesForPage(page), 'assignedTasks', 'tasks']))
         : ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'task-management')
@@ -988,7 +993,7 @@ function DashboardOverview({ data, onView, onDelete, onNavigate, onOpenAi }) {
         {[
           ['Admin Access', 'Manage control roles', 'admin-access-control'],
           ['Messages', 'Open communication center', 'support-tickets'],
-          ['Quick Finance', 'Review invoices and wallet', 'invoice-management'],
+          ['Quick Finance', 'Review wallet and withdraws', 'wallet'],
         ].map(([title, copy, page]) => (
           <button key={title} type="button" onClick={() => onNavigate(page)} className="rounded-[28px] border border-white/10 bg-white/[0.08] p-5 text-left shadow-2xl shadow-black/10 backdrop-blur-2xl transition hover:-translate-y-1 hover:bg-white/[0.11]">
             <Sparkles className="text-cyan-200" size={20} />
@@ -3488,6 +3493,7 @@ function createStats(data) {
     { label: 'Contracts', value: data.contracts.length, change: 'Open', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500', page: 'legal-team' },
     { label: 'Projects', value: data.projects.length, change: 'Live', icon: Layers3, tone: 'from-emerald-300 to-cyan-500', page: 'project-management' },
     { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
+    { label: 'Wallet', value: data.wallets.length, change: 'Live', icon: Wallet, tone: 'from-lime-300 to-emerald-500', page: 'wallet' },
     { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
     { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
   ]
@@ -3640,8 +3646,8 @@ function canAccessPageForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
-  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'withdraw-requests'].includes(page)
-  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'withdraw-requests'].includes(page)
+  if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests'].includes(page)
+  if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests'].includes(page)
   return false
 }
 
@@ -3649,7 +3655,7 @@ function canCreateForRole(page, currentRole) {
   const role = String(currentRole || '').toLowerCase()
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
-  if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings', 'withdraw-requests'].includes(page)
+  if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings', 'wallet', 'withdraw-requests'].includes(page)
   if (role === 'vendor') return ['user-management', 'withdraw-requests'].includes(page)
   return false
 }

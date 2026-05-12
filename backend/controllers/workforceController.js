@@ -12,7 +12,7 @@ import { json, notFound, readJson, validationError } from '../utils/http.js'
 const settingsAuth = requireRole(['admin', 'staff'])
 const settingsOrVendorTaskAuth = requireRole(['admin', 'staff', 'vendor'])
 const vendorTaskReadableTypes = new Set(['assignedTasks', 'tasks'])
-const vendorFinanceTypes = new Set(['withdrawRequests'])
+const vendorFinanceTypes = new Set(['withdrawRequests', 'wallets'])
 const publicReadableTypes = new Set(['helpCenter', 'faqs'])
 const publicCreateTypes = new Set(['supportTickets', 'contactRequests'])
 
@@ -62,9 +62,14 @@ export async function listWorkforceRecords(request, { type }) {
   }
 
   if (vendorFinanceTypes.has(type) && auth.payload?.role === 'vendor') {
+    const vendor = await findVendorById(auth.payload.sub)
+    const publicVendor = vendor ? toPublicVendor(vendor) : null
     return json(200, {
       ok: true,
-      records: records.filter((record) => record.createdBy === auth.payload.sub),
+      records: records.filter((record) => (
+        record.createdBy === auth.payload.sub ||
+        (type === 'wallets' && publicVendor && isTaskAssignedToVendor({ assignee: record.name }, publicVendor))
+      )),
     })
   }
 
