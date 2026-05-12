@@ -11,7 +11,7 @@ export function requireRole(allowedRoles) {
 
     const payload = verifyToken(token)
 
-    const role = String(payload?.role || '').toLowerCase()
+    const role = String(payload?.role || '').trim().toLowerCase()
 
     if (!payload || !allowedRoles.includes(role)) {
       return { error: forbidden() }
