@@ -11,6 +11,7 @@ import {
   FileBarChart,
   FileCog,
   Headphones,
+  LayoutDashboard,
   LogOut,
   Settings,
   ShieldCheck,
@@ -20,6 +21,13 @@ import {
 } from 'lucide-react'
 
 export const adminNavigation = [
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    items: [
+      ['dashboard', 'Dashboard'],
+    ],
+  },
   {
     label: 'AI Management',
     icon: BrainCircuit,
@@ -214,6 +222,7 @@ export const adminNavigation = [
 ]
 
 export const pageCatalog = {
+  dashboard: { title: 'Dashboard', tag: 'Live Data', icon: LayoutDashboard },
   'ai-services': { title: 'AI Services', tag: 'AI Management', icon: BrainCircuit },
   'user-management': { title: 'User Management', tag: 'Identity Control', icon: Users },
   'vendor-management': { title: 'Vendor Management', tag: 'Partner Network', icon: Building2 },

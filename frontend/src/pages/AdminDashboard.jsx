@@ -176,6 +176,7 @@ const serviceSampleCategoryOptions = ['Artificial Intelligence', 'Digital Market
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
 const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
 const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
+const dashboardPages = ['dashboard']
 const workforceRecordTypes = [
   'candidates',
   'teams',
@@ -225,7 +226,7 @@ const workforceRecordTypes = [
 
 function EnterpriseAdminApp() {
   const { isDark } = useAdminTheme()
-  const [activePage, setActivePage] = useState('legal-team')
+  const [activePage, setActivePage] = useState('dashboard')
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -261,7 +262,9 @@ function EnterpriseAdminApp() {
     }
     const requestedCoreKeys = new Set()
 
-    if (page === 'user-management') {
+    if (dashboardPages.includes(page)) {
+      ['users', 'vendors', 'contracts', 'leads', 'applications', 'jobs'].forEach((key) => requestedCoreKeys.add(key))
+    } else if (page === 'user-management') {
       requestedCoreKeys.add('users')
     } else if (page === 'vendor-management') {
       requestedCoreKeys.add('vendors')
@@ -637,7 +640,9 @@ function EnterpriseAdminApp() {
                 </div>
               </motion.header>
 
-              {activePage === 'profile-settings' ? (
+              {dashboardPages.includes(activePage) ? (
+                <DashboardOverview data={data} onView={setDetailsRecord} onDelete={deleteRecord} onNavigate={navigateAdmin} onOpenAi={() => setAiOpen(true)} />
+              ) : activePage === 'profile-settings' ? (
                 <ProfileSettingsPage currentAdmin={currentAdmin} onSave={saveProfileSettings} />
               ) : activePage === 'system-settings' ? (
                 <PolicySettingsPage policies={data.policies} onSave={savePolicySettings} />
