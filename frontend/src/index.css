@@ -18,7 +18,7 @@
 html {
   overflow-x: hidden;
   scroll-behavior: smooth;
-  scrollbar-color: #ff4b2d #eaf3f1;
+  scrollbar-color: rgba(34, 211, 238, 0.48) transparent;
   scrollbar-width: thin;
 }
 
@@ -29,26 +29,28 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #eaf3f1;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  border: 3px solid #eaf3f1;
+  border: 3px solid transparent;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ff4b2d, #082a66);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.72), rgba(99, 102, 241, 0.5));
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #63bc45, #082a66);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.95), rgba(129, 140, 248, 0.75));
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-corner {
-  background: #eaf3f1;
+  background: transparent;
 }
 
 .admin-scrollbar {
@@ -83,7 +85,7 @@ header nav > div > div > div > div,
 footer textarea,
 .talent-enquiry textarea,
 .recruitment-form textarea {
-  scrollbar-color: #63bc45 rgba(255, 255, 255, 0.12);
+  scrollbar-color: rgba(34, 211, 238, 0.48) transparent;
   scrollbar-width: thin;
 }
 
@@ -6128,7 +6130,7 @@ header #mobile-navigation summary:hover {
   overflow-x: hidden;
   padding-right: 6px;
   flex: 1 1 auto;
-  scrollbar-color: rgba(8, 42, 102, 0.32) transparent;
+  scrollbar-color: rgba(34, 211, 238, 0.48) transparent;
   scrollbar-width: thin;
 }
 
@@ -6143,7 +6145,7 @@ header #mobile-navigation summary:hover {
 .admin-content-scroll::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 999px;
-  background: rgba(8, 42, 102, 0.32);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.72), rgba(99, 102, 241, 0.5));
   background-clip: padding-box;
 }
 
@@ -6943,11 +6945,12 @@ header #mobile-navigation summary:hover {
 .admin-content-scroll {
   margin-top: 0;
   padding: 24px 28px 36px;
-  scrollbar-color: rgba(70, 95, 255, 0.35) transparent;
+  scrollbar-color: rgba(34, 211, 238, 0.48) transparent;
 }
 
 .admin-content-scroll::-webkit-scrollbar-thumb {
-  background: rgba(70, 95, 255, 0.35);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.72), rgba(99, 102, 241, 0.5));
+  background-clip: padding-box;
 }
 
 .admin-overview {
