@@ -1113,10 +1113,17 @@ export function CareerPage() {
 export function OutsourceProjectPage() {
   const [postedProjects, setPostedProjects] = useState([])
   const [isLoadingProjects, setIsLoadingProjects] = useState(true)
-  const isUserLoggedIn =
-    Boolean(localStorage.getItem('cromgen_auth_token')) &&
-    ['user', 'admin', 'staff'].includes(String(localStorage.getItem('cromgen_auth_role') || '').toLowerCase())
-  const applyHref = isUserLoggedIn ? '/user-dashboard' : '/login?redirect=/user-dashboard'
+  const authRole = String(localStorage.getItem('cromgen_auth_role') || '').toLowerCase()
+  const dashboardByRole = {
+    admin: '/admin-dashboard',
+    staff: '/staff-dashboard',
+    user: '/user-dashboard',
+    vendor: '/vendor-dashboard',
+  }
+  const dashboardHref = dashboardByRole[authRole] || '/user-dashboard'
+  const applyHref = localStorage.getItem('cromgen_auth_token')
+    ? dashboardHref
+    : `/login?redirect=${encodeURIComponent(dashboardHref)}`
 
   useEffect(() => {
     let isMounted = true
