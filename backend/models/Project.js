@@ -1,6 +1,69 @@
 import { ObjectId } from 'mongodb'
 import { getDB } from '../config/db.js'
 
+const defaultOutsourceProjects = [
+  {
+    title: 'AI Automation Project',
+    department: 'Artificial Intelligence',
+    location: 'Remote Delivery',
+    projectType: 'Outsource',
+    experience: 'Business workflow',
+    imageKey: 'ai',
+    publicSummary:
+      'Outsource chatbot, CRM automation, reporting assistant, and internal workflow automation projects to Cromgen delivery teams.',
+  },
+  {
+    title: 'Digital Growth Project',
+    department: 'Digital Marketing',
+    location: 'Remote / Hybrid',
+    projectType: 'Outsource',
+    experience: 'Campaign support',
+    imageKey: 'software',
+    publicSummary:
+      'Outsource SEO, paid ads, social media, landing page, content, and monthly performance reporting work for business growth.',
+  },
+  {
+    title: 'Customer Support Project',
+    department: 'Call Center',
+    location: 'Office / Remote',
+    projectType: 'Outsource',
+    experience: 'Inbound / Outbound',
+    imageKey: 'recruitment',
+    publicSummary:
+      'Outsource inbound support, outbound calling, lead qualification, appointment setting, helpdesk, and customer follow-up workflows.',
+  },
+  {
+    title: 'Software Development Project',
+    department: 'Software Development',
+    location: 'Remote Delivery',
+    projectType: 'Outsource',
+    experience: 'Web / App / Dashboard',
+    imageKey: 'software',
+    publicSummary:
+      'Outsource websites, dashboards, admin panels, portals, CRM tools, integrations, and custom business application development.',
+  },
+  {
+    title: 'HR Recruitment Project',
+    department: 'HR Consultant',
+    location: 'Remote / Office',
+    projectType: 'Outsource',
+    experience: 'Hiring pipeline',
+    imageKey: 'hr',
+    publicSummary:
+      'Outsource recruitment, screening, interview coordination, onboarding documentation, workforce planning, and HR process support.',
+  },
+  {
+    title: 'IT & Telecom Project',
+    department: 'IT / Telecommunications',
+    location: 'Remote / On-site',
+    projectType: 'Outsource',
+    experience: 'Infrastructure support',
+    imageKey: 'it',
+    publicSummary:
+      'Outsource managed IT, network support, email administration, cloud telephony, IVR setup, PBX, SIP trunking, and monitoring work.',
+  },
+]
+
 export async function findProjects() {
   const projects = await collection()
     .find({})
@@ -20,10 +83,11 @@ export async function findProjectsCreatedBy(userId) {
 }
 
 export async function findPublicProjects() {
+  await ensureDefaultOutsourceProjects()
+
   const projects = await collection()
     .find({ projectStatus: { $in: ['live', 'active'] } })
     .sort({ createdAt: -1 })
-    .limit(8)
     .toArray()
 
   return projects.map(normalizePublicProject)
@@ -93,8 +157,44 @@ export function normalizePublicProject(project = {}) {
   return {
     id: String(project._id || project.id || ''),
     title: String(project.title || '').trim(),
+    department: String(project.department || 'Project Management').trim(),
+    location: String(project.location || 'Cromgen Admin Post').trim(),
+    projectType: String(project.projectType || 'Outsource').trim(),
+    experience: String(project.experience || 'Outsource Project').trim(),
+    imageKey: String(project.imageKey || '').trim(),
+    publicSummary: String(project.publicSummary || project.contractBody || '').trim(),
     projectStatus: String(project.projectStatus || 'active').trim(),
     createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : '',
+  }
+}
+
+async function ensureDefaultOutsourceProjects() {
+  const now = new Date()
+  const titles = defaultOutsourceProjects.map((project) => project.title)
+  const existingProjects = await collection()
+    .find({ title: { $in: titles } }, { projection: { title: 1 } })
+    .toArray()
+  const existingTitles = new Set(existingProjects.map((project) => String(project.title || '').trim()))
+  const missingProjects = defaultOutsourceProjects
+    .filter((project) => !existingTitles.has(project.title))
+    .map((project) => ({
+      ...project,
+      senderName: 'Cromgen Technology',
+      projectStatus: 'active',
+      projectPriority: 'Medium',
+      startDate: '',
+      dueDate: '',
+      budget: '',
+      googleDocUrl: '',
+      assignedUserEmail: '',
+      contractBody: project.publicSummary,
+      createdBy: 'system',
+      createdAt: now,
+      updatedAt: now,
+    }))
+
+  if (missingProjects.length) {
+    await collection().insertMany(missingProjects)
   }
 }
 

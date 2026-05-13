@@ -330,74 +330,16 @@ const careerOpenings = [
   },
 ]
 
-const outsourceProjectOpenings = [
-  {
-    slug: 'ai-automation-project',
-    title: 'AI Automation Project',
-    department: 'Artificial Intelligence',
-    location: 'Remote Delivery',
-    type: 'Outsource',
-    experience: 'Business workflow',
-    image: aiHero,
-    summary:
-      'Outsource chatbot, CRM automation, reporting assistant, and internal workflow automation projects to Cromgen delivery teams.',
-  },
-  {
-    slug: 'digital-growth-project',
-    title: 'Digital Growth Project',
-    department: 'Digital Marketing',
-    location: 'Remote / Hybrid',
-    type: 'Outsource',
-    experience: 'Campaign support',
-    image: softwareHero,
-    summary:
-      'Outsource SEO, paid ads, social media, landing page, content, and monthly performance reporting work for business growth.',
-  },
-  {
-    slug: 'customer-support-project',
-    title: 'Customer Support Project',
-    department: 'Call Center',
-    location: 'Office / Remote',
-    type: 'Outsource',
-    experience: 'Inbound / Outbound',
-    image: recruitmentHero,
-    summary:
-      'Outsource inbound support, outbound calling, lead qualification, appointment setting, helpdesk, and customer follow-up workflows.',
-  },
-  {
-    slug: 'software-development-project',
-    title: 'Software Development Project',
-    department: 'Software Development',
-    location: 'Remote Delivery',
-    type: 'Outsource',
-    experience: 'Web / App / Dashboard',
-    image: softwareHero,
-    summary:
-      'Outsource websites, dashboards, admin panels, portals, CRM tools, integrations, and custom business application development.',
-  },
-  {
-    slug: 'hr-recruitment-project',
-    title: 'HR Recruitment Project',
-    department: 'HR Consultant',
-    location: 'Remote / Office',
-    type: 'Outsource',
-    experience: 'Hiring pipeline',
-    image: hiringAnalytics,
-    summary:
-      'Outsource recruitment, screening, interview coordination, onboarding documentation, workforce planning, and HR process support.',
-  },
-  {
-    slug: 'it-telecom-project',
-    title: 'IT & Telecom Project',
-    department: 'IT / Telecommunications',
-    location: 'Remote / On-site',
-    type: 'Outsource',
-    experience: 'Infrastructure support',
-    image: itHero,
-    summary:
-      'Outsource managed IT, network support, email administration, cloud telephony, IVR setup, PBX, SIP trunking, and monitoring work.',
-  },
-]
+const projectImageMap = {
+  ai: aiHero,
+  hr: hiringAnalytics,
+  it: itHero,
+  recruitment: recruitmentHero,
+  software: softwareHero,
+}
+
+const defaultProjectSummary =
+  'This project was posted from Cromgen Project Management. Apply to discuss scope, timeline, and delivery support.'
 
 function getAllCareerOpenings(apiJobs = []) {
   return [
@@ -1170,7 +1112,7 @@ export function CareerPage() {
 
 export function OutsourceProjectPage() {
   const [postedProjects, setPostedProjects] = useState([])
-  const displayProjects = postedProjects.length ? postedProjects : outsourceProjectOpenings
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true)
   const isUserLoggedIn =
     Boolean(localStorage.getItem('cromgen_auth_token')) &&
     ['user', 'admin', 'staff'].includes(String(localStorage.getItem('cromgen_auth_role') || '').toLowerCase())
@@ -1187,19 +1129,21 @@ export function OutsourceProjectPage() {
           .map((project) => ({
             slug: project.id || project.title,
             title: project.title,
-            department: 'Project Management',
-            location: 'Cromgen Admin Post',
-            type: project.projectStatus || 'active',
-            experience: 'Outsource Project',
-            image: softwareHero,
-            summary:
-              'This project was posted from Cromgen admin Project Management. Send your requirement to discuss scope, timeline, and delivery support.',
+            department: project.department || 'Project Management',
+            location: project.location || 'Cromgen Admin Post',
+            type: project.projectType || project.projectStatus || 'Outsource',
+            experience: project.experience || 'Outsource Project',
+            image: projectImageMap[project.imageKey] || softwareHero,
+            summary: project.publicSummary || defaultProjectSummary,
           }))
 
         setPostedProjects(projects)
       })
       .catch(() => {
         if (isMounted) setPostedProjects([])
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingProjects(false)
       })
 
     return () => {
@@ -1227,7 +1171,7 @@ export function OutsourceProjectPage() {
             <img src={softwareHero} alt="Outsource project opportunities" />
             <div>
               <span>Project Outsourcing</span>
-              <strong>{displayProjects.length} project opportunities ready for Cromgen delivery support.</strong>
+              <strong>{postedProjects.length} project opportunities ready for Cromgen delivery support.</strong>
             </div>
           </div>
         </div>
@@ -1236,35 +1180,40 @@ export function OutsourceProjectPage() {
       <section id="outsource-openings" className="career-openings-section">
         <div className="mx-auto max-w-7xl px-5 py-16">
           <div className="about-section-header">
-            <p className="company-eyebrow">{postedProjects.length ? 'Admin Posted Projects' : 'Project Options'}</p>
-            <h2>{postedProjects.length ? 'Projects posted from Cromgen admin.' : 'Choose the work you want to outsource.'}</h2>
+            <p className="company-eyebrow">Project Management</p>
+            <h2>Projects loaded from backend and MongoDB.</h2>
             <p>
-              {postedProjects.length
-                ? 'These projects come from the backend Project Management section. Select a project to send your requirement.'
-                : 'Select a project category to send your requirement. Cromgen can review the scope, timeline, team support, and delivery plan before starting execution.'}
+              These projects come from the backend Project Management collection. Apply to continue through your user
+              dashboard.
             </p>
           </div>
 
-          <div className="career-vacancy-grid">
-            {displayProjects.map((project) => (
-              <article key={project.slug} className="career-vacancy-card">
-                <div className="career-vacancy-media">
-                  <img src={project.image} alt={`${project.title} outsourcing`} />
-                  <span>{project.department}</span>
-                </div>
-                <div className="career-vacancy-body">
-                  <div className="career-vacancy-meta">
-                    <span>{project.location}</span>
-                    <span>{project.type}</span>
-                    <span>{project.experience}</span>
+          {isLoadingProjects ? (
+            <p className="auth-status is-success">Loading projects...</p>
+          ) : postedProjects.length ? (
+            <div className="career-vacancy-grid">
+              {postedProjects.map((project) => (
+                <article key={project.slug} className="career-vacancy-card">
+                  <div className="career-vacancy-media">
+                    <img src={project.image} alt={`${project.title} outsourcing`} />
+                    <span>{project.department}</span>
                   </div>
-                  <h3>{project.title}</h3>
-                  <p>{renderFormattedText(project.summary)}</p>
-                  <a href={applyHref}>Apply</a>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="career-vacancy-body">
+                    <div className="career-vacancy-meta">
+                      <span>{project.location}</span>
+                      <span>{project.type}</span>
+                      <span>{project.experience}</span>
+                    </div>
+                    <h3>{project.title}</h3>
+                    <p>{renderFormattedText(project.summary)}</p>
+                    <a href={applyHref}>Apply</a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="auth-status is-error">No outsource projects are available right now.</p>
+          )}
         </div>
       </section>
     </main>
