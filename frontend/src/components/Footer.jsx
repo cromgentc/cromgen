@@ -57,7 +57,7 @@ const footerCapabilityGroups = [
       ['Digital Marketing', '/digital-marketing'],
       ['Software Development', '/software-development-services'],
       ['IT Infrastructure', '/it-services'],
-      ['Outsource Project', '/contact-requests'],
+      ['Outsource Project', '/outsource-project'],
     ],
   },
   {

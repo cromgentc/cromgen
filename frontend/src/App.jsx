@@ -30,6 +30,7 @@ import {
   LeadershipPage,
   NewsRoomPage,
   OurStoryPage,
+  OutsourceProjectPage,
   PolicyPage,
 } from './pages/CompanyPages.jsx'
 
@@ -60,6 +61,7 @@ const companyPages = {
   certifications: CertificationsPage,
   'news-room': NewsRoomPage,
   career: CareerPage,
+  'outsource-project': OutsourceProjectPage,
 }
 
 const policyPages = [
@@ -94,6 +96,7 @@ const companyTitles = {
   certifications: 'Certifications | Cromgen Technology',
   'news-room': 'News Room | Cromgen Technology',
   career: 'Career | Cromgen Technology',
+  'outsource-project': 'Outsource Project | Cromgen Technology',
 }
 
 const policyTitles = {
