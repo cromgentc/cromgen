@@ -22,6 +22,7 @@ import {
 import { forbidden, json, notFound, readJson, unauthorized, validationError } from '../utils/http.js'
 import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
+import { createWorkforceRecord, findWorkforceRecordById, updateWorkforceRecord } from '../models/WorkforceRecord.js'
 
 const adminOnly = requireRole(['admin'])
 const userListAccess = requireRole(['admin', 'staff', 'vendor', 'user'])
@@ -54,14 +55,14 @@ export async function unifiedLogin(request) {
   }
 
   if (normalizedRole === 'vendor') {
-    return loginVendorWithCredentials(email, password)
+    return loginVendorWithCredentials(email, password, request)
   }
 
   if (!['admin', 'staff', 'user'].includes(normalizedRole)) {
     return validationError('Login type must be admin, staff, user, or vendor')
   }
 
-  return loginUserWithCredentials(email, password, normalizedRole)
+  return loginUserWithCredentials(email, password, normalizedRole, request)
 }
 
 export async function adminRegister(request) {
@@ -182,6 +183,35 @@ export async function updateCurrentUser(request) {
     ok: true,
     message: 'Profile updated successfully',
     user,
+  })
+}
+
+export async function updateLoginSession(request, { id }) {
+  const token = getBearerToken(request)
+  const payload = token ? verifyToken(token) : null
+  if (!payload?.sub) return unauthorized('Authorization token is required')
+
+  const record = await findWorkforceRecordById('loginHistory', id)
+  if (!record) return notFound('Login history record not found')
+  if (record.createdBy && record.createdBy !== payload.sub && payload.role !== 'admin') {
+    return forbidden('You cannot update another login session')
+  }
+
+  const body = await readJson(request)
+  const now = new Date()
+  const startedAt = record.sessionStartedAt ? new Date(record.sessionStartedAt) : now
+  const endedAt = body?.ended ? now : (record.sessionEndedAt ? new Date(record.sessionEndedAt) : null)
+  const duration = formatSessionDuration(startedAt, endedAt || now, !body?.ended)
+  const updated = await updateWorkforceRecord('loginHistory', id, {
+    lastActivityAt: now.toISOString(),
+    sessionEndedAt: body?.ended ? now.toISOString() : record.sessionEndedAt || '',
+    sessionDuration: duration,
+    timeOnWeb: duration,
+  })
+
+  return json(200, {
+    ok: true,
+    loginHistory: updated,
   })
 }
 
@@ -427,19 +457,34 @@ export async function vendorLogin(request) {
     return validationError('Email and password are required')
   }
 
-  return loginVendorWithCredentials(email, password)
+  return loginVendorWithCredentials(email, password, request)
 }
 
-async function loginVendorWithCredentials(email, password) {
+async function loginVendorWithCredentials(email, password, request = null) {
   const vendor = await findVendorByEmail(email)
 
   if (!vendor || !verifyPassword(password, vendor.passwordHash)) {
+    await recordLoginHistory(request, {
+      email,
+      role: 'vendor',
+      status: 'Failed',
+      reason: 'Invalid vendor login details',
+    })
     return unauthorized('Invalid login details')
   }
 
+  const publicVendor = toPublicVendor(vendor)
+  const loginRecord = await recordLoginHistory(request, {
+    user: { ...publicVendor, role: 'vendor' },
+    email: vendor.email,
+    role: 'vendor',
+    status: 'Success',
+  })
+
   return json(200, {
     ok: true,
-    vendor: toPublicVendor(vendor),
+    vendor: publicVendor,
+    loginHistoryId: loginRecord?.id || '',
     token: signToken({
       sub: String(vendor._id),
       role: 'vendor',
@@ -455,10 +500,10 @@ async function loginUser(request, role) {
     return validationError('Email and password are required')
   }
 
-  return loginUserWithCredentials(email, password, role)
+  return loginUserWithCredentials(email, password, role, request)
 }
 
-async function loginUserWithCredentials(email, password, role) {
+async function loginUserWithCredentials(email, password, role, request = null) {
   const roles = Array.isArray(role) ? role : [role]
   let user = null
   for (const candidateRole of roles) {
@@ -467,16 +512,153 @@ async function loginUserWithCredentials(email, password, role) {
   }
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
+    await recordLoginHistory(request, {
+      email,
+      role: roles.join(', '),
+      status: 'Failed',
+      reason: 'Invalid user login details',
+    })
     return unauthorized('Invalid login details')
   }
 
+  const publicUser = toPublicUser(user)
+  const loginRecord = await recordLoginHistory(request, {
+    user: publicUser,
+    email: user.email,
+    role: user.role,
+    status: 'Success',
+  })
+
   return json(200, {
     ok: true,
-    user: toPublicUser(user),
+    user: publicUser,
+    loginHistoryId: loginRecord?.id || '',
     token: signToken({
       sub: String(user._id),
       role: user.role,
       email: user.email,
     }),
   })
+}
+
+async function recordLoginHistory(request, { user = null, email = '', role = '', status = 'Success', reason = '' } = {}) {
+  try {
+    const now = new Date()
+    const ipAddress = getClientIp(request)
+    const userAgent = request?.headers?.['user-agent'] || ''
+    const deviceInfo = parseUserAgent(userAgent)
+    const locationInfo = getLocationInfo(request, ipAddress)
+    const source = request?.headers?.origin || request?.headers?.referer || 'Direct login'
+    const sessionDuration = status === 'Success' ? 'Active session' : '0 minutes'
+
+    return await createWorkforceRecord('loginHistory', {
+      name: user?.name || user?.company || email || 'Unknown login',
+      email: user?.email || email || '',
+      role: user?.role || role || '',
+      status,
+      ipAddress,
+      device: deviceInfo.label,
+      browser: deviceInfo.browser,
+      operatingSystem: deviceInfo.os,
+      deviceType: deviceInfo.deviceType,
+      location: locationInfo.label,
+      latitude: locationInfo.latitude,
+      longitude: locationInfo.longitude,
+      mapUrl: locationInfo.mapUrl,
+      directionUrl: locationInfo.directionUrl,
+      loginSource: source,
+      sessionStartedAt: now.toISOString(),
+      sessionEndedAt: '',
+      lastActivityAt: now.toISOString(),
+      sessionDuration,
+      timeOnWeb: sessionDuration,
+      lastLogin: now.toISOString(),
+      notes: [
+        reason || `Login ${status.toLowerCase()}`,
+        `Source: ${source}`,
+        userAgent ? `User agent: ${userAgent}` : '',
+      ].filter(Boolean).join(' | '),
+      createdBy: user?.id || user?._id || '',
+    })
+  } catch (error) {
+    console.error('Login history capture failed:', error.message)
+    return null
+  }
+}
+
+function getClientIp(request) {
+  const headers = request?.headers || {}
+  const rawIp = headers['cf-connecting-ip']
+    || headers['x-real-ip']
+    || String(headers['x-forwarded-for'] || '').split(',')[0]
+    || request?.socket?.remoteAddress
+    || request?.connection?.remoteAddress
+    || ''
+
+  return String(rawIp || '').trim().replace(/^::ffff:/, '') || 'Unknown IP'
+}
+
+function parseUserAgent(userAgent = '') {
+  const ua = String(userAgent)
+  const browser = /Edg\//.test(ua) ? 'Microsoft Edge'
+    : /OPR\//.test(ua) ? 'Opera'
+    : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\//.test(ua) ? 'Firefox'
+    : /Safari\//.test(ua) ? 'Safari'
+    : 'Unknown browser'
+  const os = /Windows NT/.test(ua) ? 'Windows'
+    : /Android/.test(ua) ? 'Android'
+    : /iPhone|iPad|iPod/.test(ua) ? 'iOS'
+    : /Mac OS X/.test(ua) ? 'macOS'
+    : /Linux/.test(ua) ? 'Linux'
+    : 'Unknown OS'
+  const deviceType = /Mobi|Android|iPhone|iPod/.test(ua) ? 'Mobile'
+    : /iPad|Tablet/.test(ua) ? 'Tablet'
+    : 'Desktop'
+
+  return {
+    browser,
+    os,
+    deviceType,
+    label: `${deviceType} - ${browser} on ${os}`,
+  }
+}
+
+function getLocationInfo(request, ipAddress) {
+  const headers = request?.headers || {}
+  const city = decodeHeader(headers['x-vercel-ip-city'] || headers['cf-ipcity'] || '')
+  const region = decodeHeader(headers['x-vercel-ip-country-region'] || headers['cf-region'] || '')
+  const country = decodeHeader(headers['x-vercel-ip-country'] || headers['cf-ipcountry'] || '')
+  const latitude = headers['x-vercel-ip-latitude'] || headers['cf-iplatitude'] || ''
+  const longitude = headers['x-vercel-ip-longitude'] || headers['cf-iplongitude'] || ''
+  const locationParts = [city, region, country].filter(Boolean)
+  const label = locationParts.length ? locationParts.join(', ') : `IP based lookup: ${ipAddress}`
+  const mapQuery = latitude && longitude ? `${latitude},${longitude}` : label
+
+  return {
+    label,
+    latitude,
+    longitude,
+    mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`,
+    directionUrl: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`,
+  }
+}
+
+function decodeHeader(value) {
+  if (!value) return ''
+  try {
+    return decodeURIComponent(String(value).replace(/\+/g, ' '))
+  } catch {
+    return String(value)
+  }
+}
+
+function formatSessionDuration(start, end, active = false) {
+  const startTime = start instanceof Date ? start.getTime() : new Date(start).getTime()
+  const endTime = end instanceof Date ? end.getTime() : new Date(end).getTime()
+  const totalMinutes = Math.max(0, Math.floor((endTime - startTime) / 60000))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  const label = hours ? `${hours}h ${minutes}m` : `${minutes}m`
+  return active ? `${label} active` : label
 }

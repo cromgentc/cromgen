@@ -1,3 +1,6 @@
+import { useEffect } from 'react'
+import { AUTH_ENDPOINTS, apiRequest } from '../api/apiEndpoint.js'
+
 const dashboardConfig = {
   admin: {
     eyebrow: 'Admin Panel',
@@ -50,6 +53,22 @@ export function DashboardPage({ role }) {
   const token = localStorage.getItem('cromgen_auth_token')
   const config = dashboardConfig[role] || dashboardConfig.vendor
 
+  useEffect(() => {
+    const loginHistoryId = localStorage.getItem('cromgen_login_history_id')
+    if (!token || !loginHistoryId) return undefined
+
+    const updateSession = () => {
+      apiRequest(AUTH_ENDPOINTS.updateLoginSession(loginHistoryId), {
+        method: 'POST',
+        body: JSON.stringify({ ended: false }),
+      }).catch(() => {})
+    }
+
+    updateSession()
+    const intervalId = window.setInterval(updateSession, 60000)
+    return () => window.clearInterval(intervalId)
+  }, [token])
+
   if (!token || savedRole !== role) {
     return (
       <main className="dashboard-page pt-32 sm:pt-36 lg:pt-28">
@@ -63,10 +82,18 @@ export function DashboardPage({ role }) {
     )
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const loginHistoryId = localStorage.getItem('cromgen_login_history_id')
+    if (loginHistoryId) {
+      await apiRequest(AUTH_ENDPOINTS.updateLoginSession(loginHistoryId), {
+        method: 'POST',
+        body: JSON.stringify({ ended: true }),
+      }).catch(() => {})
+    }
     localStorage.removeItem('cromgen_auth_token')
     localStorage.removeItem('cromgen_auth_role')
     localStorage.removeItem('cromgen_auth_user')
+    localStorage.removeItem('cromgen_login_history_id')
     window.location.assign('/login')
   }
 

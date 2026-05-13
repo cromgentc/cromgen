@@ -185,6 +185,21 @@ const confirmAction = (message) => (
     ? confirmActionHandler(message)
     : Promise.resolve(true)
 )
+
+async function endTrackedLoginSession() {
+  const loginHistoryId = localStorage.getItem('cromgen_login_history_id')
+  if (!loginHistoryId) return
+
+  try {
+    await apiRequest(AUTH_ENDPOINTS.updateLoginSession(loginHistoryId), {
+      method: 'POST',
+      body: JSON.stringify({ ended: true }),
+    })
+  } catch {
+    // Logout should still proceed if the tracking request cannot reach the backend.
+  }
+}
+
 const workforceRecordTypes = [
   'candidates',
   'teams',
@@ -270,6 +285,22 @@ function EnterpriseAdminApp() {
     }
   }, [])
 
+  useEffect(() => {
+    const loginHistoryId = localStorage.getItem('cromgen_login_history_id')
+    if (!loginHistoryId) return undefined
+
+    const updateSession = () => {
+      apiRequest(AUTH_ENDPOINTS.updateLoginSession(loginHistoryId), {
+        method: 'POST',
+        body: JSON.stringify({ ended: false }),
+      }).catch(() => {})
+    }
+
+    updateSession()
+    const intervalId = window.setInterval(updateSession, 60000)
+    return () => window.clearInterval(intervalId)
+  }, [])
+
   const resolveConfirmRequest = (value) => {
     confirmRequest?.resolve(value)
     setConfirmRequest(null)
@@ -305,6 +336,7 @@ function EnterpriseAdminApp() {
       localStorage.removeItem('cromgen_auth_token')
       localStorage.removeItem('cromgen_auth_role')
       localStorage.removeItem('cromgen_auth_user')
+      localStorage.removeItem('cromgen_login_history_id')
       setToast('Session expired. Please login again.')
       setLoading(false)
       window.location.assign('/login')
@@ -453,11 +485,13 @@ function EnterpriseAdminApp() {
   const canCreateActivePage = supportedCreatePages.includes(activePage) && canCreateForRole(activePage, currentRole)
   const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
-  const navigateAdmin = (page) => {
+  const navigateAdmin = async (page) => {
     if (page === 'logout') {
+      await endTrackedLoginSession()
       localStorage.removeItem('cromgen_auth_token')
       localStorage.removeItem('cromgen_auth_role')
       localStorage.removeItem('cromgen_auth_user')
+      localStorage.removeItem('cromgen_login_history_id')
       window.location.assign('/login')
       return
     }
@@ -3122,7 +3156,7 @@ const workforcePageModules = {
   'faq-management': { type: 'faqs', title: 'FAQ Management', fields: ['question', 'answer', 'category', 'status', 'notes', 'createdAt'] },
   'contact-requests': { type: 'contactRequests', title: 'Contact Requests', fields: ['name', 'email', 'subject', 'priority', 'status', 'notes', 'createdAt'] },
   'security-settings': { type: 'securitySettings', title: 'Security Settings', fields: ['name', 'category', 'enabled', 'enforcement', 'severity', 'scope', 'reviewDate', 'status', 'notes', 'createdAt'] },
-  'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'ipAddress', 'device', 'status', 'lastLogin', 'notes', 'createdAt'], readOnly: true },
+  'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'role', 'ipAddress', 'device', 'browser', 'operatingSystem', 'location', 'mapUrl', 'directionUrl', 'sessionStartedAt', 'timeOnWeb', 'status', 'lastLogin', 'notes', 'createdAt'], readOnly: true },
   'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'notes', 'createdAt'], readOnly: true },
   'two-factor-authentication': { type: 'twoFactorAuthentication', title: 'Two-Factor Authentication', fields: ['name', 'email', 'method', 'enabled', 'status', 'notes', 'createdAt'] },
 }
@@ -3480,6 +3514,20 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       lastLogin: record.lastLogin,
       ipAddress: record.ipAddress,
       device: record.device,
+      browser: record.browser,
+      operatingSystem: record.operatingSystem,
+      deviceType: record.deviceType,
+      location: record.location,
+      latitude: record.latitude,
+      longitude: record.longitude,
+      mapUrl: record.mapUrl,
+      directionUrl: record.directionUrl,
+      loginSource: record.loginSource,
+      sessionStartedAt: record.sessionStartedAt ? formatDate(record.sessionStartedAt) : '',
+      sessionEndedAt: record.sessionEndedAt ? formatDate(record.sessionEndedAt) : '',
+      lastActivityAt: record.lastActivityAt ? formatDate(record.lastActivityAt) : '',
+      sessionDuration: record.sessionDuration,
+      timeOnWeb: getSessionDurationLabel(record),
       action: record.action,
       severity: record.severity,
       enabled: record.enabled,
@@ -4333,8 +4381,18 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     'login-history': [
       { name: 'name', label: 'User Name', ...commonRequired },
       { name: 'email', label: 'Email', type: 'email' },
+      { name: 'role', label: 'Role' },
       { name: 'ipAddress', label: 'IP Address' },
       { name: 'device', label: 'Device' },
+      { name: 'browser', label: 'Browser' },
+      { name: 'operatingSystem', label: 'Operating System' },
+      { name: 'deviceType', label: 'Device Type' },
+      { name: 'location', label: 'Location' },
+      { name: 'mapUrl', label: 'Map URL' },
+      { name: 'directionUrl', label: 'Direction URL' },
+      { name: 'sessionStartedAt', label: 'Session Started' },
+      { name: 'sessionEndedAt', label: 'Session Ended' },
+      { name: 'timeOnWeb', label: 'Time on Web' },
       { name: 'lastLogin', label: 'Login Date', type: 'date' },
       { name: 'status', label: 'Status', type: 'select', options: ['Success', 'Failed', 'Blocked'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
@@ -4437,6 +4495,18 @@ function commonColumns(keys) {
     lastLogin: 'Last Login',
     ipAddress: 'IP Address',
     device: 'Device',
+    browser: 'Browser',
+    operatingSystem: 'Operating System',
+    deviceType: 'Device Type',
+    location: 'Location',
+    mapUrl: 'Map',
+    directionUrl: 'Directions',
+    loginSource: 'Login Source',
+    sessionStartedAt: 'Session Started',
+    sessionEndedAt: 'Session Ended',
+    lastActivityAt: 'Last Activity',
+    sessionDuration: 'Session Duration',
+    timeOnWeb: 'Time on Web',
     action: 'Action',
     severity: 'Severity',
     enabled: '2FA',
@@ -4453,12 +4523,24 @@ function commonColumns(keys) {
   return keys.map((key) => ({
     key,
     label: labels[key] || titleize(key),
-    type: key.toLowerCase().includes('status') ? 'status' : undefined,
+    type: key.toLowerCase().includes('status') ? 'status' : ['mapUrl', 'directionUrl', 'googleDocUrl', 'articleUrl'].includes(key) ? 'link' : undefined,
   }))
 }
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : '-'
+}
+
+function getSessionDurationLabel(record = {}) {
+  if (record.sessionDuration && record.sessionDuration !== 'Active session') return record.sessionDuration
+  const start = record.sessionStartedAt ? new Date(record.sessionStartedAt) : null
+  if (!start || Number.isNaN(start.getTime())) return record.timeOnWeb || record.sessionDuration || ''
+  const end = record.sessionEndedAt ? new Date(record.sessionEndedAt) : new Date()
+  const totalMinutes = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours) return `${hours}h ${minutes}m${record.sessionEndedAt ? '' : ' active'}`
+  return `${minutes}m${record.sessionEndedAt ? '' : ' active'}`
 }
 
 function titleize(value) {

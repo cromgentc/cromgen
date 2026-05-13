@@ -189,6 +189,9 @@ export function AuthPage({ type }) {
         localStorage.setItem('cromgen_auth_token', data.token)
         localStorage.setItem('cromgen_auth_role', data.user?.role || (data.vendor ? 'vendor' : selectedLoginRole))
       }
+      if (data.loginHistoryId) {
+        localStorage.setItem('cromgen_login_history_id', data.loginHistoryId)
+      }
       if (data.user) {
         localStorage.setItem('cromgen_auth_user', JSON.stringify(data.user))
       } else if (data.vendor) {

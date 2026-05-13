@@ -27,6 +27,7 @@ export const AUTH_ENDPOINTS = {
   staffLogin: '/api/auth/staff/login',
   currentUser: '/api/auth/me',
   updateCurrentUser: '/api/auth/me',
+  updateLoginSession: (id) => `/api/auth/login-history/${encodeURIComponent(id)}/session`,
   settingsUsers: '/api/settings/users',
   settingsUserStatus: (id) => `/api/settings/users/${encodeURIComponent(id)}/status`,
   settingsUserDelete: (id) => `/api/settings/users/${encodeURIComponent(id)}`,
