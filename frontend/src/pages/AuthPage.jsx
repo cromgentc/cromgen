@@ -61,7 +61,7 @@ const authConfig = {
     fields: ['name', 'email', 'phone', 'location', 'password'],
     switchLabel: 'Already registered?',
     switchHref: '/login',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/user-dashboard',
   },
   'vendor-register': {
     eyebrow: 'Vendor Onboarding',
@@ -102,7 +102,7 @@ const authConfig = {
 const unifiedLoginRoles = {
   user: {
     label: 'User',
-    redirectTo: '/admin-dashboard',
+    redirectTo: '/user-dashboard',
   },
   admin: {
     label: 'Admin',
