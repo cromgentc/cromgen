@@ -9,6 +9,11 @@ export async function findNewsPosts() {
   return posts.map(normalizeNewsPost)
 }
 
+export async function findNewsPostBySlug(slug) {
+  const post = await collection().findOne({ slug }, { projection: { _id: 0 } })
+  return post ? normalizeNewsPost(post) : null
+}
+
 export async function createNewsPost(fields) {
   const post = normalizeNewsPost({
     ...sanitizeNewsPostFields(fields),
