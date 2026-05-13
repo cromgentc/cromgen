@@ -83,8 +83,8 @@ const defaultServiceSamples = [
   },
   {
     category: 'HR Consultant',
-    title: 'Hiring Pipeline Sample',
-    summary: 'A sample HR report showing candidate funnel health, screening progress, interview status, and hiring actions.',
+    title: 'Recruitment Progress Sample',
+    summary: 'A sample HR report showing candidate health, screening progress, interview status, and recruitment actions.',
     content: [
       'Hiring summary:',
       '- Qualified candidates: 34',

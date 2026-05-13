@@ -100,10 +100,7 @@ export const adminNavigation = [
     icon: Contact,
     items: [
       ['leads-management', 'Leads Management'],
-      ['sales-pipeline', 'Sales Pipeline'],
       ['follow-ups', 'Follow-ups'],
-      ['email-campaigns', 'Email Campaigns'],
-      ['whatsapp-campaigns', 'WhatsApp Campaigns'],
     ],
   },
   {
@@ -125,7 +122,6 @@ export const adminNavigation = [
       ['job-postings', 'Job Postings'],
       ['applications', 'Applications'],
       ['interview-management', 'Interview Management'],
-      ['hiring-pipeline', 'Hiring Pipeline'],
     ],
   },
   {
