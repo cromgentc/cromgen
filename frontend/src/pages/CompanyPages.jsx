@@ -1339,7 +1339,7 @@ export function OutsourceProjectPage() {
               development, and multilingual data collection.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="#outsource-openings" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#111827] px-6 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#1f2937]">
+              <a href="#outsource-openings" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#ff4b2d] px-6 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl shadow-[#ff4b2d]/25 transition hover:-translate-y-0.5 hover:bg-[#e13d23]">
                 Start a Project
                 <ChevronRight className="h-4 w-4" />
               </a>
@@ -1536,7 +1536,7 @@ export function OutsourceProjectPage() {
                       </div>
                       <h3 className="mt-4 text-xl font-black">{project.title}</h3>
                       <p className="mt-3 text-sm font-medium leading-6 text-[#334155]">{renderFormattedText(project.summary)}</p>
-                      <a href={applyHref} onClick={(event) => handleProjectApply(event, project)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#111827] text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#111827]">
+                      <a href={applyHref} onClick={(event) => handleProjectApply(event, project)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#ff4b2d] text-sm font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-[#ff4b2d]/20 transition hover:bg-[#e13d23]">
                         {applyingProject === project.slug ? 'Applying...' : 'Apply'}
                       </a>
                     </div>
