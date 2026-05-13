@@ -217,7 +217,7 @@ export function AuthPage({ type }) {
 
   if (type === 'vendor-register') {
     return (
-      <VendorRegisterPage
+      <VendorRegisterOnlyPage
         formData={formData}
         handleChange={handleChange}
         handleSubmit={handleSubmit}
@@ -839,6 +839,197 @@ function UserRegisterPage({ formData, handleChange, handleSubmit, isSubmitting, 
         </div>
       </section>
     </main>
+  )
+}
+
+const indiaSourcingOptions = [
+  ['Andhra Pradesh', 'Telugu'],
+  ['Arunachal Pradesh', 'English'],
+  ['Assam', 'Assamese'],
+  ['Bihar', 'Hindi'],
+  ['Chhattisgarh', 'Hindi'],
+  ['Delhi NCR', 'Hindi / English'],
+  ['Goa', 'Konkani'],
+  ['Gujarat', 'Gujarati'],
+  ['Haryana', 'Hindi'],
+  ['Himachal Pradesh', 'Hindi'],
+  ['Jharkhand', 'Hindi'],
+  ['Karnataka', 'Kannada'],
+  ['Kerala', 'Malayalam'],
+  ['Madhya Pradesh', 'Hindi'],
+  ['Maharashtra', 'Marathi'],
+  ['Manipur', 'Manipuri'],
+  ['Meghalaya', 'English'],
+  ['Mizoram', 'Mizo'],
+  ['Nagaland', 'English'],
+  ['Odisha', 'Odia'],
+  ['Punjab', 'Punjabi'],
+  ['Rajasthan', 'Hindi'],
+  ['Tamil Nadu', 'Tamil'],
+  ['Telangana', 'Telugu'],
+  ['Tripura', 'Bengali'],
+  ['Uttar Pradesh', 'Hindi'],
+  ['Uttarakhand', 'Hindi'],
+  ['West Bengal', 'Bengali'],
+].map(([name, language]) => ({ name, language }))
+
+const internationalSourcingOptions = [
+  ['United States', 'English'],
+  ['United Kingdom', 'English'],
+  ['Canada', 'English / French'],
+  ['Australia', 'English'],
+  ['United Arab Emirates', 'Arabic / English'],
+  ['Saudi Arabia', 'Arabic'],
+  ['Germany', 'German'],
+  ['France', 'French'],
+  ['Spain', 'Spanish'],
+  ['Italy', 'Italian'],
+  ['Brazil', 'Portuguese'],
+  ['Mexico', 'Spanish'],
+  ['Japan', 'Japanese'],
+  ['South Korea', 'Korean'],
+  ['Singapore', 'English / Mandarin / Malay'],
+  ['Philippines', 'English / Filipino'],
+  ['Indonesia', 'Bahasa Indonesia'],
+  ['Vietnam', 'Vietnamese'],
+].map(([name, language]) => ({ name, language }))
+
+const vendorServiceCategories = {
+  Recruitment: ['Candidate Sourcing', 'Bulk Hiring', 'Executive Search', 'Interview Coordination', 'Background Verification'],
+  'AI Data Collection': ['Audio Recording', 'Video Collection', 'Image Collection', 'Text Data Collection', 'Data Annotation'],
+  'BPO Operations': ['Inbound Calling', 'Outbound Calling', 'Customer Support', 'Lead Generation', 'Back Office Support'],
+  'IT Services': ['Web Development', 'App Development', 'Cloud Support', 'CRM Implementation', 'Technical Support'],
+  'Digital Marketing': ['SEO', 'Social Media Marketing', 'Paid Advertising', 'Content Marketing', 'Email Marketing'],
+  'Business Operations': ['Virtual Assistance', 'Data Entry', 'Market Research', 'Process Outsourcing', 'Operations Support'],
+}
+
+function VendorRegisterOnlyPage({ formData, handleChange, handleSubmit, isSubmitting, status, switchHref }) {
+  const [showPassword, setShowPassword] = useState(false)
+  const sourcingType = formData.sourcingType || ''
+  const serviceCategory = formData.serviceCategory || ''
+  const regionOptions = sourcingType === 'India' ? indiaSourcingOptions : internationalSourcingOptions
+  const serviceOptions = vendorServiceCategories[serviceCategory] || []
+
+  const updateField = (name, value) => {
+    handleChange({ target: { name, value } })
+  }
+
+  const handleVendorChange = (event) => {
+    const { name, value } = event.target
+    updateField(name, value)
+
+    if (name === 'sourcingType') {
+      updateField('sourcingRegion', '')
+      updateField('sourcingLanguage', '')
+      updateField('location', '')
+    }
+
+    if (name === 'sourcingRegion') {
+      const selected = regionOptions.find((item) => item.name === value)
+      updateField('sourcingLanguage', selected?.language || '')
+      updateField('location', value)
+    }
+
+    if (name === 'serviceCategory') {
+      updateField('serviceSubCategory', '')
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f8fafc] pt-32 text-[#0f172a] sm:pt-36 lg:pt-28">
+      <section className="relative isolate overflow-hidden px-5 py-14">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_12%,rgba(255,75,45,0.14),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)]" />
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <aside className="rounded-[2rem] border border-[rgba(15,23,42,0.08)] bg-white/90 p-7 shadow-xl shadow-slate-900/5 backdrop-blur">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff4b2d]">Vendor Registration</p>
+            <h1 className="mt-4 text-4xl font-black leading-tight text-[#0f172a] sm:text-5xl">
+              Join Cromgen as a verified delivery partner.
+            </h1>
+            <p className="mt-5 text-base font-semibold leading-8 text-[#475569]">
+              Register your company or freelancer profile for recruitment sourcing, outsourcing operations, data collection, technology delivery, and business support opportunities.
+            </p>
+            <div className="mt-8 grid gap-4">
+              {[
+                ['India and global sourcing', 'Map your service coverage by India state or international market with language capability.'],
+                ['Service-specific review', 'Choose the primary service and sub-category so Cromgen can route your profile correctly.'],
+                ['Professional onboarding', 'Your details go to the vendor review workflow for verification and partnership activation.'],
+              ].map(([title, copy]) => (
+                <article key={title} className="rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] p-5">
+                  <h2 className="text-lg font-black text-[#0f172a]">{title}</h2>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[#64748b]">{copy}</p>
+                </article>
+              ))}
+            </div>
+            <a href={switchHref} className="mt-7 inline-flex text-sm font-black text-[#ff4b2d]">
+              Already registered? Vendor Login
+            </a>
+          </aside>
+
+          <form onSubmit={handleSubmit} className="rounded-[2rem] border border-[rgba(15,23,42,0.08)] bg-white p-6 shadow-2xl shadow-slate-900/10 sm:p-8">
+            <div className="mb-6">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#64748b]">Registration Form</p>
+              <h2 className="mt-2 text-2xl font-black text-[#0f172a]">Submit vendor details</h2>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <VendorInput name="company" label="Company Name" value={formData.company} onChange={handleVendorChange} required />
+              <VendorInput name="name" label="Contact Person" value={formData.name} onChange={handleVendorChange} required />
+              <VendorInput name="phone" label="Mobile Number" type="tel" value={formData.phone} onChange={handleVendorChange} required />
+              <VendorInput name="email" label="Email Address" type="email" value={formData.email} onChange={handleVendorChange} required />
+              <VendorSelect name="sourcingType" label="User Sourcing" value={sourcingType} onChange={handleVendorChange} required options={['India', 'International']} placeholder="Select sourcing market" />
+              <VendorSelect name="sourcingRegion" label={sourcingType === 'International' ? 'Country / Region' : 'India State'} value={formData.sourcingRegion} onChange={handleVendorChange} required={Boolean(sourcingType)} disabled={!sourcingType} options={regionOptions.map((item) => item.name)} placeholder={sourcingType ? 'Select location' : 'Select sourcing first'} />
+              <VendorInput name="sourcingLanguage" label="Primary Language" value={formData.sourcingLanguage} onChange={handleVendorChange} readOnly placeholder="Language will auto-fill" />
+              <VendorSelect name="serviceCategory" label="Service Category" value={serviceCategory} onChange={handleVendorChange} required options={Object.keys(vendorServiceCategories)} placeholder="Select service category" />
+              <VendorSelect name="serviceSubCategory" label="Service Sub Category" value={formData.serviceSubCategory} onChange={handleVendorChange} required={Boolean(serviceCategory)} disabled={!serviceCategory} options={serviceOptions} placeholder={serviceCategory ? 'Select sub category' : 'Select service first'} />
+              <VendorInput name="experience" label="Experience / Team Size" value={formData.experience} onChange={handleVendorChange} />
+              <VendorInput name="portfolio" label="Website / Portfolio" type="url" value={formData.portfolio} onChange={handleVendorChange} />
+              <label>
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">Account Password</span>
+                <div className="relative">
+                  <input name="password" type={showPassword ? 'text' : 'password'} value={formData.password || ''} onChange={handleVendorChange} required autoComplete="new-password" placeholder="Account Password" className="h-13 w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 pr-14 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]" />
+                  <button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-xl text-[#475569] transition duration-300 hover:bg-[#fff1ed] hover:text-[#ff4b2d]" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    <PasswordIcon visible={showPassword} />
+                  </button>
+                </div>
+              </label>
+              <label className="md:col-span-2">
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">Message</span>
+                <textarea name="message" value={formData.message || ''} onChange={handleVendorChange} rows="5" placeholder="Tell us about your service capability, team strength, preferred locations, and partnership goals." className="w-full resize-none rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]" />
+              </label>
+            </div>
+
+            {status.message ? (
+              <p className={`auth-status ${status.type === 'success' ? 'is-success' : 'is-error'}`}>{status.message}</p>
+            ) : null}
+
+            <button type="submit" disabled={isSubmitting} className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#ff4b2d] to-[#ff6b4a] px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl shadow-[#ff4b2d]/25 transition duration-300 hover:-translate-y-1 disabled:cursor-wait disabled:opacity-70">
+              {isSubmitting ? 'Submitting...' : 'Register Now'}
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function VendorInput({ name, label, value, onChange, type = 'text', required = false, readOnly = false, placeholder = '' }) {
+  return (
+    <label>
+      <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">{label}</span>
+      <input name={name} type={type} value={value || ''} onChange={onChange} required={required} readOnly={readOnly} placeholder={placeholder || label} className="h-13 w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] read-only:text-[#64748b] focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]" />
+    </label>
+  )
+}
+
+function VendorSelect({ name, label, value, onChange, options, placeholder, required = false, disabled = false }) {
+  return (
+    <label>
+      <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#475569]">{label}</span>
+      <select name={name} value={value || ''} onChange={onChange} required={required} disabled={disabled} className="h-13 w-full rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#f8fafc] px-4 py-4 text-sm font-bold text-[#0f172a] outline-none transition disabled:cursor-not-allowed disabled:opacity-60 focus:border-[#ff4b2d] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,75,45,0.12)]">
+        <option value="">{placeholder}</option>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </label>
   )
 }
 
