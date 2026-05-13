@@ -1372,16 +1372,16 @@ export function OutsourceProjectPage() {
   }, [])
 
   return (
-    <main className="bg-[#F8FAFC] pt-28 text-[#0F172A] sm:pt-32 lg:pt-24">
-      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,#E0F2FE,transparent_34%),linear-gradient(135deg,#ffffff_0%,#eef6ff_42%,#f5f3ff_100%)]">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-[#2563EB] via-[#14B8A6] to-[#8B5CF6]" />
+    <main className="bg-[#f6faf9] pt-28 text-[#061f4d] sm:pt-32 lg:pt-24">
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,#eaf3ff,transparent_34%),linear-gradient(135deg,#ffffff_0%,#eef6ff_42%,#f5f3ff_100%)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-[#061f4d] via-[#63bc45] to-[#ff4b2d]" />
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:py-24">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#2563EB] shadow-sm">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#adc3ef] bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#061f4d] shadow-sm">
               <Globe2 className="h-4 w-4" />
               Global Outsourcing Delivery
             </span>
-            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-tight text-[#0F172A] sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-tight text-[#061f4d] sm:text-5xl lg:text-6xl">
               Outsource Your Projects With Trusted Enterprise Teams
             </h1>
             <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-[#475569]">
@@ -1389,21 +1389,21 @@ export function OutsourceProjectPage() {
               development, and multilingual data collection.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="#outsource-openings" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#2563EB] px-6 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#1D4ED8]">
+              <a href="#outsource-openings" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#061f4d] px-6 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#0a2f72]">
                 Start a Project
                 <ChevronRight className="h-4 w-4" />
               </a>
-              <a href="#enterprise-contact" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white px-6 text-sm font-black uppercase tracking-[0.12em] text-[#0F172A] shadow-sm transition hover:-translate-y-0.5 hover:border-[#14B8A6] hover:text-[#0F766E]">
+              <a href="#enterprise-contact" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#adc3ef] bg-white px-6 text-sm font-black uppercase tracking-[0.12em] text-[#061f4d] shadow-sm transition hover:-translate-y-0.5 hover:border-[#63bc45] hover:text-[#4fa337]">
                 Talk to Our Team
               </a>
             </div>
           </motion.div>
 
           <motion.div className="relative min-h-[420px]" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.15 }}>
-            <div className="absolute right-0 top-6 h-72 w-72 rounded-full bg-[#8B5CF6]/20 blur-3xl" />
-            <div className="absolute bottom-2 left-0 h-64 w-64 rounded-full bg-[#14B8A6]/20 blur-3xl" />
+            <div className="absolute right-0 top-6 h-72 w-72 rounded-full bg-[#ff4b2d]/20 blur-3xl" />
+            <div className="absolute bottom-2 left-0 h-64 w-64 rounded-full bg-[#63bc45]/20 blur-3xl" />
             <div className="relative rounded-[2rem] border border-white/70 bg-white/75 p-5 shadow-2xl shadow-slate-200/80 backdrop-blur-xl">
-              <div className="rounded-[1.4rem] bg-gradient-to-br from-[#0F172A] via-[#1E3A8A] to-[#0F766E] p-5 text-white">
+              <div className="rounded-[1.4rem] bg-gradient-to-br from-[#061f4d] via-[#0a2f72] to-[#4fa337] p-5 text-white">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">AI Operations Preview</p>
@@ -1421,24 +1421,24 @@ export function OutsourceProjectPage() {
                 </div>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_0.8fr]">
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+                <div className="rounded-2xl border border-[#d7e4ff] bg-white p-4 shadow-sm">
                   <div className="mb-4 flex items-center justify-between">
-                    <span className="text-sm font-black text-[#0F172A]">Project Tracking</span>
-                    <BarChart3 className="h-5 w-5 text-[#2563EB]" />
+                    <span className="text-sm font-black text-[#061f4d]">Project Tracking</span>
+                    <BarChart3 className="h-5 w-5 text-[#061f4d]" />
                   </div>
                   {[78, 62, 91].map((value, index) => (
                     <div key={value} className="mb-3">
-                      <div className="h-2 rounded-full bg-[#E2E8F0]">
-                        <div className="h-2 rounded-full bg-gradient-to-r from-[#2563EB] to-[#14B8A6]" style={{ width: `${value}%` }} />
+                      <div className="h-2 rounded-full bg-[#d7e4ff]">
+                        <div className="h-2 rounded-full bg-gradient-to-r from-[#061f4d] to-[#63bc45]" style={{ width: `${value}%` }} />
                       </div>
-                      <p className="mt-1 text-xs font-bold text-[#64748B]">Workflow {index + 1}</p>
+                      <p className="mt-1 text-xs font-bold text-[#53657f]">Workflow {index + 1}</p>
                     </div>
                   ))}
                 </div>
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
-                  <Users className="h-8 w-8 text-[#8B5CF6]" />
+                <div className="rounded-2xl border border-[#d7e4ff] bg-white p-4 shadow-sm">
+                  <Users className="h-8 w-8 text-[#ff4b2d]" />
                   <strong className="mt-4 block text-3xl font-black">10k+</strong>
-                  <span className="text-sm font-semibold text-[#64748B]">Global workforce network</span>
+                  <span className="text-sm font-semibold text-[#53657f]">Global workforce network</span>
                 </div>
               </div>
             </div>
@@ -1449,9 +1449,9 @@ export function OutsourceProjectPage() {
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-[#2563EB]">Enterprise Outsourcing</p>
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-[#061f4d]">Enterprise Outsourcing</p>
             <h2 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">Enterprise Outsourcing Solutions Built For Modern Businesses</h2>
-            <p className="mt-5 text-base font-medium leading-8 text-[#64748B]">
+            <p className="mt-5 text-base font-medium leading-8 text-[#53657f]">
               Cromgen provides end-to-end outsourcing support through dedicated operational teams, a global vendor
               network, AI and technology expertise, scalable workforce management, process-driven execution, secure
               operations, and fast project onboarding for growing companies and enterprise clients.
@@ -1459,9 +1459,9 @@ export function OutsourceProjectPage() {
           </motion.div>
           <div className="grid gap-4 sm:grid-cols-2">
             {outsourceStats.map(([value, label], index) => (
-              <motion.div key={label} className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-lg shadow-slate-200/60" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }}>
-                <strong className="text-3xl font-black text-[#0F172A]">{value}</strong>
-                <p className="mt-2 text-sm font-bold text-[#64748B]">{label}</p>
+              <motion.div key={label} className="rounded-2xl border border-[#d7e4ff] bg-white p-6 shadow-lg shadow-slate-200/60" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }}>
+                <strong className="text-3xl font-black text-[#061f4d]">{value}</strong>
+                <p className="mt-2 text-sm font-bold text-[#53657f]">{label}</p>
               </motion.div>
             ))}
           </div>
@@ -1473,13 +1473,13 @@ export function OutsourceProjectPage() {
           <OutsourceSectionHeader eyebrow="Services We Outsource" title="Specialized teams for operations, hiring, AI data, and technology." />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {outsourceServices.map(([Icon, title, copy], index) => (
-              <motion.article key={title} className="group rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100/80" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.03 }}>
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#E0F2FE] to-[#F5F3FF] text-[#2563EB]">
+              <motion.article key={title} className="group rounded-2xl border border-[#d7e4ff] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100/80" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.03 }}>
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#eaf3ff] to-[#fff1ed] text-[#061f4d]">
                   <Icon className="h-6 w-6" />
                 </span>
                 <h3 className="mt-5 text-lg font-black">{title}</h3>
-                <p className="mt-3 text-sm font-medium leading-6 text-[#64748B]">{copy}</p>
-                <button type="button" className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#2563EB]">
+                <p className="mt-3 text-sm font-medium leading-6 text-[#53657f]">{copy}</p>
+                <button type="button" className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#061f4d]">
                   Learn More
                   <ChevronRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </button>
@@ -1493,9 +1493,9 @@ export function OutsourceProjectPage() {
         <OutsourceSectionHeader eyebrow="Why Choose Us" title="Enterprise control with flexible outsourcing speed." />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {outsourceFeatures.map(([Icon, title], index) => (
-            <motion.div key={title} className="rounded-2xl border border-transparent bg-gradient-to-br from-[#2563EB]/20 via-[#14B8A6]/20 to-[#8B5CF6]/20 p-px" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.03 }}>
+            <motion.div key={title} className="rounded-2xl border border-transparent bg-gradient-to-br from-[#061f4d]/20 via-[#63bc45]/20 to-[#ff4b2d]/20 p-px" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.03 }}>
               <div className="h-full rounded-2xl bg-white/90 p-5 shadow-sm backdrop-blur transition hover:bg-white">
-                <Icon className="h-6 w-6 text-[#14B8A6]" />
+                <Icon className="h-6 w-6 text-[#63bc45]" />
                 <h3 className="mt-4 text-sm font-black leading-5">{title}</h3>
               </div>
             </motion.div>
@@ -1503,13 +1503,13 @@ export function OutsourceProjectPage() {
         </div>
       </section>
 
-      <section className="bg-[#EEF6FF] py-16">
+      <section className="bg-[#f6faf9] py-16">
         <div className="mx-auto max-w-7xl px-5 sm:px-6">
           <OutsourceSectionHeader eyebrow="Industries We Serve" title="Operational support for high-growth and regulated sectors." />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {outsourceIndustries.map(([Icon, title]) => (
               <motion.article key={title} whileHover={{ scale: 1.03 }} className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-sm backdrop-blur">
-                <Icon className="h-7 w-7 text-[#8B5CF6]" />
+                <Icon className="h-7 w-7 text-[#ff4b2d]" />
                 <h3 className="mt-4 text-sm font-black">{title}</h3>
               </motion.article>
             ))}
@@ -1521,10 +1521,10 @@ export function OutsourceProjectPage() {
         <OutsourceSectionHeader eyebrow="Process" title="How Our Outsourcing Process Works" />
         <div className="grid gap-4 lg:grid-cols-6">
           {outsourceProcess.map((step, index) => (
-            <motion.div key={step} className="relative rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }}>
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] text-sm font-black text-white">{index + 1}</span>
+            <motion.div key={step} className="relative rounded-2xl border border-[#d7e4ff] bg-white p-5 shadow-sm" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }}>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#061f4d] to-[#63bc45] text-sm font-black text-white">{index + 1}</span>
               <h3 className="mt-5 text-sm font-black leading-5">{step}</h3>
-              {index < outsourceProcess.length - 1 ? <ChevronRight className="absolute -right-4 top-8 hidden h-6 w-6 text-[#CBD5E1] lg:block" /> : null}
+              {index < outsourceProcess.length - 1 ? <ChevronRight className="absolute -right-4 top-8 hidden h-6 w-6 text-[#adc3ef] lg:block" /> : null}
             </motion.div>
           ))}
         </div>
@@ -1535,7 +1535,7 @@ export function OutsourceProjectPage() {
           <OutsourceSectionHeader eyebrow="Live Outsource Projects" title="Projects loaded from backend and MongoDB." copy="These projects come from the backend Project Management collection. Apply to create a Task Management record and continue through your dashboard." />
 
           {isLoadingProjects ? (
-            <p className="rounded-2xl border border-[#BFDBFE] bg-[#E0F2FE] p-4 text-sm font-bold text-[#1D4ED8]">Loading projects...</p>
+            <p className="rounded-2xl border border-[#adc3ef] bg-[#eaf3ff] p-4 text-sm font-bold text-[#0a2f72]">Loading projects...</p>
           ) : postedProjects.length ? (
             <>
               {applyStatus.message ? (
@@ -1545,20 +1545,20 @@ export function OutsourceProjectPage() {
               ) : null}
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {postedProjects.map((project) => (
-                  <article key={project.slug} className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-lg shadow-slate-200/60 transition hover:-translate-y-1 hover:shadow-xl">
+                  <article key={project.slug} className="overflow-hidden rounded-2xl border border-[#d7e4ff] bg-white shadow-lg shadow-slate-200/60 transition hover:-translate-y-1 hover:shadow-xl">
                     <div className="relative h-44">
                       <img src={project.image} alt={`${project.title} outsourcing`} className="h-full w-full object-cover" />
-                      <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-[#2563EB] backdrop-blur">{project.department}</span>
+                      <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-[#061f4d] backdrop-blur">{project.department}</span>
                     </div>
                     <div className="p-6">
-                      <div className="flex flex-wrap gap-2 text-xs font-bold text-[#64748B]">
-                        <span className="rounded-full bg-[#F1F5F9] px-3 py-1">{project.location}</span>
-                        <span className="rounded-full bg-[#F1F5F9] px-3 py-1">{project.type}</span>
-                        <span className="rounded-full bg-[#F1F5F9] px-3 py-1">{project.experience}</span>
+                      <div className="flex flex-wrap gap-2 text-xs font-bold text-[#53657f]">
+                        <span className="rounded-full bg-[#eef5f3] px-3 py-1">{project.location}</span>
+                        <span className="rounded-full bg-[#eef5f3] px-3 py-1">{project.type}</span>
+                        <span className="rounded-full bg-[#eef5f3] px-3 py-1">{project.experience}</span>
                       </div>
                       <h3 className="mt-4 text-xl font-black">{project.title}</h3>
-                      <p className="mt-3 text-sm font-medium leading-6 text-[#64748B]">{renderFormattedText(project.summary)}</p>
-                      <a href={applyHref} onClick={(event) => handleProjectApply(event, project)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#0F172A] text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#2563EB]">
+                      <p className="mt-3 text-sm font-medium leading-6 text-[#53657f]">{renderFormattedText(project.summary)}</p>
+                      <a href={applyHref} onClick={(event) => handleProjectApply(event, project)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#061f4d] text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#061f4d]">
                         {applyingProject === project.slug ? 'Applying...' : 'Apply'}
                       </a>
                     </div>
@@ -1574,9 +1574,9 @@ export function OutsourceProjectPage() {
 
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6">
         <OutsourceSectionHeader eyebrow="Client Trust" title="Trusted By Global Clients" />
-        <div className="overflow-hidden rounded-[2rem] border border-[#E2E8F0] bg-white p-6 shadow-xl shadow-slate-200/70">
+        <div className="overflow-hidden rounded-[2rem] border border-[#d7e4ff] bg-white p-6 shadow-xl shadow-slate-200/70">
           <motion.div key={activeTestimonial} initial={{ opacity: 0, x: 26 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45 }} className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-center">
-            <div className="rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] p-8 text-white">
+            <div className="rounded-2xl bg-gradient-to-br from-[#061f4d] to-[#ff4b2d] p-8 text-white">
               <span className="text-xs font-black uppercase tracking-[0.18em] text-blue-100">Client Review</span>
               <h3 className="mt-4 text-2xl font-black">{outsourceTestimonials[activeTestimonial][0]}</h3>
             </div>
@@ -1584,10 +1584,10 @@ export function OutsourceProjectPage() {
               <div className="flex gap-1 text-amber-400">
                 {[1, 2, 3, 4, 5].map((star) => <Star key={star} className="h-5 w-5 fill-current" />)}
               </div>
-              <p className="mt-5 text-2xl font-bold leading-10 text-[#0F172A]">"{outsourceTestimonials[activeTestimonial][1]}"</p>
+              <p className="mt-5 text-2xl font-bold leading-10 text-[#061f4d]">"{outsourceTestimonials[activeTestimonial][1]}"</p>
               <div className="mt-6 flex gap-2">
                 {outsourceTestimonials.map((item, index) => (
-                  <button key={item[0]} type="button" aria-label={`Show testimonial ${index + 1}`} onClick={() => setActiveTestimonial(index)} className={`h-2 rounded-full transition ${activeTestimonial === index ? 'w-10 bg-[#2563EB]' : 'w-2 bg-[#CBD5E1]'}`} />
+                  <button key={item[0]} type="button" aria-label={`Show testimonial ${index + 1}`} onClick={() => setActiveTestimonial(index)} className={`h-2 rounded-full transition ${activeTestimonial === index ? 'w-10 bg-[#061f4d]' : 'w-2 bg-[#adc3ef]'}`} />
                 ))}
               </div>
             </div>
@@ -1595,20 +1595,20 @@ export function OutsourceProjectPage() {
         </div>
       </section>
 
-      <section className="bg-[#F1F5F9] py-16">
+      <section className="bg-[#eef5f3] py-16">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 sm:px-6 lg:grid-cols-[0.8fr_1.2fr]">
           <OutsourceSectionHeader eyebrow="FAQ" title="Common outsourcing questions." />
           <div className="grid gap-3">
             {outsourceFaqs.map(([question, answer], index) => {
               const open = activeFaq === index
               return (
-                <div key={question} className={`rounded-2xl border bg-white p-5 shadow-sm transition ${open ? 'border-[#2563EB]' : 'border-[#E2E8F0]'}`}>
+                <div key={question} className={`rounded-2xl border bg-white p-5 shadow-sm transition ${open ? 'border-[#061f4d]' : 'border-[#d7e4ff]'}`}>
                   <button type="button" onClick={() => setActiveFaq(open ? -1 : index)} className="flex w-full items-center justify-between gap-4 text-left">
                     <span className="font-black">{question}</span>
-                    {open ? <Minus className="h-5 w-5 text-[#2563EB]" /> : <Plus className="h-5 w-5 text-[#64748B]" />}
+                    {open ? <Minus className="h-5 w-5 text-[#061f4d]" /> : <Plus className="h-5 w-5 text-[#53657f]" />}
                   </button>
                   <motion.div initial={false} animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }} className="overflow-hidden">
-                    <p className="pt-4 text-sm font-medium leading-6 text-[#64748B]">{answer}</p>
+                    <p className="pt-4 text-sm font-medium leading-6 text-[#53657f]">{answer}</p>
                   </motion.div>
                 </div>
               )
@@ -1618,8 +1618,8 @@ export function OutsourceProjectPage() {
       </section>
 
       <section id="enterprise-contact" className="mx-auto max-w-7xl px-5 py-16 sm:px-6">
-        <div className="grid gap-8 rounded-[2rem] border border-[#E2E8F0] bg-white p-5 shadow-2xl shadow-slate-200/80 sm:p-8 lg:grid-cols-[0.75fr_1.25fr]">
-          <div className="rounded-[1.5rem] bg-gradient-to-br from-[#0F172A] via-[#1E3A8A] to-[#0F766E] p-8 text-white">
+        <div className="grid gap-8 rounded-[2rem] border border-[#d7e4ff] bg-white p-5 shadow-2xl shadow-slate-200/80 sm:p-8 lg:grid-cols-[0.75fr_1.25fr]">
+          <div className="rounded-[1.5rem] bg-gradient-to-br from-[#061f4d] via-[#0a2f72] to-[#4fa337] p-8 text-white">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Contact</p>
             <h2 className="mt-4 text-3xl font-black">Submit your outsourcing requirement.</h2>
             <p className="mt-4 text-sm font-medium leading-7 text-blue-100">Share your project scope, team size, and budget. Cromgen can respond with delivery planning and next steps.</p>
@@ -1643,46 +1643,46 @@ export function OutsourceProjectPage() {
               ['phone', 'Phone Number'],
             ].map(([name, label]) => (
               <label key={name} className="grid gap-2">
-                <span className="text-sm font-black text-[#0F172A]">{label}</span>
-                <input className="h-12 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 text-sm font-semibold outline-none focus:border-[#2563EB]" type={name === 'email' ? 'email' : 'text'} value={leadForm[name]} onChange={(event) => updateLeadForm(name, event.target.value)} required />
+                <span className="text-sm font-black text-[#061f4d]">{label}</span>
+                <input className="h-12 rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] px-4 text-sm font-semibold outline-none focus:border-[#061f4d]" type={name === 'email' ? 'email' : 'text'} value={leadForm[name]} onChange={(event) => updateLeadForm(name, event.target.value)} required />
               </label>
             ))}
             <OutsourceSelect label="Project Type" value={leadForm.projectType} options={projectTypeOptions} onChange={(value) => updateLeadForm('projectType', value)} />
             <OutsourceSelect label="Team Size Requirement" value={leadForm.teamSize} options={teamSizeOptions} onChange={(value) => updateLeadForm('teamSize', value)} />
             <OutsourceSelect label="Budget Range" value={leadForm.budget} options={budgetOptions} onChange={(value) => updateLeadForm('budget', value)} />
             <label className="grid gap-2 sm:col-span-2">
-              <span className="text-sm font-black text-[#0F172A]">Message</span>
-              <textarea className="min-h-32 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm font-semibold outline-none focus:border-[#2563EB]" value={leadForm.message} onChange={(event) => updateLeadForm('message', event.target.value)} required />
+              <span className="text-sm font-black text-[#061f4d]">Message</span>
+              <textarea className="min-h-32 rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] px-4 py-3 text-sm font-semibold outline-none focus:border-[#061f4d]" value={leadForm.message} onChange={(event) => updateLeadForm('message', event.target.value)} required />
             </label>
-            <button type="submit" className="h-12 rounded-2xl bg-[#2563EB] text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#1D4ED8]">Submit Requirement</button>
-            <a href="/contact-requests?service=Outsource%20Project" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#CBD5E1] text-sm font-black uppercase tracking-[0.12em] text-[#0F172A] transition hover:border-[#14B8A6] hover:text-[#0F766E]">Schedule a Call</a>
+            <button type="submit" className="h-12 rounded-2xl bg-[#061f4d] text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0a2f72]">Submit Requirement</button>
+            <a href="/contact-requests?service=Outsource%20Project" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#adc3ef] text-sm font-black uppercase tracking-[0.12em] text-[#061f4d] transition hover:border-[#63bc45] hover:text-[#4fa337]">Schedule a Call</a>
           </form>
         </div>
       </section>
 
-      <section className="border-t border-[#E2E8F0] bg-white py-14">
+      <section className="border-t border-[#d7e4ff] bg-white py-14">
         <div className="mx-auto max-w-7xl px-5 sm:px-6">
-          <div className="h-1 rounded-full bg-gradient-to-r from-[#2563EB] via-[#14B8A6] to-[#8B5CF6]" />
+          <div className="h-1 rounded-full bg-gradient-to-r from-[#061f4d] via-[#63bc45] to-[#ff4b2d]" />
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-6">
             {outsourceFooterGroups.map(([title, links]) => (
               <div key={title}>
-                <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#0F172A]">{title}</h3>
+                <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#061f4d]">{title}</h3>
                 <div className="mt-4 grid gap-2">
                   {links.map((link) => (
-                    <a key={link} href="/contact-requests" className="text-sm font-semibold text-[#64748B] transition hover:text-[#2563EB]">{link}</a>
+                    <a key={link} href="/contact-requests" className="text-sm font-semibold text-[#53657f] transition hover:text-[#061f4d]">{link}</a>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-10 grid gap-4 rounded-2xl bg-[#F8FAFC] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="mt-10 grid gap-4 rounded-2xl bg-[#f6faf9] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
               <h3 className="font-black">Enterprise outsourcing insights</h3>
-              <p className="text-sm font-medium text-[#64748B]">Get project updates, hiring operations notes, and AI data collection guidance.</p>
+              <p className="text-sm font-medium text-[#53657f]">Get project updates, hiring operations notes, and AI data collection guidance.</p>
             </div>
             <div className="flex gap-2">
-              <input aria-label="Newsletter email" placeholder="Business email" className="h-11 min-w-0 rounded-2xl border border-[#E2E8F0] bg-white px-4 text-sm font-semibold outline-none" />
-              <button type="button" className="h-11 rounded-2xl bg-[#0F172A] px-5 text-sm font-black text-white">Join</button>
+              <input aria-label="Newsletter email" placeholder="Business email" className="h-11 min-w-0 rounded-2xl border border-[#d7e4ff] bg-white px-4 text-sm font-semibold outline-none" />
+              <button type="button" className="h-11 rounded-2xl bg-[#061f4d] px-5 text-sm font-black text-white">Join</button>
             </div>
           </div>
         </div>
@@ -1694,9 +1694,9 @@ export function OutsourceProjectPage() {
 function OutsourceSectionHeader({ eyebrow, title, copy }) {
   return (
     <div className="mb-10 max-w-3xl">
-      <p className="text-sm font-black uppercase tracking-[0.18em] text-[#2563EB]">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-black leading-tight text-[#0F172A] sm:text-4xl">{title}</h2>
-      {copy ? <p className="mt-4 text-base font-medium leading-7 text-[#64748B]">{copy}</p> : null}
+      <p className="text-sm font-black uppercase tracking-[0.18em] text-[#061f4d]">{eyebrow}</p>
+      <h2 className="mt-3 text-3xl font-black leading-tight text-[#061f4d] sm:text-4xl">{title}</h2>
+      {copy ? <p className="mt-4 text-base font-medium leading-7 text-[#53657f]">{copy}</p> : null}
     </div>
   )
 }
@@ -1704,15 +1704,15 @@ function OutsourceSectionHeader({ eyebrow, title, copy }) {
 function OutsourceSelect({ label, value, options, onChange }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-black text-[#0F172A]">{label}</span>
+      <span className="text-sm font-black text-[#061f4d]">{label}</span>
       <span className="relative">
-        <select className="h-12 w-full appearance-none rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 pr-10 text-sm font-semibold outline-none focus:border-[#2563EB]" value={value} onChange={(event) => onChange(event.target.value)} required>
+        <select className="h-12 w-full appearance-none rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] px-4 pr-10 text-sm font-semibold outline-none focus:border-[#061f4d]" value={value} onChange={(event) => onChange(event.target.value)} required>
           <option value="">Select</option>
           {options.map((option) => (
             <option key={option} value={option}>{option}</option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#53657f]" />
       </span>
     </label>
   )
@@ -2115,3 +2115,4 @@ function SectionIntro({ eyebrow, title, className = '' }) {
     </div>
   )
 }
+
