@@ -329,10 +329,13 @@ export function Footer() {
                 className="h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-semibold text-white outline-none focus:border-[#63bc45]"
               >
                 <option value="" className="text-[#142123]">Select service</option>
-                <option value="Lead Generation" className="text-[#142123]">Lead Generation</option>
-                <option value="Recruitment Services" className="text-[#142123]">Recruitment Services</option>
-                <option value="AI Chatbot Development" className="text-[#142123]">AI Chatbot Development</option>
-                <option value="IT Services" className="text-[#142123]">IT Services</option>
+                <option value="Artificial Intelligence" className="text-[#142123]">Artificial Intelligence</option>
+                <option value="Digital Marketing" className="text-[#142123]">Digital Marketing</option>
+                <option value="Call Center" className="text-[#142123]">Call Center</option>
+                <option value="IT" className="text-[#142123]">IT</option>
+                <option value="Software Development" className="text-[#142123]">Software Development</option>
+                <option value="HR Consultant" className="text-[#142123]">HR Consultant</option>
+                <option value="Telecommunications" className="text-[#142123]">Telecommunications</option>
               </select>
 
               <textarea
