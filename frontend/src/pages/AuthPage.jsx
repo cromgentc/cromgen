@@ -203,6 +203,10 @@ export function AuthPage({ type }) {
         message: data.message || `${config.title} successful.`,
       })
 
+      if (type === 'vendor-register' && !data.token) {
+        return
+      }
+
       const explicitRedirect = params.get('redirect')
       window.location.assign(explicitRedirect || (type === 'login' ? loginConfig.redirectTo : redirectTo))
     } catch (error) {

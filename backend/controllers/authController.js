@@ -144,7 +144,7 @@ export async function currentUser(request) {
 
   if (payload.role === 'vendor') {
     const vendor = await findVendorById(payload.sub)
-    if (!vendor || vendor.status === 'suspended') {
+    if (!vendor || vendor.status !== 'active') {
       return unauthorized('Invalid login details')
     }
 
@@ -429,17 +429,15 @@ export async function vendorRegister(request) {
   }
 
   try {
-    const vendor = await createVendor(body)
+    const vendor = await createVendor({
+      ...body,
+      status: 'suspended',
+    })
 
     return json(201, {
       ok: true,
-      message: 'Vendor registered successfully',
+      message: 'Vendor registration submitted successfully. Your account is suspended until admin approval. Please wait for Cromgen admin to activate your vendor access before login.',
       vendor: toPublicVendor(vendor),
-      token: signToken({
-        sub: String(vendor._id),
-        role: 'vendor',
-        email: vendor.email,
-      }),
     })
   } catch (error) {
     if (error?.code === 11000) {
@@ -471,6 +469,16 @@ async function loginVendorWithCredentials(email, password, request = null) {
       reason: 'Invalid vendor login details',
     })
     return unauthorized('Invalid login details')
+  }
+
+  if (vendor.status !== 'active') {
+    await recordLoginHistory(request, {
+      email,
+      role: 'vendor',
+      status: 'Blocked',
+      reason: 'Vendor account is waiting for admin approval',
+    })
+    return unauthorized('Your vendor account is suspended until admin approval. Please contact Cromgen admin to activate your account.')
   }
 
   const publicVendor = await attachAccessPermissions({ ...toPublicVendor(vendor), role: 'vendor' })
