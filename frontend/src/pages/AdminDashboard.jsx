@@ -50,7 +50,7 @@ import { Modal } from '../components/enterprise-admin/Modal.jsx'
 import { Loader } from '../components/enterprise-admin/Loader.jsx'
 import { NotificationPanel } from '../components/enterprise-admin/NotificationPanel.jsx'
 import { AdminThemeProvider, useAdminTheme } from '../context/AdminThemeContext.jsx'
-import { pageCatalog } from '../data/enterpriseAdmin.js'
+import { adminNavigation, pageCatalog } from '../data/enterpriseAdmin.js'
 import {
   APPLICATION_ENDPOINTS,
   AUTH_ENDPOINTS,
@@ -131,7 +131,7 @@ const formDefaults = {
   'job-postings': { title: '', department: 'Artificial Intelligence', location: 'Remote', type: 'Full Time', experience: '0-1 years', summary: '', image: '' },
   'candidate-management': { name: '', email: '', role: '', status: 'New', notes: '' },
   'team-management': { name: '', email: '', role: 'User', department: '', status: 'Active', notes: '' },
-  'role-permissions': { name: 'Dashboard', role: 'User', permission: 'Read', status: 'Active', notes: '' },
+  'role-permissions': { name: 'Custom Sidebar Access', targetEmail: '', role: 'staff', permission: 'Read', moduleAccess: [], status: 'Active', notes: '' },
   attendance: { name: '', email: '', date: '', checkIn: '', checkOut: '', status: 'Present', notes: '' },
   'team-performance': { name: '', role: '', department: '', score: '', status: 'On Track', notes: '' },
   'agency-management': { name: '', company: '', email: '', phone: '', status: 'Active', notes: '' },
@@ -176,8 +176,11 @@ const formDefaults = {
 const supportedCreatePages = Object.keys(formDefaults)
 const serviceSampleCategoryOptions = ['Artificial Intelligence', 'Digital Marketing', 'Call Center', 'IT', 'Software Development', 'HR Consultant', 'Telecommunications']
 const userRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Team Lead', 'Manager']
-const permissionGroupOptions = ['Dashboard', 'Users', 'Vendors', 'Projects', 'Leads', 'Recruitment', 'Finance', 'Settings', 'Reports']
-const permissionRoleOptions = ['Admin', 'Staff', 'Vendor', 'User', 'Candidate', 'Manager']
+const permissionGroupOptions = ['Custom Sidebar Access', 'Dashboard Access', 'Project Operations', 'Finance Access', 'Recruitment Access', 'Support Access', 'Website Access', 'Security Access', 'Full Workspace']
+const permissionRoleOptions = ['staff', 'vendor', 'user']
+const permissionPageOptions = adminNavigation
+  .flatMap((group) => group.items.map(([value, label]) => ({ value, label: `${group.label} - ${label}` })))
+  .filter((item) => !['logout'].includes(item.value))
 const dashboardPages = ['dashboard']
 let confirmActionHandler = null
 const confirmAction = (message) => (
@@ -357,6 +360,11 @@ function EnterpriseAdminApp() {
       if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('users')
     } else if (page === 'vendor-management') {
       if (['admin', 'staff', 'vendor'].includes(currentRole)) requestedCoreKeys.add('vendors')
+    } else if (page === 'role-permissions') {
+      if (currentRole === 'admin') {
+        requestedCoreKeys.add('users')
+        requestedCoreKeys.add('vendors')
+      }
     } else if (page === 'project-management') {
       if (['admin', 'staff'].includes(currentRole)) requestedCoreKeys.add('projects')
     } else if (page === 'assign-tasks') {
@@ -438,6 +446,7 @@ function EnterpriseAdminApp() {
       ...workforceData,
     }))
     setCurrentAdmin(currentUser.user || null)
+    localStorage.setItem('cromgen_auth_user', JSON.stringify(currentUser.user || {}))
 
     const failedCount = [...coreRequests, ...workforceRequests].filter((result) => result.status === 'rejected').length
     setToast(failedCount ? `${failedCount} data collections could not load. Check backend login/API.` : 'Live data synced.')
@@ -482,7 +491,7 @@ function EnterpriseAdminApp() {
   const searchResults = useMemo(() => createSearchResults(data, searchQuery), [data, searchQuery])
   const PageIcon = pageMeta.icon
   const isLeadManagementPage = activePage === 'leads-management'
-  const canCreateActivePage = supportedCreatePages.includes(activePage) && canCreateForRole(activePage, currentRole)
+  const canCreateActivePage = supportedCreatePages.includes(activePage) && canCreateForRole(activePage, currentRole, currentAdmin)
   const isReadOnlyAuditPage = ['login-history', 'activity-logs'].includes(activePage)
 
   const navigateAdmin = async (page) => {
@@ -495,7 +504,7 @@ function EnterpriseAdminApp() {
       window.location.assign('/login')
       return
     }
-    if (!canAccessPageForRole(page, currentAdmin?.role || localStorage.getItem('cromgen_auth_role'))) {
+    if (!canAccessPageForRole(page, currentAdmin?.role || localStorage.getItem('cromgen_auth_role'), currentAdmin)) {
       setToast('This module is not available for your role.')
       setActivePage('dashboard')
       setMobileOpen(false)
@@ -507,7 +516,7 @@ function EnterpriseAdminApp() {
   }
 
   const openCreateModal = () => {
-    if (!canCreateForRole(activePage, currentAdmin?.role || localStorage.getItem('cromgen_auth_role'))) {
+    if (!canCreateForRole(activePage, currentAdmin?.role || localStorage.getItem('cromgen_auth_role'), currentAdmin)) {
       setToast('Create access is not available for your role.')
       return
     }
@@ -537,7 +546,7 @@ function EnterpriseAdminApp() {
 
     try {
       const currentRole = currentAdmin?.role || localStorage.getItem('cromgen_auth_role') || ''
-      if (!canCreateForRole(activePage, currentRole)) {
+      if (!canCreateForRole(activePage, currentRole, currentAdmin)) {
         throw new Error('Create access is not available for your role.')
       }
       let nextPage = activePage
@@ -548,6 +557,8 @@ function EnterpriseAdminApp() {
               ? form.role
               : getRoleCreationOptions(currentRole)[0],
           }
+        : activePage === 'role-permissions'
+          ? createRolePermissionPayload(form)
         : form
 
       if (editingRecord) {
@@ -868,6 +879,7 @@ function EnterpriseAdminApp() {
             collapsed={collapsed}
             mobileOpen={mobileOpen}
             role={currentAdmin?.role || localStorage.getItem('cromgen_auth_role')}
+            accessPages={currentAdmin?.accessPages || []}
             onCloseMobile={() => setMobileOpen(false)}
             onNavigate={navigateAdmin}
           />
@@ -2699,6 +2711,19 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
       data: dataUrl,
     })
   }
+  const getMultiValue = (fieldName) => {
+    const value = form[fieldName]
+    return Array.isArray(value)
+      ? value
+      : String(value || '').split(/[\n,]+/).map((item) => item.trim()).filter(Boolean)
+  }
+  const toggleMultiValue = (fieldName, optionValue) => {
+    const current = getMultiValue(fieldName)
+    const next = current.includes(optionValue)
+      ? current.filter((item) => item !== optionValue)
+      : [...current, optionValue]
+    onChange(fieldName, next)
+  }
 
   return (
     <Modal open={open} title={`${editingRecord ? 'Edit' : 'Create'} ${titleize(page)}`} onClose={onClose}>
@@ -2733,6 +2758,30 @@ function RecordModal({ open, page, form, data, currentRole, editingRecord, savin
                 >
                   {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
+              ) : field.type === 'multiselect' ? (
+                <div className="max-h-64 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {field.options.map((option) => {
+                      const optionValue = typeof option === 'string' ? option : option.value
+                      const optionLabel = typeof option === 'string' ? option : option.label
+                      const checked = getMultiValue(field.name).includes(optionValue)
+                      return (
+                        <button
+                          key={optionValue}
+                          type="button"
+                          onClick={() => toggleMultiValue(field.name, optionValue)}
+                          className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${
+                            checked
+                              ? 'border-cyan-300/50 bg-cyan-300/15 text-cyan-100'
+                              : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20 hover:bg-white/[0.08]'
+                          }`}
+                        >
+                          {optionLabel}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               ) : field.type === 'file' ? (
                 <div className="space-y-3">
                   <div className="grid h-36 place-items-center overflow-hidden rounded-3xl bg-slate-950/35">
@@ -2832,6 +2881,33 @@ function createVendorPayload(form = {}) {
   }
 
   return payload
+}
+
+function createRolePermissionPayload(form = {}) {
+  const moduleAccess = Array.isArray(form.moduleAccess)
+    ? form.moduleAccess
+    : String(form.moduleAccess || '').split(/[\n,]+/).map((item) => item.trim()).filter(Boolean)
+  const targetEmail = extractEmailFromAccountOption(form.targetEmail || form.email)
+
+  if (!targetEmail && !form.role) {
+    throw new Error('Select an account or role for this access rule.')
+  }
+
+  return {
+    ...form,
+    targetEmail,
+    email: targetEmail,
+    role: String(form.role || '').toLowerCase(),
+    moduleAccess,
+    allowedPages: moduleAccess,
+    accessScope: moduleAccess.join(', '),
+  }
+}
+
+function extractEmailFromAccountOption(value = '') {
+  const text = String(value || '').trim()
+  const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+  return match ? match[0].toLowerCase() : text.toLowerCase()
 }
 
 async function requestProjectList() {
@@ -3190,7 +3266,7 @@ function getModuleConfig(page, data, currentRole = 'admin') {
   }
 
   if (page === 'role-permissions') {
-    return workforceModule('roles', 'Role Permissions', data.roles, ['name', 'role', 'permission', 'status', 'notes', 'createdAt'])
+    return workforceModule('roles', 'Role Permissions', data.roles, ['name', 'targetEmail', 'role', 'permission', 'moduleAccess', 'status', 'notes', 'createdAt'])
   }
 
   if (page === 'attendance') {
@@ -3510,6 +3586,11 @@ function workforceModule(type, title, records, fields, currentRole = 'admin') {
       question: record.question,
       answer: record.answer,
       articleUrl: record.articleUrl,
+      targetEmail: record.targetEmail || record.email,
+      targetName: record.targetName,
+      moduleAccess: formatListValue(record.moduleAccess || record.allowedPages),
+      allowedPages: formatListValue(record.allowedPages),
+      accessScope: record.accessScope,
       accessLevel: record.accessLevel,
       lastLogin: record.lastLogin,
       ipAddress: record.ipAddress,
@@ -3890,23 +3971,33 @@ function getRoleCreationOptions(currentRole) {
   return ['user']
 }
 
-function canAccessPageForRole(page, currentRole) {
+function canAccessPageForRole(page, currentRole, currentUser = null) {
   const role = String(currentRole || '').toLowerCase()
   if (role === 'admin') return true
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
+  const accessPages = normalizeAccessPages(currentUser?.accessPages)
+  if (accessPages.has('*') || accessPages.has(page)) return true
   if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
   if (role === 'user') return ['task-management'].includes(page)
   return false
 }
 
-function canCreateForRole(page, currentRole) {
+function canCreateForRole(page, currentRole, currentUser = null) {
   const role = String(currentRole || '').toLowerCase()
   if (page === 'vendor-management') return false
   if (role === 'admin') return true
+  const accessPages = normalizeAccessPages(currentUser?.accessPages)
+  const accessPermission = String(currentUser?.accessPermission || '').toLowerCase()
+  if ((accessPages.has('*') || accessPages.has(page)) && ['write', 'manage', 'admin'].includes(accessPermission)) return true
   if (role === 'staff') return ['user-management', 'project-management', 'assign-tasks', 'job-postings', 'wallet', 'withdraw-requests'].includes(page)
   if (role === 'vendor') return ['user-management', 'withdraw-requests'].includes(page)
   return false
+}
+
+function normalizeAccessPages(accessPages = []) {
+  const values = Array.isArray(accessPages) ? accessPages : String(accessPages || '').split(/[\n,]+/)
+  return new Set(values.map((item) => String(item || '').trim()).filter(Boolean))
 }
 
 function getTeamRoleOptions(currentRole) {
@@ -3926,6 +4017,22 @@ function createVendorAssignOptions(vendors = []) {
     .filter(Boolean)
 
   return options.length ? options : ['No vendors available']
+}
+
+function createAccountAccessOptions(data = emptyData) {
+  const users = (data.users || []).map((user) => ({
+    email: user.email,
+    label: `${user.name || user.email} (${user.role || 'user'})`,
+  }))
+  const vendors = (data.vendors || []).map((vendor) => ({
+    email: vendor.email,
+    label: `${vendor.company || vendor.name || vendor.email} (vendor)`,
+  }))
+  const options = [...users, ...vendors]
+    .filter((item) => item.email)
+    .map((item) => `${item.label} - ${item.email}`)
+
+  return ['', ...Array.from(new Set(options))]
 }
 
 function createVendorWalletOptions(vendors = []) {
@@ -4071,8 +4178,10 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
     ],
     'role-permissions': [
       { name: 'name', label: 'Permission Group', type: 'select', options: permissionGroupOptions, ...commonRequired },
+      { name: 'targetEmail', label: 'Assign To Account', type: 'select', options: createAccountAccessOptions(data) },
       { name: 'role', label: 'Role', type: 'select', options: permissionRoleOptions },
       { name: 'permission', label: 'Permission Level', type: 'select', options: ['Read', 'Write', 'Manage', 'Admin'] },
+      { name: 'moduleAccess', label: 'Sidebar & Module Access', type: 'multiselect', options: permissionPageOptions },
       { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
@@ -4491,6 +4600,11 @@ function commonColumns(keys) {
     question: 'Question',
     answer: 'Answer',
     articleUrl: 'Article URL',
+    targetEmail: 'Assigned Account',
+    targetName: 'Assigned Name',
+    moduleAccess: 'Module Access',
+    allowedPages: 'Allowed Pages',
+    accessScope: 'Access Scope',
     accessLevel: 'Access Level',
     lastLogin: 'Last Login',
     ipAddress: 'IP Address',
@@ -4529,6 +4643,11 @@ function commonColumns(keys) {
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : '-'
+}
+
+function formatListValue(value = []) {
+  if (Array.isArray(value)) return value.join(', ')
+  return value || ''
 }
 
 function getSessionDurationLabel(record = {}) {

@@ -70,6 +70,27 @@ export async function findWorkforceRecordById(type, id) {
   return record ? toPublicWorkforceRecord(record) : null
 }
 
+export async function findRolePermissionRecordsForAccount({ email = '', role = '' } = {}) {
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  const normalizedRole = String(role || '').trim().toLowerCase()
+  const records = await collection()
+    .find({
+      type: 'roles',
+      status: { $regex: /^active$/i },
+    })
+    .sort({ createdAt: -1 })
+    .toArray()
+
+  return records
+    .map(toPublicWorkforceRecord)
+    .filter((record) => {
+      const targetEmail = String(record.targetEmail || record.email || '').trim().toLowerCase()
+      const targetRole = String(record.role || '').trim().toLowerCase()
+      return (targetEmail && targetEmail === normalizedEmail)
+        || (!targetEmail && targetRole && targetRole === normalizedRole)
+    })
+}
+
 export async function createWorkforceRecord(type, payload) {
   if (!isAllowedWorkforceType(type)) return null
 
@@ -169,6 +190,11 @@ function toPublicWorkforceRecord(record) {
     question: record.question || '',
     answer: record.answer || '',
     articleUrl: record.articleUrl || '',
+    targetEmail: record.targetEmail || '',
+    targetName: record.targetName || '',
+    moduleAccess: record.moduleAccess || '',
+    allowedPages: record.allowedPages || [],
+    accessScope: record.accessScope || '',
     googleDocUrl: record.googleDocUrl || '',
     assignedUserEmail: record.assignedUserEmail || '',
     applicantRole: record.applicantRole || '',

@@ -7,7 +7,7 @@ import {
   isAllowedWorkforceType,
   updateWorkforceRecord,
 } from '../models/WorkforceRecord.js'
-import { json, notFound, readJson, validationError } from '../utils/http.js'
+import { forbidden, json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
 const settingsOrVendorTaskAuth = requireRole(['admin', 'staff', 'vendor'])
@@ -106,6 +106,7 @@ export async function createSettingWorkforceRecord(request, { type }) {
   const auth = vendorFinanceTypes.has(type) ? settingsOrVendorTaskAuth(request) : settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
+  if (type === 'roles' && auth.payload?.role !== 'admin') return forbidden('Only admin can manage role permissions')
 
   const body = await readJson(request)
   if (!body.name) return validationError('Name is required')
@@ -125,6 +126,7 @@ export async function updateSettingWorkforceRecord(request, { type, id }) {
   const auth = settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
+  if (type === 'roles' && auth.payload?.role !== 'admin') return forbidden('Only admin can manage role permissions')
 
   const body = await readJson(request)
   if (!body.name) return validationError('Name is required')
@@ -143,6 +145,7 @@ export async function deleteSettingWorkforceRecord(request, { type, id }) {
   const auth = settingsAuth(request)
   if (auth.error) return auth.error
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
+  if (type === 'roles' && auth.payload?.role !== 'admin') return forbidden('Only admin can manage role permissions')
 
   const deleted = await deleteWorkforceRecord(type, id)
   if (!deleted) return notFound('Record not found')

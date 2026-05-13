@@ -19,20 +19,21 @@ const restrictedGroupsForNonAdmin = new Set([
 ])
 const restrictedRoles = new Set(['vendor', 'staff', 'user'])
 
-export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile, onNavigate }) {
+export function Sidebar({ activePage, collapsed, mobileOpen, role, accessPages = [], onCloseMobile, onNavigate }) {
   const [query, setQuery] = useState('')
   const [openGroup, setOpenGroup] = useState('Dashboard')
 
   const visibleNavigation = useMemo(() => {
     const value = query.trim().toLowerCase()
     const normalizedRole = String(role || '').toLowerCase()
-    const roleNavigation = restrictedRoles.has(normalizedRole)
+    const hasExplicitAccess = normalizeAccessPages(accessPages).size > 0
+    const roleNavigation = restrictedRoles.has(normalizedRole) && !hasExplicitAccess
       ? adminNavigation.filter((group) => !restrictedGroupsForNonAdmin.has(group.label))
       : adminNavigation
     const scopedNavigation = roleNavigation
       .map((group) => ({
         ...group,
-        items: group.items.filter(([page]) => isPageVisibleForRole(page, normalizedRole)),
+        items: group.items.filter(([page]) => isPageVisibleForRole(page, normalizedRole, accessPages)),
       }))
       .filter((group) => group.items.length)
 
@@ -44,7 +45,7 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
         items: group.items.filter(([, label]) => label.toLowerCase().includes(value) || group.label.toLowerCase().includes(value)),
       }))
       .filter((group) => group.items.length)
-  }, [query, role])
+  }, [accessPages, query, role])
 
   const content = (
     <aside className={`flex h-screen flex-col border-r border-white/10 bg-slate-950/70 text-white shadow-2xl shadow-black/30 backdrop-blur-2xl ${collapsed ? 'w-[92px]' : 'w-[304px]'}`}>
@@ -183,10 +184,17 @@ export function Sidebar({ activePage, collapsed, mobileOpen, role, onCloseMobile
   )
 }
 
-function isPageVisibleForRole(page, role) {
+function isPageVisibleForRole(page, role, accessPages = []) {
   if (role === 'admin') return true
   if (page === 'dashboard' || page === 'logout') return true
+  const explicitAccess = normalizeAccessPages(accessPages)
+  if (explicitAccess.has('*') || explicitAccess.has(page)) return true
   if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
   return false
+}
+
+function normalizeAccessPages(accessPages = []) {
+  const values = Array.isArray(accessPages) ? accessPages : String(accessPages || '').split(/[\n,]+/)
+  return new Set(values.map((item) => String(item || '').trim()).filter(Boolean))
 }

@@ -22,7 +22,7 @@ import {
 import { forbidden, json, notFound, readJson, unauthorized, validationError } from '../utils/http.js'
 import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
-import { createWorkforceRecord, findWorkforceRecordById, updateWorkforceRecord } from '../models/WorkforceRecord.js'
+import { createWorkforceRecord, findRolePermissionRecordsForAccount, findWorkforceRecordById, updateWorkforceRecord } from '../models/WorkforceRecord.js'
 
 const adminOnly = requireRole(['admin'])
 const userListAccess = requireRole(['admin', 'staff', 'vendor', 'user'])
@@ -150,7 +150,7 @@ export async function currentUser(request) {
 
     return json(200, {
       ok: true,
-      user: { ...toPublicVendor(vendor), role: 'vendor' },
+      user: await attachAccessPermissions({ ...toPublicVendor(vendor), role: 'vendor' }),
     })
   }
 
@@ -161,7 +161,7 @@ export async function currentUser(request) {
 
   return json(200, {
     ok: true,
-    user: toPublicUser(user),
+    user: await attachAccessPermissions(toPublicUser(user)),
   })
 }
 
@@ -473,7 +473,7 @@ async function loginVendorWithCredentials(email, password, request = null) {
     return unauthorized('Invalid login details')
   }
 
-  const publicVendor = toPublicVendor(vendor)
+  const publicVendor = await attachAccessPermissions({ ...toPublicVendor(vendor), role: 'vendor' })
   const loginRecord = await recordLoginHistory(request, {
     user: { ...publicVendor, role: 'vendor' },
     email: vendor.email,
@@ -521,7 +521,7 @@ async function loginUserWithCredentials(email, password, role, request = null) {
     return unauthorized('Invalid login details')
   }
 
-  const publicUser = toPublicUser(user)
+  const publicUser = await attachAccessPermissions(toPublicUser(user))
   const loginRecord = await recordLoginHistory(request, {
     user: publicUser,
     email: user.email,
@@ -651,6 +651,48 @@ function decodeHeader(value) {
   } catch {
     return String(value)
   }
+}
+
+async function attachAccessPermissions(user = {}) {
+  if (!user?.email) return user
+  if (String(user.role || '').toLowerCase() === 'admin') {
+    return {
+      ...user,
+      accessPages: ['*'],
+      accessPermission: 'Admin',
+      accessRules: [],
+    }
+  }
+
+  const rules = await findRolePermissionRecordsForAccount({ email: user.email, role: user.role })
+  const pages = Array.from(new Set(rules.flatMap((rule) => parseAccessPages(rule.allowedPages || rule.moduleAccess))))
+  const permissionRank = { read: 1, write: 2, manage: 3, admin: 4 }
+  const accessPermission = rules.reduce((best, rule) => (
+    (permissionRank[String(rule.permission || '').toLowerCase()] || 0) > (permissionRank[String(best || '').toLowerCase()] || 0)
+      ? rule.permission
+      : best
+  ), '')
+
+  return {
+    ...user,
+    accessPages: pages,
+    accessPermission: accessPermission || '',
+    accessRules: rules.map((rule) => ({
+      id: rule.id,
+      name: rule.name,
+      permission: rule.permission,
+      moduleAccess: rule.moduleAccess,
+      allowedPages: rule.allowedPages,
+    })),
+  }
+}
+
+function parseAccessPages(value = []) {
+  if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean)
+  return String(value || '')
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function formatSessionDuration(start, end, active = false) {
