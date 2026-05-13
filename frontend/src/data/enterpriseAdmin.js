@@ -55,10 +55,6 @@ export const adminNavigation = [
     icon: Building2,
     items: [
       ['vendor-management', 'Vendor Management'],
-      ['agency-management', 'Agency Management'],
-      ['partner-network', 'Partner Network'],
-      ['vendor-performance', 'Vendor Performance'],
-      ['vendor-payouts', 'Vendor Payouts'],
     ],
   },
   {

@@ -83,10 +83,6 @@ const emptyData = {
   roles: [],
   attendance: [],
   performance: [],
-  agencies: [],
-  partners: [],
-  vendorPerformance: [],
-  vendorPayouts: [],
   clients: [],
   clientProjects: [],
   clientBilling: [],
@@ -134,10 +130,6 @@ const formDefaults = {
   'role-permissions': { name: 'Custom Sidebar Access', targetEmail: '', role: 'staff', permission: 'Read', moduleAccess: [], status: 'Active', notes: '' },
   attendance: { name: '', email: '', date: '', checkIn: '', checkOut: '', status: 'Present', notes: '' },
   'team-performance': { name: '', role: '', department: '', score: '', status: 'On Track', notes: '' },
-  'agency-management': { name: '', company: '', email: '', phone: '', status: 'Active', notes: '' },
-  'partner-network': { name: '', company: '', email: '', category: '', status: 'Active', notes: '' },
-  'vendor-performance': { name: '', company: '', score: '', status: 'On Track', notes: '' },
-  'vendor-payouts': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
   clients: { name: '', company: '', email: '', phone: '', status: 'Active', notes: '' },
   'client-projects': { name: '', company: '', project: '', status: 'Active', dueDate: '', notes: '' },
   'client-billing': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
@@ -209,10 +201,6 @@ const workforceRecordTypes = [
   'roles',
   'attendance',
   'performance',
-  'agencies',
-  'partners',
-  'vendorPerformance',
-  'vendorPayouts',
   'clients',
   'clientProjects',
   'clientBilling',
@@ -3326,22 +3314,6 @@ function getModuleConfig(page, data, currentRole = 'admin') {
     return workforceModule('performance', 'Team Performance', data.performance, ['name', 'role', 'department', 'score', 'status', 'notes', 'createdAt'])
   }
 
-  if (page === 'agency-management') {
-    return workforceModule('agencies', 'Agency Management', data.agencies, ['name', 'company', 'email', 'phone', 'status', 'notes', 'createdAt'])
-  }
-
-  if (page === 'partner-network') {
-    return workforceModule('partners', 'Partner Network', data.partners, ['name', 'company', 'email', 'category', 'status', 'notes', 'createdAt'])
-  }
-
-  if (page === 'vendor-performance') {
-    return workforceModule('vendorPerformance', 'Vendor Performance', data.vendorPerformance, ['name', 'company', 'score', 'status', 'notes', 'createdAt'])
-  }
-
-  if (page === 'vendor-payouts') {
-    return workforceModule('vendorPayouts', 'Vendor Payouts', data.vendorPayouts, ['name', 'company', 'amount', 'dueDate', 'status', 'notes', 'createdAt'])
-  }
-
   if (page === 'clients') {
     return workforceModule('clients', 'Clients', data.clients, ['name', 'company', 'email', 'phone', 'status', 'notes', 'createdAt'])
   }
@@ -3709,10 +3681,6 @@ function workforceTypeForPage(page) {
     'role-permissions': 'roles',
     attendance: 'attendance',
     'team-performance': 'performance',
-    'agency-management': 'agencies',
-    'partner-network': 'partners',
-    'vendor-performance': 'vendorPerformance',
-    'vendor-payouts': 'vendorPayouts',
     clients: 'clients',
     'client-projects': 'clientProjects',
     'client-billing': 'clientBilling',
@@ -4252,37 +4220,6 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'department', label: 'Department' },
       { name: 'score', label: 'Performance Score', type: 'number' },
       { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
-    ],
-    'agency-management': [
-      { name: 'name', label: 'Agency Name', ...commonRequired },
-      { name: 'company', label: 'Company' },
-      { name: 'email', label: 'Email', type: 'email' },
-      { name: 'phone', label: 'Phone' },
-      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Pending', 'Inactive'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
-    ],
-    'partner-network': [
-      { name: 'name', label: 'Partner Name', ...commonRequired },
-      { name: 'company', label: 'Company' },
-      { name: 'email', label: 'Email', type: 'email' },
-      { name: 'category', label: 'Partner Category' },
-      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Pending', 'Inactive'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
-    ],
-    'vendor-performance': [
-      { name: 'name', label: 'Vendor Name', ...commonRequired },
-      { name: 'company', label: 'Company' },
-      { name: 'score', label: 'Performance Score', type: 'number' },
-      { name: 'status', label: 'Status', type: 'select', options: ['On Track', 'Needs Review', 'Excellent', 'Blocked'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
-    ],
-    'vendor-payouts': [
-      { name: 'name', label: 'Vendor Name', ...commonRequired },
-      { name: 'company', label: 'Company' },
-      { name: 'amount', label: 'Payout Amount', type: 'number' },
-      { name: 'dueDate', label: 'Due Date', type: 'date' },
-      { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Paid', 'Hold', 'Failed'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
     clients: [
