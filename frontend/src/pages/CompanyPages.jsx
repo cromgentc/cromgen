@@ -1171,6 +1171,10 @@ export function CareerPage() {
 export function OutsourceProjectPage() {
   const [postedProjects, setPostedProjects] = useState([])
   const displayProjects = postedProjects.length ? postedProjects : outsourceProjectOpenings
+  const isUserLoggedIn =
+    Boolean(localStorage.getItem('cromgen_auth_token')) &&
+    ['user', 'admin', 'staff'].includes(String(localStorage.getItem('cromgen_auth_role') || '').toLowerCase())
+  const applyHref = isUserLoggedIn ? '/user-dashboard' : '/login?redirect=/user-dashboard'
 
   useEffect(() => {
     let isMounted = true
@@ -1256,7 +1260,7 @@ export function OutsourceProjectPage() {
                   </div>
                   <h3>{project.title}</h3>
                   <p>{renderFormattedText(project.summary)}</p>
-                  <a href={`/contact-requests?project=${encodeURIComponent(project.title)}`}>Send Requirement</a>
+                  <a href={applyHref}>Apply</a>
                 </div>
               </article>
             ))}

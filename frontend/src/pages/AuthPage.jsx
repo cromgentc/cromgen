@@ -200,7 +200,8 @@ export function AuthPage({ type }) {
         message: data.message || `${config.title} successful.`,
       })
 
-      window.location.assign(type === 'login' ? loginConfig.redirectTo : redirectTo)
+      const explicitRedirect = params.get('redirect')
+      window.location.assign(explicitRedirect || (type === 'login' ? loginConfig.redirectTo : redirectTo))
     } catch (error) {
       setStatus({
         type: 'error',
