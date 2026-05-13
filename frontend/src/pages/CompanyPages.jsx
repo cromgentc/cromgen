@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Building2,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
   Cloud,
   Code2,
@@ -447,19 +446,6 @@ const outsourceFaqs = [
   ['How is project reporting managed?', 'Reporting can include daily progress, QA summaries, attendance, blockers, delivery metrics, and project dashboards.'],
   ['Do you support long-term outsourcing?', 'Yes. Teams can be structured for short pilots, project-based execution, monthly retainers, or long-term managed operations.'],
 ]
-
-const outsourceFooterGroups = [
-  ['Services', ['AI Data Collection', 'BPO Operations', 'Software Teams', 'Recruitment Support']],
-  ['Industries', ['Artificial Intelligence', 'Healthcare', 'Telecom', 'Retail']],
-  ['Solutions', ['Managed Teams', 'Data Collection', 'RPO', 'Customer Support']],
-  ['Company', ['About Cromgen', 'Leadership', 'Career', 'News Room']],
-  ['Resources', ['Help Center', 'FAQ Management', 'Contact Requests', 'Sitemap']],
-  ['Legal', ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Disclaimer']],
-]
-
-const projectTypeOptions = ['AI Data Collection', 'Recruitment Outsourcing', 'BPO Operations', 'Software Development', 'Data Annotation', 'Multilingual Projects']
-const teamSizeOptions = ['1-5 specialists', '6-20 specialists', '21-50 specialists', '50+ specialists']
-const budgetOptions = ['$1k - $5k', '$5k - $25k', '$25k - $100k', '$100k+']
 
 function getAllCareerOpenings(apiJobs = []) {
   return [
@@ -1237,17 +1223,6 @@ export function OutsourceProjectPage() {
   const [applyStatus, setApplyStatus] = useState({ type: '', message: '' })
   const [activeFaq, setActiveFaq] = useState(0)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
-  const [leadStatus, setLeadStatus] = useState({ type: '', message: '' })
-  const [leadForm, setLeadForm] = useState({
-    companyName: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    projectType: '',
-    teamSize: '',
-    budget: '',
-    message: '',
-  })
   const authRole = String(localStorage.getItem('cromgen_auth_role') || '').toLowerCase()
   const dashboardByRole = {
     admin: '/admin-dashboard',
@@ -1284,49 +1259,6 @@ export function OutsourceProjectPage() {
       })
     } finally {
       setApplyingProject('')
-    }
-  }
-
-  const updateLeadForm = (field, value) => {
-    setLeadForm((current) => ({ ...current, [field]: value }))
-  }
-
-  const submitLeadForm = async (event) => {
-    event.preventDefault()
-    setLeadStatus({ type: '', message: '' })
-
-    try {
-      await apiRequest(LEAD_ENDPOINTS.publicCreate, {
-        method: 'POST',
-        body: JSON.stringify({
-          name: leadForm.fullName,
-          email: leadForm.email,
-          service: leadForm.projectType || 'Outsource Project',
-          query: [
-            `Company: ${leadForm.companyName}`,
-            `Phone: ${leadForm.phone}`,
-            `Team Size: ${leadForm.teamSize}`,
-            `Budget: ${leadForm.budget}`,
-            `Message: ${leadForm.message}`,
-          ].filter(Boolean).join('\n'),
-        }),
-      })
-      setLeadStatus({ type: 'success', message: 'Requirement submitted successfully.' })
-      setLeadForm({
-        companyName: '',
-        fullName: '',
-        email: '',
-        phone: '',
-        projectType: '',
-        teamSize: '',
-        budget: '',
-        message: '',
-      })
-    } catch (error) {
-      setLeadStatus({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Unable to submit requirement.',
-      })
     }
   }
 
@@ -1393,7 +1325,7 @@ export function OutsourceProjectPage() {
                 Start a Project
                 <ChevronRight className="h-4 w-4" />
               </a>
-              <a href="#enterprise-contact" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#adc3ef] bg-white px-6 text-sm font-black uppercase tracking-[0.12em] text-[#061f4d] shadow-sm transition hover:-translate-y-0.5 hover:border-[#63bc45] hover:text-[#4fa337]">
+              <a href="/contact-requests?service=Outsource%20Project" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#adc3ef] bg-white px-6 text-sm font-black uppercase tracking-[0.12em] text-[#061f4d] shadow-sm transition hover:-translate-y-0.5 hover:border-[#63bc45] hover:text-[#4fa337]">
                 Talk to Our Team
               </a>
             </div>
@@ -1617,76 +1549,6 @@ export function OutsourceProjectPage() {
         </div>
       </section>
 
-      <section id="enterprise-contact" className="mx-auto max-w-7xl px-5 py-16 sm:px-6">
-        <div className="grid gap-8 rounded-[2rem] border border-[#d7e4ff] bg-white p-5 shadow-2xl shadow-slate-200/80 sm:p-8 lg:grid-cols-[0.75fr_1.25fr]">
-          <div className="rounded-[1.5rem] bg-gradient-to-br from-[#061f4d] via-[#0a2f72] to-[#4fa337] p-8 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Contact</p>
-            <h2 className="mt-4 text-3xl font-black">Submit your outsourcing requirement.</h2>
-            <p className="mt-4 text-sm font-medium leading-7 text-blue-100">Share your project scope, team size, and budget. Cromgen can respond with delivery planning and next steps.</p>
-            <div className="mt-8 grid gap-3 text-sm font-bold">
-              <a href="mailto:info@cromgentechnology.com" className="rounded-2xl bg-white/10 p-4">info@cromgentechnology.com</a>
-              <a href="https://wa.me/" target="_blank" rel="noreferrer" className="rounded-2xl bg-white/10 p-4">WhatsApp Support</a>
-              <span className="rounded-2xl bg-white/10 p-4">24/7 operational support</span>
-            </div>
-          </div>
-
-          <form onSubmit={submitLeadForm} className="grid gap-4 sm:grid-cols-2">
-            {leadStatus.message ? (
-              <p className={`sm:col-span-2 rounded-2xl border p-4 text-sm font-bold ${leadStatus.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
-                {leadStatus.message}
-              </p>
-            ) : null}
-            {[
-              ['companyName', 'Company Name'],
-              ['fullName', 'Full Name'],
-              ['email', 'Email'],
-              ['phone', 'Phone Number'],
-            ].map(([name, label]) => (
-              <label key={name} className="grid gap-2">
-                <span className="text-sm font-black text-[#061f4d]">{label}</span>
-                <input className="h-12 rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] px-4 text-sm font-semibold outline-none focus:border-[#061f4d]" type={name === 'email' ? 'email' : 'text'} value={leadForm[name]} onChange={(event) => updateLeadForm(name, event.target.value)} required />
-              </label>
-            ))}
-            <OutsourceSelect label="Project Type" value={leadForm.projectType} options={projectTypeOptions} onChange={(value) => updateLeadForm('projectType', value)} />
-            <OutsourceSelect label="Team Size Requirement" value={leadForm.teamSize} options={teamSizeOptions} onChange={(value) => updateLeadForm('teamSize', value)} />
-            <OutsourceSelect label="Budget Range" value={leadForm.budget} options={budgetOptions} onChange={(value) => updateLeadForm('budget', value)} />
-            <label className="grid gap-2 sm:col-span-2">
-              <span className="text-sm font-black text-[#061f4d]">Message</span>
-              <textarea className="min-h-32 rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] px-4 py-3 text-sm font-semibold outline-none focus:border-[#061f4d]" value={leadForm.message} onChange={(event) => updateLeadForm('message', event.target.value)} required />
-            </label>
-            <button type="submit" className="h-12 rounded-2xl bg-[#061f4d] text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0a2f72]">Submit Requirement</button>
-            <a href="/contact-requests?service=Outsource%20Project" className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#adc3ef] text-sm font-black uppercase tracking-[0.12em] text-[#061f4d] transition hover:border-[#63bc45] hover:text-[#4fa337]">Schedule a Call</a>
-          </form>
-        </div>
-      </section>
-
-      <section className="border-t border-[#d7e4ff] bg-white py-14">
-        <div className="mx-auto max-w-7xl px-5 sm:px-6">
-          <div className="h-1 rounded-full bg-gradient-to-r from-[#061f4d] via-[#63bc45] to-[#ff4b2d]" />
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-6">
-            {outsourceFooterGroups.map(([title, links]) => (
-              <div key={title}>
-                <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#061f4d]">{title}</h3>
-                <div className="mt-4 grid gap-2">
-                  {links.map((link) => (
-                    <a key={link} href="/contact-requests" className="text-sm font-semibold text-[#53657f] transition hover:text-[#061f4d]">{link}</a>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 grid gap-4 rounded-2xl bg-[#f6faf9] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div>
-              <h3 className="font-black">Enterprise outsourcing insights</h3>
-              <p className="text-sm font-medium text-[#53657f]">Get project updates, hiring operations notes, and AI data collection guidance.</p>
-            </div>
-            <div className="flex gap-2">
-              <input aria-label="Newsletter email" placeholder="Business email" className="h-11 min-w-0 rounded-2xl border border-[#d7e4ff] bg-white px-4 text-sm font-semibold outline-none" />
-              <button type="button" className="h-11 rounded-2xl bg-[#061f4d] px-5 text-sm font-black text-white">Join</button>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   )
 }
@@ -1698,23 +1560,6 @@ function OutsourceSectionHeader({ eyebrow, title, copy }) {
       <h2 className="mt-3 text-3xl font-black leading-tight text-[#061f4d] sm:text-4xl">{title}</h2>
       {copy ? <p className="mt-4 text-base font-medium leading-7 text-[#53657f]">{copy}</p> : null}
     </div>
-  )
-}
-
-function OutsourceSelect({ label, value, options, onChange }) {
-  return (
-    <label className="grid gap-2">
-      <span className="text-sm font-black text-[#061f4d]">{label}</span>
-      <span className="relative">
-        <select className="h-12 w-full appearance-none rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] px-4 pr-10 text-sm font-semibold outline-none focus:border-[#061f4d]" value={value} onChange={(event) => onChange(event.target.value)} required>
-          <option value="">Select</option>
-          {options.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#53657f]" />
-      </span>
-    </label>
   )
 }
 
