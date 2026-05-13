@@ -4,7 +4,9 @@ import {
   createWorkforceRecord,
   deleteWorkforceRecord,
   findWorkforceRecords,
+  findWorkforceRecordById,
   isAllowedWorkforceType,
+  recordActivityLog,
   updateWorkforceRecord,
 } from '../models/WorkforceRecord.js'
 import { forbidden, json, notFound, readJson, validationError } from '../utils/http.js'
@@ -115,6 +117,14 @@ export async function createSettingWorkforceRecord(request, { type }) {
     ...body,
     createdBy: body.createdBy || auth.payload?.sub || '',
   })
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Created record',
+    category: activityCategoryForType(type),
+    targetType: type,
+    targetName: record?.name || body.name,
+    targetId: record?.id,
+  })
   return json(201, {
     ok: true,
     message: 'Record created successfully',
@@ -133,6 +143,15 @@ export async function updateSettingWorkforceRecord(request, { type, id }) {
 
   const record = await updateWorkforceRecord(type, id, body)
   if (!record) return notFound('Record not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Updated record',
+    category: activityCategoryForType(type),
+    severity: type === 'roles' || type === 'securitySettings' ? 'Medium' : 'Low',
+    targetType: type,
+    targetName: record.name || body.name,
+    targetId: record.id || id,
+  })
 
   return json(200, {
     ok: true,
@@ -147,8 +166,18 @@ export async function deleteSettingWorkforceRecord(request, { type, id }) {
   if (!isAllowedWorkforceType(type)) return notFound('Workforce module not found')
   if (type === 'roles' && auth.payload?.role !== 'admin') return forbidden('Only admin can manage role permissions')
 
+  const existing = await findWorkforceRecordById(type, id)
   const deleted = await deleteWorkforceRecord(type, id)
   if (!deleted) return notFound('Record not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted record',
+    category: activityCategoryForType(type),
+    severity: 'Medium',
+    targetType: type,
+    targetName: existing?.name || existing?.email || '',
+    targetId: id,
+  })
 
   return json(200, {
     ok: true,
@@ -175,6 +204,15 @@ function isTaskAssignedToVendor(record = {}, vendor = {}) {
 
   return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
     || compactTokens.some((token) => compactAssignee.includes(token) || token.includes(compactAssignee))
+}
+
+function activityCategoryForType(type = '') {
+  if (['users', 'teams', 'roles', 'attendance', 'performance', 'adminAccessControls'].includes(type)) return 'User'
+  if (['vendors', 'tasks', 'assignedTasks', 'withdrawRequests', 'wallets'].includes(type)) return 'Vendor'
+  if (['finance', 'billingCycles', 'invoices', 'revenueAnalytics'].includes(type)) return 'Finance'
+  if (['securitySettings', 'loginHistory', 'activityLogs', 'twoFactorAuthentication'].includes(type)) return 'Security'
+  if (['newsPosts', 'serviceSamples', 'helpCenter', 'faqs', 'contactRequests', 'supportTickets'].includes(type)) return 'Content'
+  return 'Admin'
 }
 
 function isTaskAssignedToRequester(record = {}, payload = {}) {

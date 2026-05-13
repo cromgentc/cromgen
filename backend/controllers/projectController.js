@@ -1,5 +1,5 @@
 import { requireRole } from '../middleware/auth.js'
-import { createWorkforceRecord } from '../models/WorkforceRecord.js'
+import { createWorkforceRecord, recordActivityLog } from '../models/WorkforceRecord.js'
 import {
   createProject,
   deleteProjectById,
@@ -80,6 +80,14 @@ export async function createSettingProject(request) {
     ...body,
     createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
   })
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Created project',
+    category: 'Admin',
+    targetType: 'projects',
+    targetName: project.title,
+    targetId: project.id,
+  })
 
   return json(201, {
     ok: true,
@@ -107,6 +115,14 @@ export async function updateSettingProject(request, { id }) {
     createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
   })
   if (!project) return notFound('Project not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Updated project',
+    category: 'Admin',
+    targetType: 'projects',
+    targetName: project.title,
+    targetId: project.id || id,
+  })
 
   return json(200, {
     ok: true,
@@ -126,8 +142,18 @@ export async function deleteSettingProject(request, { id }) {
     }
   }
 
+  const existing = await findProjectById(id)
   const deleted = await deleteProjectById(id)
   if (!deleted) return notFound('Project not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted project',
+    category: 'Admin',
+    severity: 'Medium',
+    targetType: 'projects',
+    targetName: existing?.title || '',
+    targetId: id,
+  })
 
   return json(200, {
     ok: true,

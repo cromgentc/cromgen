@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { requireRole } from '../middleware/auth.js'
+import { recordActivityLog } from '../models/WorkforceRecord.js'
 import { createLead, deleteAllLeads, deleteLeadById, findLeads } from '../models/Lead.js'
 import { json, notFound, readJson, validationError } from '../utils/http.js'
 import { sendEmail } from '../utils/email.js'
@@ -125,6 +126,14 @@ export async function deleteSettingLead(request, { id }) {
 
   const deleted = await deleteLeadById(id)
   if (!deleted) return notFound('Lead not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted lead',
+    category: 'Content',
+    severity: 'Medium',
+    targetType: 'leads',
+    targetId: id,
+  })
 
   return json(200, {
     ok: true,
@@ -137,6 +146,14 @@ export async function deleteAllSettingLeads(request) {
   if (auth.error) return auth.error
 
   const deletedCount = await deleteAllLeads()
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted all leads',
+    category: 'Content',
+    severity: 'High',
+    targetType: 'leads',
+    notes: `Deleted count: ${deletedCount}`,
+  })
 
   return json(200, {
     ok: true,

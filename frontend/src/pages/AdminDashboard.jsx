@@ -3270,7 +3270,7 @@ const workforcePageModules = {
   'contact-requests': { type: 'contactRequests', title: 'Contact Requests', fields: ['name', 'email', 'subject', 'priority', 'status', 'notes', 'createdAt'] },
   'security-settings': { type: 'securitySettings', title: 'Security Settings', fields: ['name', 'category', 'enabled', 'enforcement', 'severity', 'scope', 'reviewDate', 'status', 'notes', 'createdAt'] },
   'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'role', 'ipAddress', 'device', 'browser', 'operatingSystem', 'location', 'mapUrl', 'directionUrl', 'sessionStartedAt', 'timeOnWeb', 'status', 'lastLogin', 'notes', 'createdAt'], readOnly: true },
-  'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'notes', 'createdAt'], readOnly: true },
+  'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'targetName', 'targetId', 'notes', 'createdAt'], readOnly: true },
   'two-factor-authentication': { type: 'twoFactorAuthentication', title: 'Two-Factor Authentication', fields: ['name', 'email', 'method', 'enabled', 'status', 'notes', 'createdAt'] },
 }
 

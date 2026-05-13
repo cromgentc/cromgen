@@ -24,7 +24,7 @@ import {
 import { forbidden, json, notFound, readJson, unauthorized, validationError } from '../utils/http.js'
 import { requireRole } from '../middleware/auth.js'
 import { getBearerToken, signToken, verifyPassword, verifyToken } from '../utils/security.js'
-import { createWorkforceRecord, findRolePermissionRecordsForAccount, findWorkforceRecordById, updateWorkforceRecord } from '../models/WorkforceRecord.js'
+import { createWorkforceRecord, findRolePermissionRecordsForAccount, findWorkforceRecordById, recordActivityLog, updateWorkforceRecord } from '../models/WorkforceRecord.js'
 
 const adminOnly = requireRole(['admin'])
 const userListAccess = requireRole(['admin', 'staff', 'vendor', 'user'])
@@ -266,6 +266,15 @@ export async function createSettingUser(request) {
 
   try {
     const user = await createUser({ name, email, password, role, createdBy: auth.payload?.sub })
+    await recordActivityLog({
+      actor: auth.payload,
+      action: 'Created user account',
+      category: 'User',
+      targetType: 'users',
+      targetName: user.name,
+      targetId: String(user._id),
+      notes: `Role: ${user.role}`,
+    })
     return json(201, {
       ok: true,
       message: 'User added successfully',
@@ -291,6 +300,16 @@ export async function updateSettingUserStatus(request, { id }) {
   const body = await readJson(request)
   const user = await updateUserStatus(id, body.isActive)
   if (!user) return notFound('User not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: user.isActive ? 'Activated user account' : 'Suspended user account',
+    category: 'User',
+    severity: user.isActive ? 'Low' : 'Medium',
+    targetType: 'users',
+    targetName: user.name,
+    targetId: user.id || id,
+    notes: `Email: ${user.email}`,
+  })
 
   return json(200, {
     ok: true,
@@ -309,6 +328,14 @@ export async function deleteSettingUser(request, { id }) {
 
   const deleted = await deleteUserById(id)
   if (!deleted) return notFound('User not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted user account',
+    category: 'User',
+    severity: 'Medium',
+    targetType: 'users',
+    targetId: id,
+  })
 
   return json(200, {
     ok: true,
@@ -370,6 +397,15 @@ export async function createSettingVendor(request) {
       createdBy: auth.payload?.sub,
       status: body.status || 'active',
     })
+    await recordActivityLog({
+      actor: auth.payload,
+      action: 'Created vendor account',
+      category: 'Vendor',
+      targetType: 'vendors',
+      targetName: vendor.name || vendor.company,
+      targetId: String(vendor._id),
+      notes: `Status: ${vendor.status}`,
+    })
 
     return json(201, {
       ok: true,
@@ -401,6 +437,16 @@ export async function updateSettingVendorStatus(request, { id }) {
   const body = await readJson(request)
   const vendor = await updateVendorStatus(id, body.status, body)
   if (!vendor) return notFound('Vendor not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: `Updated vendor status to ${vendor.status}`,
+    category: 'Vendor',
+    severity: vendor.status === 'active' ? 'Low' : 'Medium',
+    targetType: 'vendors',
+    targetName: vendor.name || vendor.company,
+    targetId: vendor.id || id,
+    notes: vendor.approvalRemark ? `Remark: ${vendor.approvalRemark}` : '',
+  })
 
   return json(200, {
     ok: true,
@@ -415,6 +461,14 @@ export async function deleteSettingVendor(request, { id }) {
 
   const deleted = await deleteVendorById(id)
   if (!deleted) return notFound('Vendor not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted vendor account',
+    category: 'Vendor',
+    severity: 'Medium',
+    targetType: 'vendors',
+    targetId: id,
+  })
 
   return json(200, {
     ok: true,

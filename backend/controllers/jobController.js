@@ -1,4 +1,5 @@
 import { requireRole } from '../middleware/auth.js'
+import { recordActivityLog } from '../models/WorkforceRecord.js'
 import {
   createJobPost,
   deleteAllJobPosts,
@@ -40,6 +41,14 @@ export async function createSettingJobPost(request) {
     ...body,
     createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
   })
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Created job post',
+    category: 'Content',
+    targetType: 'jobs',
+    targetName: job.title,
+    targetId: job.slug,
+  })
 
   return json(201, {
     ok: true,
@@ -69,6 +78,14 @@ export async function updateSettingJobPost(request, { slug }) {
     createdBy: auth.payload?.role === 'staff' ? auth.payload.sub : body.createdBy,
   })
   if (!job) return notFound('Job post not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Updated job post',
+    category: 'Content',
+    targetType: 'jobs',
+    targetName: job.title,
+    targetId: job.slug || slug,
+  })
 
   return json(200, {
     ok: true,
@@ -88,6 +105,14 @@ export async function deleteSettingJobPost(request, { slug }) {
 
   const deleted = await deleteJobPostBySlug(slug)
   if (!deleted) return notFound('Job post not found')
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted job post',
+    category: 'Content',
+    severity: 'Medium',
+    targetType: 'jobs',
+    targetId: slug,
+  })
 
   return json(200, {
     ok: true,
@@ -101,6 +126,14 @@ export async function deleteAllSettingJobPosts(request) {
   if (auth.payload?.role === 'staff') return forbidden('Staff cannot delete all job posts')
 
   const deletedCount = await deleteAllJobPosts()
+  await recordActivityLog({
+    actor: auth.payload,
+    action: 'Deleted all job posts',
+    category: 'Content',
+    severity: 'High',
+    targetType: 'jobs',
+    notes: `Deleted count: ${deletedCount}`,
+  })
 
   return json(200, {
     ok: true,

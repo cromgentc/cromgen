@@ -106,6 +106,40 @@ export async function createWorkforceRecord(type, payload) {
   return toPublicWorkforceRecord({ ...record, _id: result.insertedId })
 }
 
+export async function recordActivityLog({
+  actor = {},
+  action = '',
+  category = 'Admin',
+  severity = 'Low',
+  status = 'Logged',
+  targetType = '',
+  targetName = '',
+  targetId = '',
+  notes = '',
+} = {}) {
+  if (!action) return null
+  if (targetType === 'activityLogs') return null
+
+  return createWorkforceRecord('activityLogs', {
+    name: actor.name || actor.email || 'System',
+    email: actor.email || '',
+    role: actor.role || '',
+    action,
+    category,
+    severity,
+    status,
+    targetName,
+    targetId,
+    notes: [
+      notes,
+      targetType ? `Module: ${targetType}` : '',
+      targetName ? `Target: ${targetName}` : '',
+      targetId ? `ID: ${targetId}` : '',
+    ].filter(Boolean).join(' | '),
+    createdBy: actor.sub || actor.id || '',
+  })
+}
+
 export async function updateWorkforceRecord(type, id, payload) {
   if (!isAllowedWorkforceType(type) || !ObjectId.isValid(id)) return null
 
@@ -220,6 +254,8 @@ function toPublicWorkforceRecord(record) {
     timeOnWeb: record.timeOnWeb || '',
     action: record.action || '',
     severity: record.severity || '',
+    targetName: record.targetName || '',
+    targetId: record.targetId || '',
     enabled: record.enabled || '',
     enforcement: record.enforcement || '',
     scope: record.scope || '',
