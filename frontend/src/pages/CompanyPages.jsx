@@ -1510,7 +1510,7 @@ export function OutsourceProjectPage() {
 
       <section id="outsource-openings" className="bg-white py-16">
         <div className="mx-auto max-w-7xl px-5 sm:px-6">
-          <OutsourceSectionHeader eyebrow="Live Outsource Projects" title="Projects loaded from backend and MongoDB." copy="These projects come from the backend Project Management collection. Apply to create a Task Management record and continue through your dashboard." />
+          <OutsourceSectionHeader eyebrow="Live Outsource Projects" title="Current enterprise outsourcing opportunities." copy="Explore verified project requirements published by Cromgen operations. Apply to express interest, share delivery capability, and continue the workflow through your dashboard." />
 
           {isLoadingProjects ? (
             <p className="rounded-2xl border border-[#fed7cc] bg-[#fff1ed] p-4 text-sm font-bold text-[#1f2937]">Loading projects...</p>
