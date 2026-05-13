@@ -7,7 +7,6 @@ import {
   Cloud,
   Code2,
   Contact,
-  Database,
   FileBarChart,
   FileCog,
   Headphones,
@@ -42,28 +41,13 @@ export const adminNavigation = [
     ],
   },
   {
-    label: 'Data Collection',
-    icon: Database,
-    items: [
-      ['audio-recording-projects', 'Audio Recording Projects'],
-      ['video-collection-projects', 'Video Collection Projects'],
-      ['image-collection', 'Image Collection'],
-      ['script-management', 'Script Management'],
-      ['metadata-management', 'Metadata Management'],
-      ['quality-check', 'Quality Check (QC)'],
-      ['live-monitoring', 'Live Monitoring'],
-    ],
-  },
-  {
     label: 'User & Team Management',
     icon: Users,
     items: [
       ['user-management', 'User Management'],
-      ['candidate-management', 'Candidate Management'],
       ['team-management', 'Team Management'],
       ['role-permissions', 'Role & Permissions'],
       ['attendance', 'Attendance'],
-      ['team-performance', 'Team Performance'],
     ],
   },
   {
