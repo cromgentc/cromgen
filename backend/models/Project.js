@@ -86,7 +86,7 @@ export async function findPublicProjects() {
   await ensureDefaultOutsourceProjects()
 
   const projects = await collection()
-    .find({ projectStatus: { $in: ['live', 'active'] } })
+    .find({ projectStatus: { $ne: 'closed' } })
     .sort({ createdAt: -1 })
     .toArray()
 
@@ -154,17 +154,51 @@ export function normalizeProject(project = {}) {
 }
 
 export function normalizePublicProject(project = {}) {
+  const inferredProject = inferPublicProjectMeta(project)
+
   return {
     id: String(project._id || project.id || ''),
     title: String(project.title || '').trim(),
-    department: String(project.department || 'Project Management').trim(),
-    location: String(project.location || 'Cromgen Admin Post').trim(),
-    projectType: String(project.projectType || 'Outsource').trim(),
-    experience: String(project.experience || 'Outsource Project').trim(),
-    imageKey: String(project.imageKey || '').trim(),
+    department: String(project.department || inferredProject.department).trim(),
+    location: String(project.location || inferredProject.location).trim(),
+    projectType: String(project.projectType || inferredProject.projectType).trim(),
+    experience: String(project.experience || inferredProject.experience).trim(),
+    imageKey: String(project.imageKey || inferredProject.imageKey).trim(),
     publicSummary: String(project.publicSummary || project.contractBody || '').trim(),
     projectStatus: String(project.projectStatus || 'active').trim(),
     createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : '',
+  }
+}
+
+function inferPublicProjectMeta(project = {}) {
+  const text = `${project.title || ''} ${project.contractBody || ''}`.toLowerCase()
+
+  if (text.includes('recording') || text.includes('audio')) {
+    return {
+      department: 'Audio Recording',
+      location: 'Remote / Studio',
+      projectType: 'Recording Project',
+      experience: 'Voice / Data Collection',
+      imageKey: 'recruitment',
+    }
+  }
+
+  if (text.includes('video')) {
+    return {
+      department: 'Video Collection',
+      location: 'Remote / Studio',
+      projectType: 'Video Project',
+      experience: 'Video Data Collection',
+      imageKey: 'software',
+    }
+  }
+
+  return {
+    department: 'Project Management',
+    location: 'Cromgen Admin Post',
+    projectType: 'Outsource',
+    experience: 'Outsource Project',
+    imageKey: '',
   }
 }
 
