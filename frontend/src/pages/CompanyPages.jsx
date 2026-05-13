@@ -15,6 +15,7 @@ import {
   LEAD_ENDPOINTS,
   NEWS_ENDPOINTS,
   POLICY_ENDPOINTS,
+  PROJECT_ENDPOINTS,
   apiRequest,
 } from '../api/apiEndpoint.js'
 
@@ -1168,6 +1169,40 @@ export function CareerPage() {
 }
 
 export function OutsourceProjectPage() {
+  const [postedProjects, setPostedProjects] = useState([])
+  const displayProjects = postedProjects.length ? postedProjects : outsourceProjectOpenings
+
+  useEffect(() => {
+    let isMounted = true
+
+    apiRequest(PROJECT_ENDPOINTS.publicList)
+      .then((data) => {
+        if (!isMounted) return
+        const projects = (data.projects || [])
+          .filter((project) => project.title)
+          .map((project) => ({
+            slug: project.id || project.title,
+            title: project.title,
+            department: 'Project Management',
+            location: 'Cromgen Admin Post',
+            type: project.projectStatus || 'active',
+            experience: 'Outsource Project',
+            image: softwareHero,
+            summary:
+              'This project was posted from Cromgen admin Project Management. Send your requirement to discuss scope, timeline, and delivery support.',
+          }))
+
+        setPostedProjects(projects)
+      })
+      .catch(() => {
+        if (isMounted) setPostedProjects([])
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <main className="company-page pt-32 sm:pt-36 lg:pt-28">
       <section className="career-hero">
@@ -1188,7 +1223,7 @@ export function OutsourceProjectPage() {
             <img src={softwareHero} alt="Outsource project opportunities" />
             <div>
               <span>Project Outsourcing</span>
-              <strong>{outsourceProjectOpenings.length} project categories ready for Cromgen delivery support.</strong>
+              <strong>{displayProjects.length} project opportunities ready for Cromgen delivery support.</strong>
             </div>
           </div>
         </div>
@@ -1197,16 +1232,17 @@ export function OutsourceProjectPage() {
       <section id="outsource-openings" className="career-openings-section">
         <div className="mx-auto max-w-7xl px-5 py-16">
           <div className="about-section-header">
-            <p className="company-eyebrow">Project Options</p>
-            <h2>Choose the work you want to outsource.</h2>
+            <p className="company-eyebrow">{postedProjects.length ? 'Admin Posted Projects' : 'Project Options'}</p>
+            <h2>{postedProjects.length ? 'Projects posted from Cromgen admin.' : 'Choose the work you want to outsource.'}</h2>
             <p>
-              Select a project category to send your requirement. Cromgen can review the scope, timeline, team support,
-              and delivery plan before starting execution.
+              {postedProjects.length
+                ? 'These projects come from the backend Project Management section. Select a project to send your requirement.'
+                : 'Select a project category to send your requirement. Cromgen can review the scope, timeline, team support, and delivery plan before starting execution.'}
             </p>
           </div>
 
           <div className="career-vacancy-grid">
-            {outsourceProjectOpenings.map((project) => (
+            {displayProjects.map((project) => (
               <article key={project.slug} className="career-vacancy-card">
                 <div className="career-vacancy-media">
                   <img src={project.image} alt={`${project.title} outsourcing`} />
