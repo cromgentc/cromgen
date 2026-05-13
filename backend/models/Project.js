@@ -19,6 +19,16 @@ export async function findProjectsCreatedBy(userId) {
   return projects.map(normalizeProject)
 }
 
+export async function findPublicProjects() {
+  const projects = await collection()
+    .find({ projectStatus: { $in: ['live', 'active'] } })
+    .sort({ createdAt: -1 })
+    .limit(8)
+    .toArray()
+
+  return projects.map(normalizePublicProject)
+}
+
 export async function findProjectById(id) {
   if (!ObjectId.isValid(id)) return null
   const project = await collection().findOne({ _id: new ObjectId(id) })
@@ -76,6 +86,15 @@ export function normalizeProject(project = {}) {
     createdBy: String(project.createdBy || '').trim(),
     createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : '',
     updatedAt: project.updatedAt ? new Date(project.updatedAt).toISOString() : '',
+  }
+}
+
+export function normalizePublicProject(project = {}) {
+  return {
+    id: String(project._id || project.id || ''),
+    title: String(project.title || '').trim(),
+    projectStatus: String(project.projectStatus || 'active').trim(),
+    createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : '',
   }
 }
 

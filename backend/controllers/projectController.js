@@ -3,6 +3,7 @@ import {
   createProject,
   deleteProjectById,
   findProjectById,
+  findPublicProjects,
   findProjects,
   findProjectsCreatedBy,
   updateProjectById,
@@ -10,6 +11,13 @@ import {
 import { forbidden, json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
+
+export async function listPublicProjects() {
+  return json(200, {
+    ok: true,
+    projects: await findPublicProjects(),
+  })
+}
 
 export async function listSettingProjects(request) {
   const auth = settingsAuth(request)

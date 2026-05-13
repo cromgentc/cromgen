@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import logo from '../assets/cromgen-logo.png'
-import { LEAD_ENDPOINTS, apiRequest } from '../api/apiEndpoint.js'
+import { LEAD_ENDPOINTS, PROJECT_ENDPOINTS, apiRequest } from '../api/apiEndpoint.js'
 import { getServiceLink, services } from '../data/services.js'
 import { resolveSocialLinks, useSiteSettings } from '../hooks/useSiteSettings.js'
 
@@ -96,12 +96,30 @@ export function Footer() {
     message: '',
   })
   const [leadStatus, setLeadStatus] = useState({ type: '', message: '' })
+  const [footerProjects, setFooterProjects] = useState([])
 
   const customerServices =
     services.find((service) => service.slug === 'call-center-service')?.services.slice(0, 7) || []
 
   const digitalServices =
     services.find((service) => service.slug === 'artificial-intelligence')?.services.slice(0, 5) || []
+
+  useEffect(() => {
+    let active = true
+
+    apiRequest(PROJECT_ENDPOINTS.publicList)
+      .then((response) => {
+        if (!active) return
+        setFooterProjects((response.projects || []).filter((project) => project.title).slice(0, 6))
+      })
+      .catch(() => {
+        if (active) setFooterProjects([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -204,22 +222,12 @@ export function Footer() {
               </FooterList>
             </div>
 
-            <div>
-              <FooterTitle>Support</FooterTitle>
-              <FooterList>
-                {supportLinks.map(([label, href]) => (
-                  <FooterLink key={label} href={href}>
-                    {label}
-                  </FooterLink>
-                ))}
-              </FooterList>
-            </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
             <FooterTitle>Services</FooterTitle>
 
-            <div className="mt-5 grid gap-7 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-5 grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
               <div>
                 <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[#d7e4ff]">
                   Customer Engagement
@@ -249,6 +257,41 @@ export function Footer() {
                   <FooterLink href="/it-services">IT Infrastructure</FooterLink>
                 </FooterList>
               </div>
+
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[#d7e4ff]">
+                  Support
+                </h4>
+                <FooterList>
+                  {supportLinks.map(([label, href]) => (
+                    <FooterLink key={label} href={href}>
+                      {label}
+                    </FooterLink>
+                  ))}
+                </FooterList>
+              </div>
+
+              {footerProjects.length ? (
+                <div>
+                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[#d7e4ff]">
+                    Projects
+                  </h4>
+                  <FooterList>
+                    {footerProjects.map((project) => {
+                      const href = getProjectHref(project)
+
+                      return (
+                        <FooterLink
+                          key={project.id || project.title}
+                          href={href}
+                        >
+                          {project.title}
+                        </FooterLink>
+                      )
+                    })}
+                  </FooterList>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -381,4 +424,9 @@ function FooterLink({ href, children }) {
       </a>
     </li>
   )
+}
+
+function getProjectHref(project = {}) {
+  const value = project.id || project.title || 'project'
+  return `/contact-requests?project=${encodeURIComponent(value)}`
 }
