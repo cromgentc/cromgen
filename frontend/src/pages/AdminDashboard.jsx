@@ -738,30 +738,49 @@ function EnterpriseAdminApp() {
   }
 
   const updateWithdrawDecision = async (row, status) => {
-    setRemarkRequest({ row, status, remark: '', saving: false })
+    setRemarkRequest({ type: 'withdraw', row, status, remark: '', saving: false })
   }
 
-  const submitWithdrawRemark = async (event) => {
+  const updateVendorDecision = async (row, status) => {
+    const defaultRemark = status === 'active'
+      ? 'Vendor profile approved by Cromgen admin.'
+      : status === 'rejected'
+        ? 'Vendor profile rejected by Cromgen admin.'
+        : 'Vendor account suspended by Cromgen admin.'
+    setRemarkRequest({ type: 'vendor', row, status, remark: row.approvalRemark || defaultRemark, saving: false })
+  }
+
+  const submitDecisionRemark = async (event) => {
     event.preventDefault()
     if (!remarkRequest) return
-    const { row, status } = remarkRequest
+    const { row, status, type } = remarkRequest
     const remark = String(remarkRequest.remark || '').trim()
     setRemarkRequest((current) => current ? { ...current, saving: true } : current)
     try {
-      await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail('withdrawRequests', row.id), {
-        method: 'POST',
-        body: JSON.stringify({
-          ...row,
-          status,
-          approvalRemark: remark,
-          reviewedAt: new Date().toISOString(),
-        }),
-      })
-      setToast(`Withdraw request marked ${status}.`)
+      if (type === 'vendor') {
+        await apiRequest(VENDOR_ENDPOINTS.settingsStatus(row.id), {
+          method: 'POST',
+          body: JSON.stringify({
+            status,
+            approvalRemark: remark,
+          }),
+        })
+      } else {
+        await apiRequest(WORKFORCE_ENDPOINTS.settingsDetail('withdrawRequests', row.id), {
+          method: 'POST',
+          body: JSON.stringify({
+            ...row,
+            status,
+            approvalRemark: remark,
+            reviewedAt: new Date().toISOString(),
+          }),
+        })
+      }
+      setToast(type === 'vendor' ? `Vendor marked ${status}.` : `Withdraw request marked ${status}.`)
       setRemarkRequest(null)
       await loadMongoData(activePage)
     } catch (error) {
-      setToast(error instanceof Error ? error.message : 'Withdraw request could not be updated.')
+      setToast(error instanceof Error ? error.message : 'Decision could not be updated.')
       setRemarkRequest((current) => current ? { ...current, saving: false } : current)
     }
   }
@@ -976,7 +995,7 @@ function EnterpriseAdminApp() {
                   onDeleteSelected={deleteSelectedRecords}
                 />
               ) : (
-                <EnterpriseModule activePage={activePage} currentRole={currentRole} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} onWithdrawDecision={updateWithdrawDecision} onViewInvoiceFile={viewInvoiceFile} onViewRemark={setViewRemarkRecord} />
+                <EnterpriseModule activePage={activePage} currentRole={currentRole} pageMeta={pageMeta} module={module} onView={setDetailsRecord} onEdit={openEditModal} onDelete={deleteRecord} onDeleteSelected={deleteSelectedRecords} onProjectStatusChange={updateProjectStatus} onAssignProjectToUser={openAssignProjectToUser} onVendorDecision={updateVendorDecision} onWithdrawDecision={updateWithdrawDecision} onViewInvoiceFile={viewInvoiceFile} onViewRemark={setViewRemarkRecord} />
               )}
             </div>
 
@@ -1064,7 +1083,7 @@ function EnterpriseAdminApp() {
         <RemarkDialog
           request={remarkRequest}
           onChange={(remark) => setRemarkRequest((current) => current ? { ...current, remark } : current)}
-          onSubmit={submitWithdrawRemark}
+          onSubmit={submitDecisionRemark}
           onClose={() => {
             if (remarkRequest?.saving) return
             setRemarkRequest(null)
@@ -1237,7 +1256,7 @@ function OperationsPanel({ data }) {
   )
 }
 
-function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser, onWithdrawDecision, onViewInvoiceFile, onViewRemark }) {
+function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, onEdit, onDelete, onDeleteSelected, onProjectStatusChange, onAssignProjectToUser, onVendorDecision, onWithdrawDecision, onViewInvoiceFile, onViewRemark }) {
   const ModuleIcon = pageMeta.icon
   const isLeadManagement = activePage === 'leads-management'
   const canApproveWithdraw = ['admin', 'staff'].includes(String(currentRole || '').toLowerCase())
@@ -1302,6 +1321,34 @@ function EnterpriseModule({ activePage, currentRole, pageMeta, module, onView, o
           icon: X,
           tone: 'danger',
           onClick: (row) => onWithdrawDecision?.(row, 'Rejected'),
+        },
+      ]
+    : activePage === 'vendor-management' && canApproveWithdraw
+    ? [
+        {
+          label: 'View Remark',
+          icon: Eye,
+          hidden: (row) => !row.approvalRemark,
+          onClick: (row) => onViewRemark?.(row),
+        },
+        {
+          label: 'Approve',
+          icon: CheckCircle2,
+          hidden: (row) => row.status === 'active',
+          onClick: (row) => onVendorDecision?.(row, 'active'),
+        },
+        {
+          label: 'Reject',
+          icon: X,
+          tone: 'danger',
+          hidden: (row) => row.status === 'rejected',
+          onClick: (row) => onVendorDecision?.(row, 'rejected'),
+        },
+        {
+          label: 'Suspend',
+          icon: PauseCircle,
+          hidden: (row) => row.status === 'suspended',
+          onClick: (row) => onVendorDecision?.(row, 'suspended'),
         },
       ]
     : []
@@ -2874,6 +2921,7 @@ function createVendorPayload(form = {}) {
     serviceCategory: String(form.serviceCategory || '').trim(),
     password: String(form.password || '').trim(),
     status: form.status || 'active',
+    approvalRemark: String(form.approvalRemark || '').trim(),
   }
 
   if (!payload.name || !payload.email || !payload.password) {
@@ -3160,7 +3208,8 @@ function RemarkDialog({ request, onChange, onSubmit, onClose }) {
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Request</p>
-          <p className="mt-2 text-sm font-black text-white">{request?.row?.name || 'Withdraw request'}</p>
+          <p className="mt-2 text-sm font-black text-white">{request?.row?.company || request?.row?.name || 'Selected request'}</p>
+          <p className="mt-2 text-xs font-semibold text-slate-400">This remark will be saved with the decision and shown during blocked vendor login.</p>
         </div>
         <label className="block">
           <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-slate-500">Remark</span>
@@ -3340,9 +3389,11 @@ function getModuleConfig(page, data, currentRole = 'admin') {
         email: vendor.email,
         service: vendor.serviceCategory,
         status: vendor.status,
+        approvalRemark: vendor.approvalRemark,
+        reviewedAt: vendor.reviewedAt ? formatDate(vendor.reviewedAt) : '',
         createdAt: formatDate(vendor.createdAt),
       })),
-      columns: commonColumns(['code', 'name', 'company', 'email', 'service', 'status', 'createdAt']),
+      columns: commonColumns(['code', 'name', 'company', 'email', 'service', 'status', 'approvalRemark', 'reviewedAt', 'createdAt']),
       emptyText: 'The vendors collection is empty.',
     }
   }
@@ -4111,7 +4162,8 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'phone', label: 'Phone' },
       { name: 'serviceCategory', label: 'Service Category' },
       { name: 'password', label: 'Password', type: 'password', ...commonRequired },
-      { name: 'status', label: 'Status', type: 'select', options: ['active', 'pending', 'suspended'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['active', 'pending', 'suspended', 'rejected'] },
+      { name: 'approvalRemark', label: 'Approval / Rejection Remark', type: 'textarea' },
     ],
     'project-management': [
       { name: 'title', label: 'Project Name', ...commonRequired },

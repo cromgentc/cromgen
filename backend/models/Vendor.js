@@ -69,18 +69,21 @@ export async function findVendorById(id) {
   return collection().findOne({ _id: new ObjectId(id) })
 }
 
-export async function updateVendorStatus(id, status) {
+export async function updateVendorStatus(id, status, payload = {}) {
   if (!ObjectId.isValid(id)) return null
 
-  const nextStatus = ['active', 'pending', 'suspended'].includes(String(status).trim())
+  const nextStatus = ['active', 'pending', 'suspended', 'rejected'].includes(String(status).trim())
     ? String(status).trim()
     : 'pending'
+  const approvalRemark = payload.approvalRemark || payload.remark
 
   await collection().updateOne(
     { _id: new ObjectId(id) },
     {
       $set: {
         status: nextStatus,
+        ...(approvalRemark !== undefined ? { approvalRemark: String(approvalRemark || '').trim() } : {}),
+        reviewedAt: new Date(),
         updatedAt: new Date(),
       },
     },
@@ -116,6 +119,8 @@ export function toPublicVendor(vendor) {
     experience: vendor.experience,
     message: vendor.message,
     status: vendor.status,
+    approvalRemark: vendor.approvalRemark || '',
+    reviewedAt: vendor.reviewedAt ? new Date(vendor.reviewedAt).toISOString() : '',
     createdBy: vendor.createdBy || '',
     createdAt: vendor.createdAt ? new Date(vendor.createdAt).toISOString() : '',
     updatedAt: vendor.updatedAt ? new Date(vendor.updatedAt).toISOString() : '',

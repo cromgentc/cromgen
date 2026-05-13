@@ -397,7 +397,7 @@ export async function updateSettingVendorStatus(request, { id }) {
   if (auth.error) return auth.error
 
   const body = await readJson(request)
-  const vendor = await updateVendorStatus(id, body.status)
+  const vendor = await updateVendorStatus(id, body.status, body)
   if (!vendor) return notFound('Vendor not found')
 
   return json(200, {
@@ -472,13 +472,17 @@ async function loginVendorWithCredentials(email, password, request = null) {
   }
 
   if (vendor.status !== 'active') {
+    const approvalRemark = String(vendor.approvalRemark || '').trim()
+    const baseMessage = vendor.status === 'rejected'
+      ? 'Your vendor account has been rejected by admin.'
+      : 'Your vendor account is suspended until admin approval. Please contact Cromgen admin to activate your account.'
     await recordLoginHistory(request, {
       email,
       role: 'vendor',
       status: 'Blocked',
-      reason: 'Vendor account is waiting for admin approval',
+      reason: approvalRemark ? `${baseMessage} Remark: ${approvalRemark}` : baseMessage,
     })
-    return unauthorized('Your vendor account is suspended until admin approval. Please contact Cromgen admin to activate your account.')
+    return unauthorized(approvalRemark ? `${baseMessage} Remark: ${approvalRemark}` : baseMessage)
   }
 
   const publicVendor = await attachAccessPermissions({ ...toPublicVendor(vendor), role: 'vendor' })
