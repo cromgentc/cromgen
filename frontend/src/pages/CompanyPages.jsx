@@ -204,33 +204,6 @@ const newsroomStats = [
   ['2026', 'Current newsroom cycle'],
 ]
 
-const newsroomUpdates = [
-  {
-    title: 'Cromgen Rozgar expands its workforce solutions focus',
-    copy:
-      'Cromgen continues building a dedicated identity for recruitment, staffing, payroll coordination, compliance support, and HR consulting services.',
-    image: recruitmentHero,
-    category: 'People Operations',
-    date: 'Company Update',
-  },
-  {
-    title: 'Image-led service pages improve service discovery',
-    copy:
-      'New visual service pages help visitors understand Cromgen capabilities across talent acquisition, software, AI, IT, support, and telecom delivery.',
-    image: candidatePipeline,
-    category: 'Digital Experience',
-    date: 'Platform Update',
-  },
-  {
-    title: 'Integrated service portfolio strengthens client delivery',
-    copy:
-      'Cromgen aligns AI, digital marketing, software development, IT services, call center operations, HR consulting, and telecommunications into one practical service model.',
-    image: aiHero,
-    category: 'Service Portfolio',
-    date: 'Business Update',
-  },
-]
-
 const newsroomCategories = [
   ['Company News', 'Official updates about Cromgen Technology, Cromgen Rozgar, service growth, and platform improvements.'],
   ['Service Insights', 'Practical articles about AI, marketing, support operations, IT, software, HR, and telecommunications.'],
@@ -1029,26 +1002,34 @@ export function CertificationsPage() {
 
 export function NewsRoomPage() {
   const [remotePosts, setRemotePosts] = useState([])
-  const displayPosts = [
-    ...remotePosts.map((post) => ({
-      title: post.title,
-      copy: post.summary,
-      image: post.image || aiHero,
-      category: post.category,
-      date: post.date,
-    })),
-    ...newsroomUpdates,
+  const [loadingPosts, setLoadingPosts] = useState(true)
+  const [postsError, setPostsError] = useState('')
+  const displayPosts = remotePosts.map(normalizeNewsRoomPost)
+  const featuredPost = displayPosts[0]
+  const dynamicStats = [
+    [String(displayPosts.length).padStart(2, '0'), 'Backend blog posts'],
+    ...newsroomStats.slice(1),
   ]
 
   useEffect(() => {
     let isMounted = true
 
+    setLoadingPosts(true)
+    setPostsError('')
+
     apiRequest(NEWS_ENDPOINTS.publicList)
       .then((data) => {
-        if (isMounted) setRemotePosts(data.posts || [])
+        if (!isMounted) return
+        setRemotePosts(Array.isArray(data.posts) ? data.posts : [])
+        setPostsError('')
       })
-      .catch(() => {
-        if (isMounted) setRemotePosts([])
+      .catch((error) => {
+        if (!isMounted) return
+        setRemotePosts([])
+        setPostsError(error.message || 'Unable to load newsroom posts.')
+      })
+      .finally(() => {
+        if (isMounted) setLoadingPosts(false)
       })
 
     return () => {
@@ -1068,7 +1049,7 @@ export function NewsRoomPage() {
               insights from the teams building Cromgen’s multi-service delivery platform.
             </p>
             <div className="newsroom-stats">
-              {newsroomStats.map(([value, label]) => (
+              {dynamicStats.map(([value, label]) => (
                 <article key={label}>
                   <strong>{value}</strong>
                   <span>{label}</span>
@@ -1078,14 +1059,11 @@ export function NewsRoomPage() {
           </div>
 
           <article className="news-feature-card">
-            <img src={softwareHero} alt="Cromgen Technology newsroom feature" />
+            <img src={featuredPost?.image || softwareHero} alt={featuredPost?.title || 'Cromgen Technology newsroom feature'} />
             <div>
-              <span>Featured Update</span>
-              <h2>Cromgen continues building an integrated service ecosystem for modern businesses.</h2>
-              <p>
-                The newsroom highlights how Cromgen connects technology, people operations, marketing, support,
-                and communication services into structured business delivery.
-              </p>
+              <span>{featuredPost ? featuredPost.category : 'Featured Update'}</span>
+              <h2>{featuredPost?.title || 'Cromgen newsroom posts will appear here from the backend.'}</h2>
+              <p>{featuredPost?.copy || 'Publish a blog post from Blog Management in the admin dashboard to feature it on News Room automatically.'}</p>
             </div>
           </article>
         </div>
@@ -1102,21 +1080,29 @@ export function NewsRoomPage() {
             </p>
           </div>
 
-          <div className="news-layout">
-            {displayPosts.map((item) => (
-              <article key={item.title}>
-                <div className="news-card-media">
-                  <img src={item.image} alt={item.title} />
-                  <span>{item.category}</span>
-                </div>
-                <div>
-                  <span>{item.date}</span>
-                  <h2>{item.title}</h2>
-                  <p>{item.copy}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+          {loadingPosts ? (
+            <div className="news-empty-state">Loading backend blog posts...</div>
+          ) : postsError ? (
+            <div className="news-empty-state">{postsError}</div>
+          ) : displayPosts.length ? (
+            <div className="news-layout">
+              {displayPosts.map((item) => (
+                <article key={item.slug || item.title}>
+                  <div className="news-card-media">
+                    <img src={item.image} alt={item.title} />
+                    <span>{item.category}</span>
+                  </div>
+                  <div>
+                    <span>{item.date}</span>
+                    <h2>{item.title}</h2>
+                    <p>{item.copy}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="news-empty-state">No backend blog posts found yet. Add a post from Blog Management to publish it here.</div>
+          )}
         </div>
       </section>
 
@@ -1149,6 +1135,28 @@ export function NewsRoomPage() {
       />
     </main>
   )
+}
+
+function normalizeNewsRoomPost(post) {
+  return {
+    slug: post.slug || post.title,
+    title: post.title || 'Untitled newsroom post',
+    copy: post.summary || 'No summary available for this update yet.',
+    image: post.image || aiHero,
+    category: post.category || 'Company Update',
+    date: post.date || formatNewsRoomDate(post.createdAt),
+  }
+}
+
+function formatNewsRoomDate(value) {
+  if (!value) return 'Company Update'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 export function CareerPage() {

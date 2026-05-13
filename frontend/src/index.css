@@ -4605,6 +4605,18 @@ header #mobile-navigation summary:hover {
   color: #53676a;
 }
 
+.news-empty-state {
+  border: 1px solid #d8e5e2;
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 34px;
+  color: #53676a;
+  font-size: 1rem;
+  font-weight: 750;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(8, 42, 102, 0.08);
+}
+
 .news-categories-section {
   border-top: 1px solid #d8e5e2;
   border-bottom: 1px solid #d8e5e2;
