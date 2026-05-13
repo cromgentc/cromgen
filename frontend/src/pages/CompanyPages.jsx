@@ -410,6 +410,24 @@ const outsourceFeatures = [
   [Users, 'Long-Term Partnership Support'],
 ]
 
+const outsourceContentBlocks = [
+  {
+    title: 'Managed Delivery Governance',
+    copy:
+      'Every outsourced engagement is structured with defined ownership, measurable milestones, escalation paths, and reporting cadence. Cromgen helps clients keep control of quality while reducing the operational burden on internal teams.',
+  },
+  {
+    title: 'Scalable Specialist Teams',
+    copy:
+      'Clients can start with a small pilot team and expand into larger delivery pods across recruitment, AI data collection, support operations, software work, and back-office processes as demand grows.',
+  },
+  {
+    title: 'Quality, Security, and Compliance',
+    copy:
+      'Project execution is supported by QA checkpoints, access discipline, documentation, workflow reviews, and responsible handling of client, candidate, customer, and project data.',
+  },
+]
+
 const outsourceIndustries = [
   [Bot, 'Artificial Intelligence'],
   [Landmark, 'BFSI'],
@@ -1432,6 +1450,34 @@ export function OutsourceProjectPage() {
               </div>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-7xl px-5 sm:px-6">
+          <OutsourceSectionHeader
+            eyebrow="Delivery Model"
+            title="Built for companies that need dependable execution, not just extra headcount."
+            copy="Cromgen combines project planning, workforce coordination, technology support, and operational governance so outsourced work can move with clarity from requirement to delivery."
+          />
+          <div className="grid gap-5 lg:grid-cols-3">
+            {outsourceContentBlocks.map((item, index) => (
+              <motion.article
+                key={item.title}
+                className="rounded-2xl border border-[#d7e4ff] bg-[#f6faf9] p-6 shadow-sm"
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+              >
+                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#061f4d] text-sm font-black text-white">
+                  {index + 1}
+                </span>
+                <h3 className="mt-5 text-xl font-black text-[#061f4d]">{item.title}</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#53657f]">{item.copy}</p>
+              </motion.article>
+            ))}
+          </div>
         </div>
       </section>
 
