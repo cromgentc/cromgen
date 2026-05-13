@@ -4,7 +4,6 @@ import {
   Building2,
   CalendarClock,
   ChartArea,
-  Cloud,
   Code2,
   Contact,
   FileBarChart,
@@ -137,16 +136,6 @@ export const adminNavigation = [
       ['help-center', 'Help Center'],
       ['faq-management', 'FAQ Management'],
       ['contact-requests', 'Contact Requests'],
-    ],
-  },
-  {
-    label: 'File & Cloud',
-    icon: Cloud,
-    items: [
-      ['file-manager', 'File Manager'],
-      ['cloud-storage', 'Cloud Storage'],
-      ['upload-center', 'Upload Center'],
-      ['media-library', 'Media Library'],
     ],
   },
   {

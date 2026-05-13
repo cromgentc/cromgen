@@ -11,7 +11,6 @@ const restrictedGroupsForNonAdmin = new Set([
   'CRM & Sales',
   'Recruitment',
   'Support Center',
-  'File & Cloud',
   'API & Integrations',
   'Website Management',
   'Security',
