@@ -16,6 +16,8 @@ import {
   findVendorById,
   findVendors,
   findVendorsCreatedBy,
+  isVendorApproved,
+  normalizeVendorStatus,
   toPublicVendor,
   updateVendorStatus,
 } from '../models/Vendor.js'
@@ -144,7 +146,7 @@ export async function currentUser(request) {
 
   if (payload.role === 'vendor') {
     const vendor = await findVendorById(payload.sub)
-    if (!vendor || vendor.status !== 'active') {
+    if (!vendor || !isVendorApproved(vendor.status)) {
       return unauthorized('Invalid login details')
     }
 
@@ -471,18 +473,22 @@ async function loginVendorWithCredentials(email, password, request = null) {
     return unauthorized('Invalid login details')
   }
 
-  if (vendor.status !== 'active') {
+  if (!isVendorApproved(vendor.status)) {
+    const vendorStatus = normalizeVendorStatus(vendor.status)
     const approvalRemark = String(vendor.approvalRemark || '').trim()
-    const baseMessage = vendor.status === 'rejected'
+    const fallbackMessage = vendorStatus === 'rejected'
       ? 'Your vendor account has been rejected by admin.'
-      : 'Your vendor account is suspended until admin approval. Please contact Cromgen admin to activate your account.'
+      : vendorStatus === 'suspended'
+        ? 'Your vendor account is suspended by admin.'
+        : 'Your vendor account is waiting for admin approval.'
+    const loginMessage = `Login failed: ${approvalRemark || fallbackMessage}`
     await recordLoginHistory(request, {
       email,
       role: 'vendor',
-      status: 'Blocked',
-      reason: approvalRemark ? `${baseMessage} Remark: ${approvalRemark}` : baseMessage,
+      status: 'Failed',
+      reason: loginMessage,
     })
-    return unauthorized(approvalRemark ? `${baseMessage} Remark: ${approvalRemark}` : baseMessage)
+    return unauthorized(loginMessage)
   }
 
   const publicVendor = await attachAccessPermissions({ ...toPublicVendor(vendor), role: 'vendor' })

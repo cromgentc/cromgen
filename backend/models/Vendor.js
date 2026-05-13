@@ -29,7 +29,7 @@ export async function createVendor(payload) {
     experience: payload.experience ? String(payload.experience).trim() : '',
     message: payload.message ? String(payload.message).trim() : '',
     passwordHash: hashPassword(payload.password),
-    status: payload.status ? String(payload.status).trim() : 'pending',
+    status: payload.status ? normalizeVendorStatus(payload.status) : 'pending',
     createdBy: payload.createdBy ? String(payload.createdBy).trim() : '',
     createdAt: now,
     updatedAt: now,
@@ -72,8 +72,8 @@ export async function findVendorById(id) {
 export async function updateVendorStatus(id, status, payload = {}) {
   if (!ObjectId.isValid(id)) return null
 
-  const nextStatus = ['active', 'pending', 'suspended', 'rejected'].includes(String(status).trim())
-    ? String(status).trim()
+  const nextStatus = ['active', 'approved', 'pending', 'suspended', 'rejected'].includes(String(status).trim().toLowerCase())
+    ? normalizeVendorStatus(status)
     : 'pending'
   const approvalRemark = payload.approvalRemark || payload.remark
 
@@ -134,6 +134,19 @@ function createVendorCode(source) {
     .slice(0, 4) || 'VEND'
 
   return `${prefix}-${Date.now().toString().slice(-6)}`
+}
+
+export function normalizeVendorStatus(status) {
+  const value = String(status || '').trim().toLowerCase()
+  if (['approved', 'approve', 'active'].includes(value)) return 'active'
+  if (['reject', 'rejected'].includes(value)) return 'rejected'
+  if (['suspend', 'suspended'].includes(value)) return 'suspended'
+  if (value === 'pending') return 'pending'
+  return value
+}
+
+export function isVendorApproved(status) {
+  return normalizeVendorStatus(status) === 'active'
 }
 
 function collection() {
