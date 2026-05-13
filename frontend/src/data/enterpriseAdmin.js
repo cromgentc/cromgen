@@ -167,8 +167,6 @@ export const adminNavigation = [
       ['security-settings', 'Security Settings'],
       ['login-history', 'Login History'],
       ['activity-logs', 'Activity Logs'],
-      ['admin-access-control', 'Admin Access Control'],
-      ['two-factor-authentication', 'Two-Factor Authentication'],
     ],
   },
   {

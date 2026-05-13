@@ -88,7 +88,6 @@ const emptyData = {
   clientBilling: [],
   clientReports: [],
   supportRequests: [],
-  adminAccessControls: [],
   tasks: [],
   assignedTasks: [],
   finance: [],
@@ -115,7 +114,6 @@ const emptyData = {
   securitySettings: [],
   loginHistory: [],
   activityLogs: [],
-  twoFactorAuthentication: [],
 }
 
 const formDefaults = {
@@ -135,9 +133,7 @@ const formDefaults = {
   'client-billing': { name: '', company: '', amount: '', dueDate: '', status: 'Pending', notes: '' },
   'client-reports': { name: '', company: '', category: '', status: 'Draft', notes: '' },
   'support-requests': { name: '', email: '', priority: 'Medium', status: 'Open', notes: '' },
-  'admin-access-control': { name: '', email: '', role: 'Admin', accessLevel: 'Full Access', status: 'Active', lastLogin: '', notes: '' },
   'security-settings': { name: 'Password Policy', category: 'Password Policy', enabled: 'Enabled', severity: 'High', enforcement: 'Strict', scope: 'Admin & Staff', reviewDate: '', status: 'Active', notes: '' },
-  'two-factor-authentication': { name: '', email: '', method: 'Authenticator App', enabled: 'Enabled', status: 'Active', notes: '' },
   'task-management': { name: '', project: '', assignee: '', priority: 'Medium', status: 'Open', deadline: '', notes: '' },
   'assign-tasks': { name: '', project: '', assignee: '', deadline: '', status: 'Assigned', notes: '' },
   payments: { name: '', category: '', amount: '', status: 'Pending', notes: '' },
@@ -206,7 +202,6 @@ const workforceRecordTypes = [
   'clientBilling',
   'clientReports',
   'supportRequests',
-  'adminAccessControls',
   'tasks',
   'assignedTasks',
   'finance',
@@ -233,7 +228,6 @@ const workforceRecordTypes = [
   'securitySettings',
   'loginHistory',
   'activityLogs',
-  'twoFactorAuthentication',
 ]
 const projectFallbackWorkforceType = 'clientProjects'
 
@@ -1104,7 +1098,6 @@ function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, on
 
       <section className="grid gap-4 md:grid-cols-4">
         {[
-          ['Admin Access', 'Manage control roles', 'admin-access-control'],
           ['Messages', 'Open communication center', 'support-tickets'],
           ['Quick Finance', 'Review wallet and withdraws', 'wallet'],
         ].map(([title, copy, page]) => (
@@ -2301,7 +2294,6 @@ function MessagesModal({ open, messages, onClose, onSend, onClear }) {
 function QuickActionsModal({ open, activePage, onClose, onCreate, onNavigate, onRefresh }) {
   const actions = [
     ['Create Current Record', supportedCreatePages.includes(activePage) ? 'Open form for this page' : 'Open a module first', onCreate, supportedCreatePages.includes(activePage)],
-    ['Add Admin Access', 'Create admin access control record', () => onNavigate('admin-access-control'), true],
     ['Open Invoices', 'Review invoice management', () => onNavigate('invoice-management'), true],
     ['Open Support Tickets', 'Review support queue', () => onNavigate('support-tickets'), true],
     ['Refresh Live Data', 'Sync dashboard collections', onRefresh, true],
@@ -3271,7 +3263,6 @@ const workforcePageModules = {
   'security-settings': { type: 'securitySettings', title: 'Security Settings', fields: ['name', 'category', 'enabled', 'enforcement', 'severity', 'scope', 'reviewDate', 'status', 'notes', 'createdAt'] },
   'login-history': { type: 'loginHistory', title: 'Login History', fields: ['name', 'email', 'role', 'ipAddress', 'device', 'browser', 'operatingSystem', 'location', 'mapUrl', 'directionUrl', 'sessionStartedAt', 'timeOnWeb', 'status', 'lastLogin', 'notes', 'createdAt'], readOnly: true },
   'activity-logs': { type: 'activityLogs', title: 'Activity Logs', fields: ['name', 'email', 'action', 'category', 'severity', 'status', 'targetName', 'targetId', 'notes', 'createdAt'], readOnly: true },
-  'two-factor-authentication': { type: 'twoFactorAuthentication', title: 'Two-Factor Authentication', fields: ['name', 'email', 'method', 'enabled', 'status', 'notes', 'createdAt'] },
 }
 
 function getModuleConfig(page, data, currentRole = 'admin') {
@@ -3336,10 +3327,6 @@ function getModuleConfig(page, data, currentRole = 'admin') {
 
   if (page === 'support-requests') {
     return workforceModule('supportRequests', 'Support Requests', data.supportRequests, ['name', 'email', 'priority', 'status', 'notes', 'createdAt'])
-  }
-
-  if (page === 'admin-access-control') {
-    return workforceModule('adminAccessControls', 'Admin Access Control', data.adminAccessControls, ['name', 'email', 'role', 'accessLevel', 'status', 'lastLogin', 'notes', 'createdAt'])
   }
 
   if (workforcePageModules[page]) {
@@ -3686,7 +3673,6 @@ function workforceTypeForPage(page) {
     'client-billing': 'clientBilling',
     'client-reports': 'clientReports',
     'support-requests': 'supportRequests',
-    'admin-access-control': 'adminAccessControls',
   }
 
   return map[page] || ''
@@ -3891,12 +3877,6 @@ function createAiInsights(data) {
       copy: 'Finance team can approve, reject, or mark payout requests as paid.',
       page: 'withdraw-requests',
     },
-    {
-      tag: 'Access',
-      title: `${data.adminAccessControls.length} admin access records configured`,
-      copy: 'Review admin roles and suspend inactive access from Admin Access Control.',
-      page: 'admin-access-control',
-    },
   ]
 }
 
@@ -3912,7 +3892,6 @@ function createSearchResults(data, query) {
     ['applications', 'Applications', data.applications.map((item) => ({ ...item, name: item.candidate?.name, email: item.candidate?.email }))],
     ['invoice-management', 'Invoices', data.invoices],
     ['support-tickets', 'Support', data.supportTickets],
-    ['admin-access-control', 'Access', data.adminAccessControls],
   ]
 
   return groups.flatMap(([page, label, rows]) => (rows || []).map((row) => ({
@@ -4260,15 +4239,6 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'status', label: 'Status', type: 'select', options: ['Open', 'In Progress', 'Resolved', 'Closed'] },
       { name: 'notes', label: 'Request Details', type: 'textarea' },
     ],
-    'admin-access-control': [
-      { name: 'name', label: 'Admin Name', ...commonRequired },
-      { name: 'email', label: 'Email', type: 'email', ...commonRequired },
-      { name: 'role', label: 'Role', type: 'select', options: ['Owner', 'Admin', 'Staff', 'Auditor'] },
-      { name: 'accessLevel', label: 'Access Level', type: 'select', options: ['Full Access', 'Manage', 'Read Only', 'Restricted'] },
-      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Suspended', 'Pending'] },
-      { name: 'lastLogin', label: 'Last Login', type: 'date' },
-      { name: 'notes', label: 'Access Notes', type: 'textarea' },
-    ],
     applications: [
       { name: 'name', label: 'Candidate Name', ...commonRequired },
       { name: 'email', label: 'Email', type: 'email', ...commonRequired },
@@ -4466,7 +4436,7 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'notes', label: 'Request Details', type: 'textarea' },
     ],
     'security-settings': [
-      { name: 'name', label: 'Setting Name', type: 'select', options: ['Password Policy', 'Two-Factor Authentication', 'Login Attempt Protection', 'Account Lock Policy', 'Session Timeout', 'JWT Token Expiry', 'Admin Access Protection', 'Role-Based Permissions', 'IP Allow/Block List', 'Activity Log Monitoring', 'File Upload Validation', 'API Route Protection', 'Vendor Data Access Control', 'User Data Access Control', 'Backup & Recovery', 'Suspicious Login Alerts'], ...commonRequired },
+      { name: 'name', label: 'Setting Name', type: 'select', options: ['Password Policy', 'Login Attempt Protection', 'Account Lock Policy', 'Session Timeout', 'JWT Token Expiry', 'Role-Based Permissions', 'IP Allow/Block List', 'Activity Log Monitoring', 'File Upload Validation', 'API Route Protection', 'Vendor Data Access Control', 'User Data Access Control', 'Backup & Recovery', 'Suspicious Login Alerts'], ...commonRequired },
       { name: 'category', label: 'Category', type: 'select', options: ['Access Policy', 'Password Policy', 'Login Protection', 'Session Policy', 'Token Security', 'Role Permission', 'Network Security', 'Activity Monitoring', 'File Security', 'API Security', 'Data Protection', 'Backup & Recovery', 'Alerting'] },
       { name: 'enabled', label: 'Enabled', type: 'select', options: ['Enabled', 'Disabled'] },
       { name: 'enforcement', label: 'Enforcement', type: 'select', options: ['Strict', 'Moderate', 'Monitoring Only', 'Disabled'] },
@@ -4502,14 +4472,6 @@ function getFormFields(page, data = emptyData, currentRole = 'admin') {
       { name: 'category', label: 'Category', type: 'select', options: ['Admin', 'User', 'Vendor', 'Finance', 'Content', 'Security'] },
       { name: 'severity', label: 'Severity', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] },
       { name: 'status', label: 'Status', type: 'select', options: ['Logged', 'Reviewed', 'Flagged'] },
-      { name: 'notes', label: 'Details', type: 'textarea' },
-    ],
-    'two-factor-authentication': [
-      { name: 'name', label: 'User Name', ...commonRequired },
-      { name: 'email', label: 'Email', type: 'email' },
-      { name: 'method', label: 'Method', type: 'select', options: ['Authenticator App', 'Email OTP', 'SMS OTP', 'Security Key'] },
-      { name: 'enabled', label: '2FA State', type: 'select', options: ['Enabled', 'Disabled', 'Required'] },
-      { name: 'status', label: 'Status', type: 'select', options: ['Active', 'Pending', 'Disabled'] },
       { name: 'notes', label: 'Details', type: 'textarea' },
     ],
   }

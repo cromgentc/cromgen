@@ -41,11 +41,9 @@ const allowedTypes = new Set([
   'helpCenter',
   'faqs',
   'contactRequests',
-  'adminAccessControls',
   'securitySettings',
   'loginHistory',
   'activityLogs',
-  'twoFactorAuthentication',
 ])
 
 export function isAllowedWorkforceType(type) {

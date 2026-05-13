@@ -207,10 +207,10 @@ function isTaskAssignedToVendor(record = {}, vendor = {}) {
 }
 
 function activityCategoryForType(type = '') {
-  if (['users', 'teams', 'roles', 'attendance', 'performance', 'adminAccessControls'].includes(type)) return 'User'
+  if (['users', 'teams', 'roles', 'attendance', 'performance'].includes(type)) return 'User'
   if (['vendors', 'tasks', 'assignedTasks', 'withdrawRequests', 'wallets'].includes(type)) return 'Vendor'
   if (['finance', 'billingCycles', 'invoices', 'revenueAnalytics'].includes(type)) return 'Finance'
-  if (['securitySettings', 'loginHistory', 'activityLogs', 'twoFactorAuthentication'].includes(type)) return 'Security'
+  if (['securitySettings', 'loginHistory', 'activityLogs'].includes(type)) return 'Security'
   if (['newsPosts', 'serviceSamples', 'helpCenter', 'faqs', 'contactRequests', 'supportTickets'].includes(type)) return 'Content'
   return 'Admin'
 }

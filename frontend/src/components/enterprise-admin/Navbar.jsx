@@ -27,10 +27,9 @@ export function Navbar({
 
   const profileActions = [
     ['profile-settings', 'Profile Settings'],
-    ['admin-access-control', 'Admin Access Control'],
     ['client-billing', 'Billing Workspace'],
     ['logout', 'Logout'],
-  ].filter(([target]) => profileRole === 'Admin' || target !== 'admin-access-control')
+  ]
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/55 px-4 py-4 shadow-xl shadow-black/5 backdrop-blur-2xl lg:px-7">
