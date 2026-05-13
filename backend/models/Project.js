@@ -1,68 +1,8 @@
 import { ObjectId } from 'mongodb'
 import { getDB } from '../config/db.js'
+import { findWorkforceRecordById, findWorkforceRecords } from './WorkforceRecord.js'
 
-const defaultOutsourceProjects = [
-  {
-    title: 'AI Automation Project',
-    department: 'Artificial Intelligence',
-    location: 'Remote Delivery',
-    projectType: 'Outsource',
-    experience: 'Business workflow',
-    imageKey: 'ai',
-    publicSummary:
-      'Outsource chatbot, CRM automation, reporting assistant, and internal workflow automation projects to Cromgen delivery teams.',
-  },
-  {
-    title: 'Digital Growth Project',
-    department: 'Digital Marketing',
-    location: 'Remote / Hybrid',
-    projectType: 'Outsource',
-    experience: 'Campaign support',
-    imageKey: 'software',
-    publicSummary:
-      'Outsource SEO, paid ads, social media, landing page, content, and monthly performance reporting work for business growth.',
-  },
-  {
-    title: 'Customer Support Project',
-    department: 'Call Center',
-    location: 'Office / Remote',
-    projectType: 'Outsource',
-    experience: 'Inbound / Outbound',
-    imageKey: 'recruitment',
-    publicSummary:
-      'Outsource inbound support, outbound calling, lead qualification, appointment setting, helpdesk, and customer follow-up workflows.',
-  },
-  {
-    title: 'Software Development Project',
-    department: 'Software Development',
-    location: 'Remote Delivery',
-    projectType: 'Outsource',
-    experience: 'Web / App / Dashboard',
-    imageKey: 'software',
-    publicSummary:
-      'Outsource websites, dashboards, admin panels, portals, CRM tools, integrations, and custom business application development.',
-  },
-  {
-    title: 'HR Recruitment Project',
-    department: 'HR Consultant',
-    location: 'Remote / Office',
-    projectType: 'Outsource',
-    experience: 'Hiring pipeline',
-    imageKey: 'hr',
-    publicSummary:
-      'Outsource recruitment, screening, interview coordination, onboarding documentation, workforce planning, and HR process support.',
-  },
-  {
-    title: 'IT & Telecom Project',
-    department: 'IT / Telecommunications',
-    location: 'Remote / On-site',
-    projectType: 'Outsource',
-    experience: 'Infrastructure support',
-    imageKey: 'it',
-    publicSummary:
-      'Outsource managed IT, network support, email administration, cloud telephony, IVR setup, PBX, SIP trunking, and monitoring work.',
-  },
-]
+const publicProjectWorkforceType = 'clientProjects'
 
 export async function findProjects() {
   const projects = await collection()
@@ -83,14 +23,15 @@ export async function findProjectsCreatedBy(userId) {
 }
 
 export async function findPublicProjects() {
-  await ensureDefaultOutsourceProjects()
+  const projects = await findWorkforceRecords(publicProjectWorkforceType)
+  return projects
+    .filter((project) => String(project.status || '').toLowerCase() !== 'closed')
+    .map(normalizePublicProject)
+}
 
-  const projects = await collection()
-    .find({ projectStatus: { $ne: 'closed' } })
-    .sort({ createdAt: -1 })
-    .toArray()
-
-  return projects.map(normalizePublicProject)
+export async function findPublicProjectById(id) {
+  const project = await findWorkforceRecordById(publicProjectWorkforceType, id)
+  return project ? normalizePublicProject(project) : null
 }
 
 export async function findProjectById(id) {
@@ -155,23 +96,26 @@ export function normalizeProject(project = {}) {
 
 export function normalizePublicProject(project = {}) {
   const inferredProject = inferPublicProjectMeta(project)
+  const title = project.title || project.project || project.name || ''
 
   return {
     id: String(project._id || project.id || ''),
-    title: String(project.title || '').trim(),
+    title: String(title).trim(),
     department: String(project.department || inferredProject.department).trim(),
     location: String(project.location || inferredProject.location).trim(),
     projectType: String(project.projectType || inferredProject.projectType).trim(),
     experience: String(project.experience || inferredProject.experience).trim(),
     imageKey: String(project.imageKey || inferredProject.imageKey).trim(),
-    publicSummary: String(project.publicSummary || project.contractBody || '').trim(),
-    projectStatus: String(project.projectStatus || 'active').trim(),
+    publicSummary: String(project.publicSummary || project.contractBody || project.notes || '').trim(),
+    projectStatus: String(project.projectStatus || project.status || 'active').trim(),
+    projectPriority: String(project.projectPriority || project.priority || 'Medium').trim(),
+    dueDate: String(project.dueDate || '').trim(),
     createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : '',
   }
 }
 
 function inferPublicProjectMeta(project = {}) {
-  const text = `${project.title || ''} ${project.contractBody || ''}`.toLowerCase()
+  const text = `${project.title || ''} ${project.project || ''} ${project.name || ''} ${project.contractBody || ''} ${project.notes || ''}`.toLowerCase()
 
   if (text.includes('recording') || text.includes('audio')) {
     return {
@@ -199,36 +143,6 @@ function inferPublicProjectMeta(project = {}) {
     projectType: 'Outsource',
     experience: 'Outsource Project',
     imageKey: '',
-  }
-}
-
-async function ensureDefaultOutsourceProjects() {
-  const now = new Date()
-  const titles = defaultOutsourceProjects.map((project) => project.title)
-  const existingProjects = await collection()
-    .find({ title: { $in: titles } }, { projection: { title: 1 } })
-    .toArray()
-  const existingTitles = new Set(existingProjects.map((project) => String(project.title || '').trim()))
-  const missingProjects = defaultOutsourceProjects
-    .filter((project) => !existingTitles.has(project.title))
-    .map((project) => ({
-      ...project,
-      senderName: 'Cromgen Technology',
-      projectStatus: 'active',
-      projectPriority: 'Medium',
-      startDate: '',
-      dueDate: '',
-      budget: '',
-      googleDocUrl: '',
-      assignedUserEmail: '',
-      contractBody: project.publicSummary,
-      createdBy: 'system',
-      createdAt: now,
-      updatedAt: now,
-    }))
-
-  if (missingProjects.length) {
-    await collection().insertMany(missingProjects)
   }
 }
 

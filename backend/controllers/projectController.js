@@ -4,6 +4,7 @@ import {
   createProject,
   deleteProjectById,
   findProjectById,
+  findPublicProjectById,
   findPublicProjects,
   findProjects,
   findProjectsCreatedBy,
@@ -25,7 +26,7 @@ export async function applyPublicProject(request, { id }) {
   const auth = projectApplyAuth(request)
   if (auth.error) return auth.error
 
-  const project = await findProjectById(id)
+  const project = await findPublicProjectById(id)
   if (!project) return notFound('Project not found')
 
   const body = await readJson(request).catch(() => ({}))

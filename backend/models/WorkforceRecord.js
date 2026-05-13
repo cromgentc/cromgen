@@ -63,6 +63,13 @@ export async function findWorkforceRecords(type) {
   return records.map(toPublicWorkforceRecord)
 }
 
+export async function findWorkforceRecordById(type, id) {
+  if (!isAllowedWorkforceType(type) || !ObjectId.isValid(id)) return null
+
+  const record = await collection().findOne({ _id: new ObjectId(id), type })
+  return record ? toPublicWorkforceRecord(record) : null
+}
+
 export async function createWorkforceRecord(type, payload) {
   if (!isAllowedWorkforceType(type)) return null
 
