@@ -11,7 +11,7 @@ import { json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
 const settingsOrVendorTaskAuth = requireRole(['admin', 'staff', 'vendor'])
-const workforceAuth = requireRole(['admin', 'staff', 'vendor'])
+const workforceAuth = requireRole(['admin', 'staff', 'vendor', 'user'])
 const vendorTaskReadableTypes = new Set(['assignedTasks', 'tasks'])
 const vendorFinanceTypes = new Set(['withdrawRequests', 'wallets'])
 const vendorReportTypes = new Set(['reports', 'userReports', 'revenueReports'])
@@ -57,12 +57,16 @@ export async function listWorkforceRecords(request, { type }) {
     ? await findVendorVisibleTaskRecords()
     : await findWorkforceRecords(type)
 
-  if (vendorTaskReadableTypes.has(type) && auth.payload?.role === 'vendor') {
+  if (vendorTaskReadableTypes.has(type) && ['vendor', 'user'].includes(auth.payload?.role)) {
     const vendor = await findVendorById(auth.payload.sub)
     const publicVendor = vendor ? toPublicVendor(vendor) : null
     return json(200, {
       ok: true,
-      records: publicVendor ? records.filter((record) => isTaskAssignedToVendor(record, publicVendor) || record.createdBy === auth.payload.sub) : [],
+      records: records.filter((record) => (
+        record.createdBy === auth.payload.sub ||
+        isTaskAssignedToRequester(record, auth.payload) ||
+        (publicVendor && isTaskAssignedToVendor(record, publicVendor))
+      )),
     })
   }
 
@@ -168,6 +172,13 @@ function isTaskAssignedToVendor(record = {}, vendor = {}) {
 
   return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
     || compactTokens.some((token) => compactAssignee.includes(token) || token.includes(compactAssignee))
+}
+
+function isTaskAssignedToRequester(record = {}, payload = {}) {
+  const assignee = normalizeAssigneeToken(record.assignee)
+  if (!assignee) return false
+  const tokens = [payload.email, payload.sub].map(normalizeAssigneeToken).filter(Boolean)
+  return tokens.some((token) => assignee.includes(token) || token.includes(assignee))
 }
 
 async function findVendorVisibleTaskRecords() {

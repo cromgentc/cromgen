@@ -372,7 +372,7 @@ function EnterpriseAdminApp() {
         ? Array.from(new Set([...workforceTypesForPage(page), 'assignedTasks', 'tasks']))
       : ['performance-reports', 'user-reports', 'revenue-reports'].includes(page) && currentRole === 'vendor'
         ? workforceTypesForPage(page)
-        : ['admin', 'staff'].includes(currentRole) || (currentRole === 'vendor' && page === 'task-management')
+        : ['admin', 'staff'].includes(currentRole) || (['vendor', 'user'].includes(currentRole) && page === 'task-management')
           ? workforceTypesForPage(page)
           : []
     const workforceRequests = await Promise.allSettled(
@@ -3848,6 +3848,7 @@ function canAccessPageForRole(page, currentRole) {
   if (['dashboard', 'profile-settings', 'logout'].includes(page)) return true
   if (role === 'staff') return ['user-management', 'vendor-management', 'project-management', 'assign-tasks', 'job-postings', 'applications', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
   if (role === 'vendor') return ['user-management', 'vendor-management', 'task-management', 'assign-tasks', 'wallet', 'withdraw-requests', 'invoice-management', 'performance-reports', 'user-reports', 'revenue-reports'].includes(page)
+  if (role === 'user') return ['task-management'].includes(page)
   return false
 }
 

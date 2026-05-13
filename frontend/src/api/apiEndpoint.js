@@ -101,6 +101,7 @@ export const CONTRACT_ENDPOINTS = {
 
 export const PROJECT_ENDPOINTS = {
   publicList: '/api/projects',
+  publicApply: (id) => `/api/projects/${encodeURIComponent(id)}/apply`,
   settingsList: '/api/settings/projects',
   settingsDetail: (id) => `/api/settings/projects/${encodeURIComponent(id)}`,
   settingsDelete: (id) => `/api/settings/projects/${encodeURIComponent(id)}`,

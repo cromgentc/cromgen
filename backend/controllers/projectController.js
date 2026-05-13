@@ -1,4 +1,5 @@
 import { requireRole } from '../middleware/auth.js'
+import { createWorkforceRecord } from '../models/WorkforceRecord.js'
 import {
   createProject,
   deleteProjectById,
@@ -11,11 +12,49 @@ import {
 import { forbidden, json, notFound, readJson, validationError } from '../utils/http.js'
 
 const settingsAuth = requireRole(['admin', 'staff'])
+const projectApplyAuth = requireRole(['admin', 'staff', 'user', 'vendor'])
 
 export async function listPublicProjects() {
   return json(200, {
     ok: true,
     projects: await findPublicProjects(),
+  })
+}
+
+export async function applyPublicProject(request, { id }) {
+  const auth = projectApplyAuth(request)
+  if (auth.error) return auth.error
+
+  const project = await findProjectById(id)
+  if (!project) return notFound('Project not found')
+
+  const body = await readJson(request).catch(() => ({}))
+  const applicantName = String(body.applicantName || auth.payload?.email || auth.payload?.sub || 'Applicant').trim()
+  const applicantEmail = String(body.applicantEmail || auth.payload?.email || '').trim().toLowerCase()
+  const applicantRole = String(auth.payload?.role || '').trim().toLowerCase()
+  const task = await createWorkforceRecord('tasks', {
+    name: `Apply - ${project.title}`,
+    project: project.title,
+    assignee: applicantEmail || applicantName,
+    priority: project.projectPriority || 'Medium',
+    status: 'Open',
+    deadline: project.dueDate || '',
+    notes: [
+      `Applied from Outsource Project page.`,
+      `Applicant role: ${applicantRole || 'user'}.`,
+      applicantName ? `Applicant: ${applicantName}.` : '',
+      applicantEmail ? `Email: ${applicantEmail}.` : '',
+    ].filter(Boolean).join(' '),
+    createdBy: auth.payload?.sub || '',
+    applicantRole,
+    applicantEmail,
+    sourceProjectId: project.id,
+  })
+
+  return json(201, {
+    ok: true,
+    message: 'Project application added to Task Management',
+    task,
   })
 }
 

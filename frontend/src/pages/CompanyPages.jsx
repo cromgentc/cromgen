@@ -1113,6 +1113,8 @@ export function CareerPage() {
 export function OutsourceProjectPage() {
   const [postedProjects, setPostedProjects] = useState([])
   const [isLoadingProjects, setIsLoadingProjects] = useState(true)
+  const [applyingProject, setApplyingProject] = useState('')
+  const [applyStatus, setApplyStatus] = useState({ type: '', message: '' })
   const authRole = String(localStorage.getItem('cromgen_auth_role') || '').toLowerCase()
   const dashboardByRole = {
     admin: '/admin-dashboard',
@@ -1124,6 +1126,33 @@ export function OutsourceProjectPage() {
   const applyHref = localStorage.getItem('cromgen_auth_token')
     ? dashboardHref
     : `/login?redirect=${encodeURIComponent(dashboardHref)}`
+
+  const handleProjectApply = async (event, project) => {
+    if (!localStorage.getItem('cromgen_auth_token')) return
+
+    event.preventDefault()
+    setApplyingProject(project.slug)
+    setApplyStatus({ type: '', message: '' })
+
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('cromgen_auth_user') || '{}')
+      await apiRequest(PROJECT_ENDPOINTS.publicApply(project.slug), {
+        method: 'POST',
+        body: JSON.stringify({
+          applicantName: currentUser.name || currentUser.company || '',
+          applicantEmail: currentUser.email || '',
+        }),
+      })
+      window.location.assign(dashboardHref)
+    } catch (error) {
+      setApplyStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to apply for this project.',
+      })
+    } finally {
+      setApplyingProject('')
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -1198,26 +1227,35 @@ export function OutsourceProjectPage() {
           {isLoadingProjects ? (
             <p className="auth-status is-success">Loading projects...</p>
           ) : postedProjects.length ? (
-            <div className="career-vacancy-grid">
-              {postedProjects.map((project) => (
-                <article key={project.slug} className="career-vacancy-card">
-                  <div className="career-vacancy-media">
-                    <img src={project.image} alt={`${project.title} outsourcing`} />
-                    <span>{project.department}</span>
-                  </div>
-                  <div className="career-vacancy-body">
-                    <div className="career-vacancy-meta">
-                      <span>{project.location}</span>
-                      <span>{project.type}</span>
-                      <span>{project.experience}</span>
+            <>
+              {applyStatus.message ? (
+                <p className={`auth-status ${applyStatus.type === 'success' ? 'is-success' : 'is-error'}`}>
+                  {applyStatus.message}
+                </p>
+              ) : null}
+              <div className="career-vacancy-grid">
+                {postedProjects.map((project) => (
+                  <article key={project.slug} className="career-vacancy-card">
+                    <div className="career-vacancy-media">
+                      <img src={project.image} alt={`${project.title} outsourcing`} />
+                      <span>{project.department}</span>
                     </div>
-                    <h3>{project.title}</h3>
-                    <p>{renderFormattedText(project.summary)}</p>
-                    <a href={applyHref}>Apply</a>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="career-vacancy-body">
+                      <div className="career-vacancy-meta">
+                        <span>{project.location}</span>
+                        <span>{project.type}</span>
+                        <span>{project.experience}</span>
+                      </div>
+                      <h3>{project.title}</h3>
+                      <p>{renderFormattedText(project.summary)}</p>
+                      <a href={applyHref} onClick={(event) => handleProjectApply(event, project)}>
+                        {applyingProject === project.slug ? 'Applying...' : 'Apply'}
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           ) : (
             <p className="auth-status is-error">No outsource projects are available right now.</p>
           )}
