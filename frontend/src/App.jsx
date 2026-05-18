@@ -19,6 +19,11 @@ import { SupportPage } from './pages/SupportPages.jsx'
 import { TelecommunicationsPage } from './pages/TelecommunicationsPage.jsx'
 import { VendorOnboardingPage } from './pages/drop/VendorOnboardingPage.jsx'
 import { MachineLearningSolutionsPage } from './pages/drop/MachineLearningSolutionsPage.jsx'
+import { DataLabelingAndModelTrainingPage } from './pages/drop/DataLabelingAndModelTrainingPage.jsx'
+import { NaturalLanguageProcessingPage } from './pages/drop/NaturalLanguageProcessingPage.jsx'
+import { BusinessProcessAutomationPage } from './pages/drop/BusinessProcessAutomationPage.jsx'
+import { ComputerVisionPage } from './pages/drop/ComputerVisionPage.jsx'
+import { AIServiceCapabilityPage, findAiCapabilityDetail } from './pages/drop/AIServiceSamplePage.jsx'
 import { findOnboardingPage, findServiceDetail, services, slugify } from './data/services.js'
 import { SITE_ENDPOINTS, apiRequest } from './api/apiEndpoint.js'
 import {
@@ -51,6 +56,10 @@ const onboardingDropPages = {
 
 const customServiceDetailPages = {
   'artificial-intelligence/machine-learning-solutions': MachineLearningSolutionsPage,
+  'artificial-intelligence/data-labeling-and-model-training': DataLabelingAndModelTrainingPage,
+  'artificial-intelligence/natural-language-processing': NaturalLanguageProcessingPage,
+  'artificial-intelligence/business-process-automation': BusinessProcessAutomationPage,
+  'artificial-intelligence/computer-vision': ComputerVisionPage,
 }
 
 const companyPages = {
@@ -110,6 +119,9 @@ const policyTitles = {
 
 function getPageTitle(route) {
   if (route === 'home') return 'Cromgen Technology | AI, Marketing, IT, Software, HR & Telecom Services'
+
+  const aiCapability = findAiCapabilityDetail(route)
+  if (aiCapability) return `${aiCapability.capability} | ${aiCapability.config.title} | Cromgen Technology`
 
   const service = services.find((item) => item.slug === route)
   if (service) return `${service.title} | Cromgen Technology`
@@ -209,6 +221,7 @@ function App() {
 
   const ActiveServicePage = servicePages[route]
   const ActiveServiceDetailPage = customServiceDetailPages[route]
+  const activeAiCapability = useMemo(() => findAiCapabilityDetail(route), [route])
   const ActiveOnboardingDropPage = onboardingDropPages[route]
   const ActiveCompanyPage = companyPages[route]
   const careerApplySlug = route.startsWith('career/apply/') ? route.replace('career/apply/', '') : ''
@@ -232,6 +245,8 @@ function App() {
         <ActiveOnboardingDropPage />
       ) : activeOnboardingPage ? (
         <OnboardingPage option={activeOnboardingPage} />
+      ) : activeAiCapability ? (
+        <AIServiceCapabilityPage detail={activeAiCapability} />
       ) : ActiveServiceDetailPage ? (
         <ActiveServiceDetailPage />
       ) : activeServiceDetail ? (
