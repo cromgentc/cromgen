@@ -1103,7 +1103,7 @@ function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, on
       </section>
 
       <section className="grid gap-7 xl:grid-cols-[1.35fr_0.65fr]">
-        <ChartCard title="Collection Growth" eyebrow="Live Database">
+        <ChartCard title="Collection Growth" eyebrow="Live Database" onClick={() => onNavigate('activity-logs')}>
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="revenueGradient" x1="0" x2="0" y1="0" y2="1">
@@ -1119,7 +1119,7 @@ function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, on
           </AreaChart>
         </ChartCard>
 
-        <ChartCard title="Project Analytics" eyebrow="Projects Collection">
+        <ChartCard title="Project Analytics" eyebrow="Projects Collection" onClick={() => onNavigate('project-management')}>
           <PieChart>
             <Pie data={pieData} dataKey="value" innerRadius={72} outerRadius={112} paddingAngle={5}>
               {pieData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
@@ -1131,18 +1131,18 @@ function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, on
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {projectAnalytics.map((item) => (
-          <article key={item.label} className="rounded-[24px] border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-black/10 backdrop-blur-2xl">
+          <button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="rounded-[24px] border border-white/10 bg-white/[0.08] p-5 text-left shadow-2xl shadow-black/10 backdrop-blur-2xl outline-none transition hover:-translate-y-1 hover:bg-white/[0.11] focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20">
             <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">{item.label}</p>
             <div className="mt-3 flex items-end justify-between gap-3">
               <strong className="text-3xl font-black text-white">{item.value}</strong>
               <span className={`rounded-full px-3 py-1 text-xs font-black ${item.tone}`}>{item.meta}</span>
             </div>
-          </article>
+          </button>
         ))}
       </section>
 
       <section className="grid gap-7 xl:grid-cols-2">
-        <ChartCard title="Users + Leads" eyebrow="CRM Activity">
+        <ChartCard title="Users + Leads" eyebrow="CRM Activity" onClick={() => onNavigate('leads-management')}>
           <LineChart data={chartData}>
             <CartesianGrid stroke="rgba(148,163,184,0.15)" vertical={false} />
             <XAxis dataKey="month" stroke="#94a3b8" />
@@ -1153,7 +1153,7 @@ function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, on
           </LineChart>
         </ChartCard>
 
-        <ChartCard title="Vendor Status" eyebrow="Vendor Collection">
+        <ChartCard title="Vendor Status" eyebrow="Vendor Collection" onClick={() => onNavigate('vendor-management')}>
           <BarChart data={vendorChart}>
             <CartesianGrid stroke="rgba(148,163,184,0.15)" vertical={false} />
             <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11 }} />
@@ -1166,18 +1166,24 @@ function DashboardOverview({ data, currentRole, onView, onDelete, onNavigate, on
 
       <section className="grid gap-7 xl:grid-cols-[1fr_0.78fr]">
         <EnterpriseTable title="Recent Projects" rows={projectModule.rows} columns={projectModule.columns} onView={onView} onDelete={onDelete} />
-        <OperationsPanel data={data} />
+        <OperationsPanel data={data} onNavigate={onNavigate} />
       </section>
     </motion.div>
   )
 }
 
-function OperationsPanel({ data }) {
+function OperationsPanel({ data, onNavigate }) {
   const activities = [
-    ...data.leads.slice(0, 2).map((lead) => ({ title: 'Lead received', copy: `${lead.name || lead.email} - ${lead.service || 'Service enquiry'}`, time: formatDate(lead.createdAt) })),
-    ...data.projects.slice(0, 2).map((project) => ({ title: 'Project updated', copy: `${project.title || 'Untitled'} - ${project.projectStatus || 'active'}`, time: formatDate(project.createdAt) })),
-    ...data.applications.slice(0, 2).map((application) => ({ title: 'Application submitted', copy: `${application.candidate?.name || application.candidate?.email || 'Candidate'} - ${application.title || 'Career'}`, time: formatDate(application.createdAt) })),
+    ...data.leads.slice(0, 2).map((lead) => ({ title: 'Lead received', copy: `${lead.name || lead.email} - ${lead.service || 'Service enquiry'}`, time: formatDate(lead.createdAt), page: 'leads-management' })),
+    ...data.projects.slice(0, 2).map((project) => ({ title: 'Project updated', copy: `${project.title || 'Untitled'} - ${project.projectStatus || 'active'}`, time: formatDate(project.createdAt), page: 'project-management' })),
+    ...data.applications.slice(0, 2).map((application) => ({ title: 'Application submitted', copy: `${application.candidate?.name || application.candidate?.email || 'Candidate'} - ${application.title || 'Career'}`, time: formatDate(application.createdAt), page: 'applications' })),
   ].slice(0, 5)
+  const countCards = [
+    ['Users', data.users.length, 'user-management'],
+    ['Vendors', data.vendors.length, 'vendor-management'],
+    ['Leads', data.leads.length, 'leads-management'],
+    ['Applications', data.applications.length, 'applications'],
+  ]
 
   return (
     <div className="space-y-7">
@@ -1191,7 +1197,7 @@ function OperationsPanel({ data }) {
         </div>
         <div className="space-y-4">
           {activities.length ? activities.map((activity) => (
-            <article key={`${activity.title}-${activity.copy}`} className="flex gap-3 rounded-3xl bg-slate-950/35 p-4">
+            <button key={`${activity.title}-${activity.copy}`} type="button" onClick={() => onNavigate?.(activity.page)} className="flex w-full gap-3 rounded-3xl bg-slate-950/35 p-4 text-left outline-none transition hover:-translate-y-0.5 hover:bg-slate-950/50 focus:ring-2 focus:ring-cyan-300/20">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan-300/10 text-cyan-200">
                 <Sparkles size={18} />
               </span>
@@ -1200,7 +1206,7 @@ function OperationsPanel({ data }) {
                 <p className="mt-1 text-sm leading-6 text-slate-400">{activity.copy}</p>
                 <small className="mt-2 block text-xs font-bold text-slate-500">{activity.time}</small>
               </div>
-            </article>
+            </button>
           )) : (
             <div className="rounded-3xl bg-slate-950/35 p-6 text-sm font-semibold text-slate-400">Recent activity is currently empty.</div>
           )}
@@ -1208,17 +1214,12 @@ function OperationsPanel({ data }) {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
-        {[
-          ['Users', data.users.length],
-          ['Vendors', data.vendors.length],
-          ['Leads', data.leads.length],
-          ['Applications', data.applications.length],
-        ].map(([label, value]) => (
-          <article key={label} className="rounded-3xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-2xl">
+        {countCards.map(([label, value, page]) => (
+          <button key={label} type="button" onClick={() => onNavigate?.(page)} className="rounded-3xl border border-white/10 bg-white/[0.08] p-4 text-left backdrop-blur-2xl outline-none transition hover:-translate-y-1 hover:bg-white/[0.11] focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20">
             <Bot className="text-cyan-200" size={20} />
             <h3 className="mt-4 text-2xl font-black text-white">{value}</h3>
             <p className="mt-1 text-sm font-semibold text-slate-400">{label}</p>
-          </article>
+          </button>
         ))}
       </section>
     </div>
@@ -3810,13 +3811,13 @@ function createStats(data, currentRole = 'admin') {
   const role = String(currentRole || '').toLowerCase()
   const walletBalance = calculateWalletBalance(data.wallets)
   return [
-    { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500' },
+    { label: 'Total Users', value: data.users.length, change: 'Live', icon: Users, tone: 'from-cyan-400 to-blue-500', page: 'user-management' },
     { label: 'Contracts', value: data.contracts.length, change: 'Open', icon: BriefcaseBusiness, tone: 'from-violet-400 to-fuchsia-500', page: 'legal-team' },
     { label: 'Projects', value: data.projects.length, change: 'Live', icon: Layers3, tone: 'from-emerald-300 to-cyan-500', page: 'project-management' },
-    { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500' },
+    { label: 'Vendors', value: data.vendors.length, change: 'Live', icon: Building2, tone: 'from-amber-300 to-orange-500', page: 'vendor-management' },
     { label: 'Wallet', value: role === 'vendor' ? formatMoney(walletBalance) : data.wallets.length, change: role === 'vendor' ? 'Balance' : 'Live', icon: Wallet, tone: 'from-lime-300 to-emerald-500', page: 'wallet' },
-    { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500' },
-    { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500' },
+    { label: 'Total Leads', value: data.leads.length, change: 'Live', icon: Sparkles, tone: 'from-sky-300 to-indigo-500', page: 'leads-management' },
+    { label: 'Applications', value: data.applications.length, change: 'Live', icon: Users, tone: 'from-emerald-400 to-teal-500', page: 'applications' },
   ].filter((card) => role !== 'vendor' || !['Total Leads', 'Applications'].includes(card.label))
 }
 
@@ -3951,10 +3952,10 @@ function createDashboardProjectAnalytics(projects = [], assignedTasks = []) {
   const openAssignedTasks = assignedTasks.filter((task) => !['completed', 'closed'].includes(String(task.status || '').toLowerCase())).length
 
   return [
-    { label: 'Total Projects', value: projects.length, meta: 'Live', tone: 'bg-cyan-300/15 text-cyan-100' },
-    { label: 'Active Projects', value: activeProjects, meta: 'Running', tone: 'bg-emerald-300/15 text-emerald-100' },
-    { label: 'Urgent Priority', value: urgentProjects, meta: pausedProjects ? `${pausedProjects} paused` : 'Clear', tone: urgentProjects ? 'bg-rose-300/15 text-rose-100' : 'bg-slate-300/15 text-slate-100' },
-    { label: 'Assigned Tasks', value: openAssignedTasks, meta: 'Open', tone: 'bg-violet-300/15 text-violet-100' },
+    { label: 'Total Projects', value: projects.length, meta: 'Live', tone: 'bg-cyan-300/15 text-cyan-100', page: 'project-management' },
+    { label: 'Active Projects', value: activeProjects, meta: 'Running', tone: 'bg-emerald-300/15 text-emerald-100', page: 'project-management' },
+    { label: 'Urgent Priority', value: urgentProjects, meta: pausedProjects ? `${pausedProjects} paused` : 'Clear', tone: urgentProjects ? 'bg-rose-300/15 text-rose-100' : 'bg-slate-300/15 text-slate-100', page: 'project-management' },
+    { label: 'Assigned Tasks', value: openAssignedTasks, meta: 'Open', tone: 'bg-violet-300/15 text-violet-100', page: 'assign-tasks' },
   ]
 }
 
