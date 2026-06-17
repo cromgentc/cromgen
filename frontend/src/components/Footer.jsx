@@ -38,6 +38,7 @@ const industries = [
   ['Software Development', '/software-development-services'],
   ['HR Consulting & Recruitment', '/hr-consultant'],
   ['Telecommunications', '/telecommunications'],
+  ['Film Industry', '/film-industry'],
 ]
 
 const footerCapabilityGroups = [
@@ -337,6 +338,7 @@ export function Footer() {
                 <option value="Software Development" className="text-[#142123]">Software Development</option>
                 <option value="HR Consultant" className="text-[#142123]">HR Consultant</option>
                 <option value="Telecommunications" className="text-[#142123]">Telecommunications</option>
+                <option value="Film Industry" className="text-[#142123]">Film Industry</option>
               </select>
 
               <textarea

@@ -44,6 +44,12 @@ const categoryContext = {
     stats: ['VoIP Ready', 'Secure Routing', 'Contact Center Fit'],
     visualTitle: 'Telecom Network Desk',
   },
+  'film-industry': {
+    eyebrow: 'Film & Media',
+    outcome: 'production planning, post-production, release support, and digital promotion',
+    stats: ['Production Ready', 'Post Support', 'Release Growth'],
+    visualTitle: 'Film Production Desk',
+  },
 }
 
 const capabilities = [
@@ -399,6 +405,7 @@ function buildProcess(serviceName, category) {
   if (slug === 'software-development-services') return ['Product Discovery', 'UI & Architecture', 'Agile Development', 'QA & Deployment']
   if (slug === 'hr-consultant') return ['Requirement Review', 'Candidate/HR Planning', 'Execution Coordination', 'Reporting & Closure']
   if (slug === 'telecommunications') return ['Communication Audit', 'System Design', 'Telecom Setup', 'Testing & Support']
+  if (slug === 'film-industry') return ['Creative Brief', 'Production Planning', 'Execution Support', 'Release & Promotion']
   if (slug === 'artificial-intelligence') return ['Use Case Discovery', 'Data & Workflow Planning', 'AI Solution Build', 'Integration & Monitoring']
   return [`${serviceName} Review`, 'Planning', 'Execution', 'Reporting']
 }

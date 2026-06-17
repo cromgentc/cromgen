@@ -31,6 +31,7 @@ const imageKeywords = {
   'software-development-services': 'software development code product design',
   'hr-consultant': 'human resources recruitment interview office',
   telecommunications: 'telecommunications network voip control room',
+  'film-industry': 'film production camera studio post production',
 }
 
 export function getServiceDetailImage(category, serviceName) {

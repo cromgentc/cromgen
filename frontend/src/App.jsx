@@ -7,6 +7,7 @@ import { DigitalMarketingPage } from './pages/DigitalMarketingPage.jsx'
 import { DashboardPage } from './pages/DashboardPage.jsx'
 import { ContractSigningPage } from './pages/ContractSigningPage.jsx'
 import { Footer } from './components/Footer.jsx'
+import { FilmIndustryPage } from './pages/FilmIndustryPage.jsx'
 import { FreelancerOnboardingPage } from './pages/drop/FreelancerOnboardingPage.jsx'
 import { Header } from './components/Header.jsx'
 import { HomePage } from './pages/HomePage.jsx'
@@ -47,6 +48,7 @@ const servicePages = {
   'software-development-services': SoftwareDevelopmentServicesPage,
   'hr-consultant': HrConsultantPage,
   telecommunications: TelecommunicationsPage,
+  'film-industry': FilmIndustryPage,
 }
 
 const onboardingDropPages = {
